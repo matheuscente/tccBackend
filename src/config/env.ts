@@ -1,9 +1,6 @@
 import dotenv from "dotenv"
 
-dotenv.config({
-  override: true,
-  path: "../.env"
-})
+dotenv.config()
 
 export const env = {
   databaseUrl: process.env.DATABASE_URL!,
