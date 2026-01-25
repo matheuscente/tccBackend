@@ -1,6 +1,6 @@
 import { ErrorBase } from "./base-error.js";
 
-export class NotFoundError extends ErrorBase {
+export class ValidationError extends ErrorBase {
     constructor(message: string) {
         super(400, message)
     }
