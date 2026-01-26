@@ -1,4 +1,5 @@
 import express, { Router } from "express"
+import heathCheckRoute from "../health-check.route/health-check.route.js"
 
 
 // função responsável por organizar e contralizar as rotas.
@@ -13,4 +14,7 @@ export const routes = (app: express.Express) => {
 
     //determina o caminho padrão das rotas com a instancia do router.
     app.use('/api/v1', api)
+
+    api.use('/health', heathCheckRoute)
+
 }
