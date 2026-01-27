@@ -17,3 +17,22 @@ model test {
   id Int @id @default(autoincrement())
   message String
 }
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  username  String   @unique
+  password  String
+  birthDate DateTime
+  role      Role     @default(USER)
+
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  USER
+}
