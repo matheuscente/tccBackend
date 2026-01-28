@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma.js"
 import { InternalServerError } from "../shared/errors/internal-server-error.js";
-import type { bdTest } from "../models/bdTest.model.js";
+import type { bdTest } from "../modules/bdTest/bdTest.model.js";
 
 export async function startBDTest() {
 
