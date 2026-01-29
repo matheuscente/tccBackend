@@ -1,10 +1,7 @@
-import "dotenv/config";
-import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient } from '../../generated/prisma/client.js'
+import { PrismaClient } from "@prisma/client";
 
-const connectionString = `${process.env.TEST_DATABASE_URL}`
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not defined for tests");
+}
 
-const adapter = new PrismaPg({ connectionString })
-const prismaTests = new PrismaClient({ adapter })
-
-export { prismaTests }
+export const prismaTests = new PrismaClient();

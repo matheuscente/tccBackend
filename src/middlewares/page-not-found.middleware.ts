@@ -1,5 +1,5 @@
 import express, {type Response, type Request, type NextFunction} from "express";
-import { NotFoundError } from "../shared/errors/not-found-error.js";
+import { NotFoundError } from "../shared/errors/not-found-error";
 
 export abstract class PageNotFoundMiddleware {
     static pageNotFound(app: express.Express) {

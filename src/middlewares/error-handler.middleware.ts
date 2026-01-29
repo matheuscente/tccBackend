@@ -1,7 +1,7 @@
 import express, {type Request, type Response, type NextFunction} from "express"
-import { ValidationError } from "../shared/errors/validation-error.js"
-import { NotFoundError } from "../shared/errors/not-found-error.js"
-import { InternalServerError } from "../shared/errors/internal-server-error.js"
+import { ValidationError } from "../shared/errors/validation-error"
+import { NotFoundError } from "../shared/errors/not-found-error"
+import { InternalServerError } from "../shared/errors/internal-server-error"
 import { errors } from "celebrate"
 
 export abstract class ErrorHandler {

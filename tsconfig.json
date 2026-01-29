@@ -7,7 +7,8 @@
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
+    "module": "es2022",
+    "moduleResolution": "bundler",
     "target": "esnext",
     "types": ["node","jest"],
     // For nodejs:
@@ -39,6 +40,9 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
+    "esModuleInterop": true,
     "skipLibCheck": true,
-  }
+  },
+
+    "include": ["src/**/*.ts", "tests/**/*.ts", "jest.setup.ts"]
 }

@@ -1,6 +1,6 @@
-import type { CreateUserDTO } from "../DTOs/create-user.dto.js";
-import type {User} from "../../../../generated/prisma/client.js"
-import type { UpdateUserDTO } from "../DTOs/update-user.dto.js";
+import type { CreateUserDTO } from "../DTOs/create-user.dto";
+import type {User} from "../../../../generated/prisma/client"
+import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 
 export interface IUserRepository {
     create(data: CreateUserDTO): Promise<User> 

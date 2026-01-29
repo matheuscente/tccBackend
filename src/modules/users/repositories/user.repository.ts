@@ -1,7 +1,7 @@
-import { PrismaClient, type User } from "../../../../generated/prisma/client.js";
-import type { CreateUserDTO } from "../DTOs/create-user.dto.js";
-import type { UpdateUserDTO } from "../DTOs/update-user.dto.js";
-import type { IUserRepository } from "../interfaces/user-repository.interface.js";
+import { PrismaClient, type User } from "../../../../generated/prisma/client";
+import type { CreateUserDTO } from "../DTOs/create-user.dto";
+import type { UpdateUserDTO } from "../DTOs/update-user.dto";
+import type { IUserRepository } from "../interfaces/user-repository.interface";
 
 export class UserRepository implements IUserRepository {
     constructor(private orm: PrismaClient) {}

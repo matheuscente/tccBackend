@@ -2,6 +2,14 @@
 CREATE TYPE "Role" AS ENUM ('ADMIN', 'USER');
 
 -- CreateTable
+CREATE TABLE "test" (
+    "id" SERIAL NOT NULL,
+    "message" TEXT NOT NULL,
+
+    CONSTRAINT "test_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,

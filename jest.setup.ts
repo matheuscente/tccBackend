@@ -1,9 +1,10 @@
-import { prismaTests } from "./src/lib/prisma-tests.js"
+
+import { prismaTests } from "./src/lib/prisma-tests";
+
 beforeAll(async () => {
-  await prismaTests.$connect()
-})
+  await prismaTests.$connect();
+});
 
 afterAll(async () => {
-  await prismaTests.$disconnect()
-})
-
+  await prismaTests.$disconnect();
+});
