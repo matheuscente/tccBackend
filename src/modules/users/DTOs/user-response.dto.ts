@@ -5,6 +5,7 @@ export interface UserResponseDTO {
     name: string,
     username: string,
     role: UserRole,
+    birthDate: string,
     createdAt: Date,
     updatedAt: Date
 

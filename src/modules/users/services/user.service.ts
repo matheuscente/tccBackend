@@ -46,7 +46,28 @@ export class UserService implements IUserService {
     }
 
     async update(id: string, data: UpdateUserDTO): Promise<UserResponseDTO> {
-        throw new Error("Method not implemented.");
+
+        const user: UserResponseDTO | null = await this.findById(id)
+
+        //validações
+        if(!user) throw new NotFoundError("Usuário não encontrado")
+        else if(data.username) {
+            const isUniqueUsername: UserResponseDTO | null = await this.findByUsername(data.username)
+
+            if(isUniqueUsername) throw new ValidationError("Insira outro nome de usuário")
+        }
+        else if (data.birthDate) {
+            data.birthDate = this.dateFormat(data.birthDate)
+        }
+
+                const updateUser: UpdateUserDTO = {
+            name: data.name ?? user.name,
+            birthDate: data.birthDate ?? user.birthDate,
+            username: data.username ?? user.username
+        }
+
+        return this.repository.update(id, data)
+        
     }
     
     async softDelete(id: string): Promise<void> {
@@ -75,7 +96,7 @@ export class UserService implements IUserService {
 
     }
 
-    private dateFormat(date: string): Date {
+    private dateFormat(date: string): string {
         const [day, month, year] = this.extractDate(date)
 
         const formatedDate = new Date(Date.UTC(year, month, day, 0, 0, 0))
@@ -90,7 +111,7 @@ export class UserService implements IUserService {
 
         if (!this.isValidBirthDate(formatedDate)) throw new ValidationError("Data inválida")
 
-        return formatedDate
+        return formatedDate.toISOString()
     }
 
     private getCurrentDate(): Date {
