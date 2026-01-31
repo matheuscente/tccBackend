@@ -23,6 +23,7 @@
     "@babel/core": "^7.28.6",
     "@babel/preset-env": "^7.28.6",
     "@babel/preset-typescript": "^7.28.5",
+    "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.0.3",
@@ -35,6 +36,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
+    "bcrypt": "^6.0.0",
     "celebrate": "^15.0.3",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
