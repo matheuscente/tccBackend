@@ -1,5 +1,5 @@
 export interface UpdateUserDTO {
     name?: string,
     username?: string,
-    birthDate?: string
+    birthDate?: string | Date
 }
