@@ -7,5 +7,10 @@ export interface IUserService {
     findById(id:string): Promise<UserResponseDTO | null>
     findByUsername(username: string): Promise<UserResponseDTO | null>
     update(id: string, data: UpdateUserDTO): Promise<UserResponseDTO>
+    updatePassword(
+        id: string, 
+        oldPassword: string,
+        newPassword: string
+    ): Promise<void>
     softDelete(id: string): Promise<void>
 }

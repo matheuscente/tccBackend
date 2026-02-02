@@ -12,6 +12,18 @@ export class UserService implements IUserService {
   constructor(private repository: IUserRepository,
               private hasher: IHashUtils
   ) {}
+  async updatePassword(id: string, oldPassword: string, newPassword: string): Promise<void> {
+    const user = await this.findById(id)
+
+    if(!user) throw new NotFoundError('usuário não encontrado')
+    
+    const isPasswordOk = await this.hasher.comparePassword(oldPassword, newPassword)
+
+    if(!isPasswordOk) throw new ValidationError("senha inválida!")
+
+    await this.repository.updatePassword(id, newPassword)
+    return
+  }
 
   async create(data: CreateUserDTO): Promise<UserResponseDTO> {
 
@@ -19,12 +31,7 @@ export class UserService implements IUserService {
       throw new ValidationError("Insira outro nome de usuário");
     }
 
-<<<<<<< HEAD
-    private parseBirthDate(date: string): Date {
-        const parts = date.split('/')
-=======
     const hashedPassoword = await this.hasher.hashPassword(data.password)
->>>>>>> 7fd185b7d61d8929292e73a1f8ee1733150e449d
 
     const formatedDate = this.dateFormat(data.birthDate)
 

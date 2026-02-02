@@ -6,6 +6,16 @@ import type { IUserRepository } from "../interfaces/user-repository.interface";
 export class UserRepository implements IUserRepository {
     constructor(private orm: PrismaClient) {}
 
+    async updatePassword(id: string, newPassword: string): Promise<void> {
+        await this.orm.user.update({
+            where: {id,
+                deletedAt: null
+            },
+            
+             data: {password: newPassword}
+        })
+    }
+
     async create(data: CreateUserDTO): Promise<User> {
         return this.orm.user.create({data})
     }
