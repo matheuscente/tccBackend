@@ -74,5 +74,14 @@ describe('UserRepository tests', () => {
         expect(deleted?.deletedAt).not.toBeNull()
     })
 
+        it('should update the user password', async () => {
+
+        await repository.updatePassword(createUserId, 'new password')
+
+        const newPassword = (await repository.findById(createUserId))?.password
+        
+        expect(newPassword).toBe('new password')
+    })
+
 
 })
