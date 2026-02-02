@@ -7,5 +7,10 @@ export interface IUserRepository {
     findById(id:string): Promise<User | null>
     findByUsername(username: string): Promise<User | null>
     update(id: string, data: UpdateUserDTO): Promise<User>
+    updatePassword(
+        id: string, 
+        oldPassword: string,
+        newPassword: string
+    ): Promise<void>
     softDelete(id: string): Promise<void>
 }

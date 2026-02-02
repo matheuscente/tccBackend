@@ -6,12 +6,31 @@ import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IUserRepository } from "../interfaces/user-repository.interface";
 import type { User } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
+import type { IHashUtils } from "../../hash/interfaces/hash-utils.interface";
 
 export class UserService implements IUserService {
-  constructor(private repository: IUserRepository) {}
+  constructor(private repository: IUserRepository,
+              private hasher: IHashUtils
+  ) {}
 
   async create(data: CreateUserDTO): Promise<UserResponseDTO> {
-    throw new Error("Method not implemented.");
+
+    if(!await this.isUniqueUsername(data.username)) {
+      throw new ValidationError("Insira outro nome de usuário");
+    }
+
+    const hashedPassoword = await this.hasher.hashPassword(data.password)
+
+    const formatedDate = this.dateFormat(data.birthDate)
+
+    return this.repository.create({
+      name: data.name,
+      username: data.username,
+      password: hashedPassoword,
+      birthDate: formatedDate
+    })
+
+
   }
 
   async findById(id: string): Promise<UserResponseDTO | null> {
@@ -46,6 +65,14 @@ export class UserService implements IUserService {
     return returnUser;
   }
 
+  private async isUniqueUsername(username:string): Promise<boolean> {
+    const user = await this.findByUsername(username)
+
+    return user === null ? true : false
+  }
+
+
+
   async update(id: string, data: UpdateUserDTO): Promise<UserResponseDTO> {
     const user: UserResponseDTO | null = await this.findById(id);
 
@@ -53,19 +80,14 @@ export class UserService implements IUserService {
     if (!user) throw new NotFoundError("Usuário não encontrado");
 
     if (data.username) {
-      const existsUsername: UserResponseDTO | null = await this.findByUsername(
-        data.username,
-      );
 
-      if (existsUsername)
+      if (!await this.isUniqueUsername(data.username))
         throw new ValidationError("Insira outro nome de usuário");
     }
 
     if (data.birthDate) {
         //transforma o birthDate em date, sempre virá como string, pois é validado no controller.
-        if(typeof data.birthDate === 'string') {
             data.birthDate = this.dateFormat(data.birthDate);
-        }
     }
 
     const updateUser: UpdateUserDTO = {
@@ -102,7 +124,9 @@ export class UserService implements IUserService {
     return [day, month, year];
   }
 
-  private dateFormat(date: string): Date {
+  private dateFormat(date: string | Date): Date {
+    if(!(typeof date === "string")) throw new ValidationError(" data inválida")
+
     const [day, month, year] = this.extractDate(date);
 
     const formatedDate = new Date(Date.UTC(year, month, day, 0, 0, 0));
