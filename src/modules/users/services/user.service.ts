@@ -30,7 +30,7 @@ export class UserService implements IUserService {
         throw new Error("Method not implemented.");
     }
 
-    private dateFormat(date: string): Date {
+    private parseBirthDate(date: string): Date {
         const parts = date.split('/')
 
         if (parts.length !== 3) {
