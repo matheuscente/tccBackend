@@ -10,16 +10,16 @@ import type { IHashUtils } from "../../hash/interfaces/hash-utils.interface";
 
 export class UserService implements IUserService {
   constructor(private repository: IUserRepository,
-              private hasher: IHashUtils
-  ) {}
+    private hasher: IHashUtils
+  ) { }
   async updatePassword(id: string, oldPassword: string, newPassword: string): Promise<void> {
     const user = await this.findById(id)
 
-    if(!user) throw new NotFoundError('usuário não encontrado')
-    
+    if (!user) throw new NotFoundError('usuário não encontrado')
+
     const isPasswordOk = await this.hasher.comparePassword(oldPassword, newPassword)
 
-    if(!isPasswordOk) throw new ValidationError("senha inválida!")
+    if (!isPasswordOk) throw new ValidationError("senha inválida!")
 
     await this.repository.updatePassword(id, newPassword)
     return
@@ -27,7 +27,7 @@ export class UserService implements IUserService {
 
   async create(data: CreateUserDTO): Promise<UserResponseDTO> {
 
-    if(!await this.isUniqueUsername(data.username)) {
+    if (!await this.isUniqueUsername(data.username)) {
       throw new ValidationError("Insira outro nome de usuário");
     }
 
@@ -35,12 +35,22 @@ export class UserService implements IUserService {
 
     const formatedDate = this.dateFormat(data.birthDate)
 
-    return this.repository.create({
+    const user = await this.repository.create({
       name: data.name,
       username: data.username,
       password: hashedPassoword,
       birthDate: formatedDate
     })
+
+    return {
+      id: user.id,
+      birthDate: user.birthDate,
+      name: user.name,
+      username: user.username,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      role: user.role
+    }
 
 
   }
@@ -77,7 +87,7 @@ export class UserService implements IUserService {
     return returnUser;
   }
 
-  private async isUniqueUsername(username:string): Promise<boolean> {
+  private async isUniqueUsername(username: string): Promise<boolean> {
     const user = await this.findByUsername(username)
 
     return user === null ? true : false
@@ -98,8 +108,8 @@ export class UserService implements IUserService {
     }
 
     if (data.birthDate) {
-        //transforma o birthDate em date, sempre virá como string, pois é validado no controller.
-            data.birthDate = this.dateFormat(data.birthDate);
+      //transforma o birthDate em date, sempre virá como string, pois é validado no controller.
+      data.birthDate = this.dateFormat(data.birthDate);
     }
 
     const updateUser: UpdateUserDTO = {
@@ -108,7 +118,18 @@ export class UserService implements IUserService {
       username: data.username ?? user.username,
     };
 
-    return this.repository.update(id, updateUser);
+    const upadatedUser = await this.repository.update(id, updateUser);
+
+    return {
+      id: upadatedUser.id,
+      birthDate: upadatedUser.birthDate,
+      name: upadatedUser.name,
+      username: upadatedUser.username,
+      createdAt: upadatedUser.createdAt,
+      updatedAt: upadatedUser.updatedAt,
+      role: upadatedUser.role
+    }
+
   }
 
   async softDelete(id: string): Promise<void> {
@@ -137,7 +158,7 @@ export class UserService implements IUserService {
   }
 
   private dateFormat(date: string | Date): Date {
-    if(!(typeof date === "string")) throw new ValidationError(" data inválida")
+    if (!(typeof date === "string")) throw new ValidationError(" data inválida")
 
     const [day, month, year] = this.extractDate(date);
 

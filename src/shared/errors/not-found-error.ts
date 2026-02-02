@@ -1,4 +1,4 @@
-import { ErrorBase } from "./base-error.js";
+import { ErrorBase } from "./base-error";
 
 export class NotFoundError extends ErrorBase {
     constructor(message: string) {
