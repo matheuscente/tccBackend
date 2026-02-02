@@ -11,16 +11,18 @@ export class UserRepository implements IUserRepository {
     }
 
     async findById(id: string): Promise<User | null> {
-        return this.orm.user.findUnique({where: {id} })
+        return this.orm.user.findUnique({where: {id, deletedAt: null} })
     }
 
     async findByUsername(username: string): Promise<User | null> {
-        return this.orm.user.findUnique({where: {username}})
+        return this.orm.user.findFirst({where: {username, deletedAt: null}})
     }
 
     async update(id: string, data: UpdateUserDTO): Promise<User> {
         return this.orm.user.update({
-            where: {id},
+            where: {id,
+                deletedAt: null
+            },
             data
         })
     }

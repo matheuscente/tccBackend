@@ -4,8 +4,8 @@ export interface UserResponseDTO {
     id: string,
     name: string,
     username: string,
-    age: number,
     role: UserRole,
+    birthDate: Date,
     createdAt: Date,
     updatedAt: Date
 
