@@ -2,6 +2,7 @@ import type { User } from "@prisma/client"
 import type { IHashUtils } from "../../hash/interfaces/hash-utils.interface"
 import type { IUserRepository } from "../interfaces/user-repository.interface"
 import { UserService } from "./user.service"
+import { ValidationError } from "../../../shared/errors/validation-error"
 
 describe('user service tests', () => {
     const repositoryMock: jest.Mocked<IUserRepository> = {
@@ -66,6 +67,33 @@ describe('user service tests', () => {
 
 
         })
+
+        it('should return an error because the username already exists', async () => {
+            repositoryMock.findByUsername.mockResolvedValue({
+                id: "1",
+                name: "Test",
+                username: "test",
+                role: "USER",
+                birthDate: new Date("2000-01-01"),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                password: "hashed password",
+                deletedAt: null
+            })
+
+            const user = service.create({
+                name: "test",
+                username: "test",
+                password: "test",
+                birthDate: "11/11/2000"
+            })
+
+            await expect(user).rejects.toBeInstanceOf(ValidationError)
+            await expect(user).rejects.toThrow('Insira outro nome de usuário')
+            expect(repositoryMock.create).not.toHaveBeenCalled()
+        })
+
+
     })
 
 })

@@ -1,5 +1,5 @@
 import type { CreateUserDTO } from "../DTOs/create-user.dto";
-import type {User} from "../../../../generated/prisma/client"
+import type {User} from "@prisma/client"
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 
 export interface IUserRepository {
