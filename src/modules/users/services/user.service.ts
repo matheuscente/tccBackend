@@ -7,6 +7,7 @@ import type { IUserRepository } from "../interfaces/user-repository.interface";
 import type { User } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { IHashUtils } from "../../hash/interfaces/hash-utils.interface";
+import { InternalServerError } from "../../../shared/errors/internal-server-error";
 
 export class UserService implements IUserService {
   constructor(private repository: IUserRepository,
@@ -32,6 +33,8 @@ export class UserService implements IUserService {
     }
 
     const hashedPassoword = await this.hasher.hashPassword(data.password)
+
+    if(hashedPassoword === data.password) throw new InternalServerError("Ocorreu um erro interno, favor contatar o suporte")
 
     const formatedDate = this.dateFormat(data.birthDate)
 
@@ -169,11 +172,11 @@ export class UserService implements IUserService {
       formatedDate.getUTCMonth() !== month ||
       formatedDate.getUTCDate() !== day
     ) {
-      throw new ValidationError("Dia inválido para o mês informado!");
+      throw new ValidationError("Data inválida!");
     }
 
     if (!this.isValidBirthDate(formatedDate))
-      throw new ValidationError("Data inválida");
+      throw new ValidationError("Data de nascimento maior que a data atual");
 
     return formatedDate
   }

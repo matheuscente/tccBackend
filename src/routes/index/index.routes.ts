@@ -1,12 +1,12 @@
 import express, { Router } from "express"
-import heathCheckRoute from "../health-check.route/health-check.route.js"
+import heathCheckRoute from "../health-check.route/health-check.route"
 
 
 // função responsável por organizar e contralizar as rotas.
 export const routes = (app: express.Express) => {
     
     //determina o app usar JSON em todas as rotas
-    app.use(express.json())
+    app.use(expresson())
 
     //instancia do router do express
     const api = Router()

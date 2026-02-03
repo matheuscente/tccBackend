@@ -28,11 +28,19 @@ describe('hash util test', () => {
 
     it("should be fail to validate a invalid password", async () => {
         const wrongPassword = 'incorrectPassword'
-        const hashed = await hashUtil.hashPassword(password)
 
         const isValid = await hashUtil.comparePassword(password, wrongPassword)
 
         expect(isValid).toBe(false)
     })
+
+        it("should fail because the hashed password is the same as the original password", async () => {
+
+        const isValid = await hashUtil.comparePassword(password, password)
+
+        expect(isValid).toBe(false)
+    })
+
+
 
 })

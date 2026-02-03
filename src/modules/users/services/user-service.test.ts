@@ -5,6 +5,19 @@ import { UserService } from "./user.service"
 import { ValidationError } from "../../../shared/errors/validation-error"
 
 describe('user service tests', () => {
+    const makeUser = (overrides?: Partial<User>):User => ({
+                id: "1",
+                name: "Test",
+                username: "test",
+                role: "USER",
+                birthDate: new Date("2000-01-01"),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                password: "hashed password",
+                deletedAt: null,
+                ...overrides
+            })
+
     const repositoryMock: jest.Mocked<IUserRepository> = {
         create: jest.fn(),
         findById: jest.fn(),
@@ -28,17 +41,7 @@ describe('user service tests', () => {
         })
 
         it('should create a user successfully', async () => {
-            const mockUserReturn: User = {
-                id: "1",
-                name: "Test",
-                username: "test",
-                role: "USER",
-                birthDate: new Date("2000-01-01"),
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                password: "hashed password",
-                deletedAt: null
-            }
+            const mockUserReturn = makeUser()
             repositoryMock.findByUsername.mockResolvedValue(null)
             hashMock.hashPassword.mockResolvedValue('hashed password')
 
@@ -69,17 +72,7 @@ describe('user service tests', () => {
         })
 
         it('should return an error because the username already exists', async () => {
-            repositoryMock.findByUsername.mockResolvedValue({
-                id: "1",
-                name: "Test",
-                username: "test",
-                role: "USER",
-                birthDate: new Date("2000-01-01"),
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                password: "hashed password",
-                deletedAt: null
-            })
+            repositoryMock.findByUsername.mockResolvedValue(makeUser())
 
             const user = service.create({
                 name: "test",
@@ -88,9 +81,47 @@ describe('user service tests', () => {
                 birthDate: "11/11/2000"
             })
 
+            expect(hashMock.hashPassword).not.toHaveBeenCalled()
             await expect(user).rejects.toBeInstanceOf(ValidationError)
             await expect(user).rejects.toThrow('Insira outro nome de usuário')
             expect(repositoryMock.create).not.toHaveBeenCalled()
+        })
+
+        it("should return an error because the birthdate is invaid", async () => {
+            repositoryMock.findByUsername.mockResolvedValue(null)
+            hashMock.hashPassword.mockResolvedValue('hashed password')
+
+            const result = service.create({
+                name: "Test",
+                username: "test",
+                password: "123",
+                birthDate: '31/02/2000'
+            })
+
+            expect(repositoryMock.create).not.toHaveBeenCalled()
+            await expect(result).rejects.toThrow('Data inválida!')
+            await expect(result).rejects.toBeInstanceOf(ValidationError)
+
+            
+        })
+
+        it("should return an error because the birthdate is later than the current date", async () => {
+            repositoryMock.findByUsername.mockResolvedValue(null)
+            hashMock.hashPassword.mockResolvedValue('hashed password')
+
+            const year = new Date().getFullYear() + 1
+
+            const result = service.create({
+                name: "Test",
+                username: "test",
+                password: "123",
+                birthDate: `01/01/${year}`
+            })
+
+            expect(repositoryMock.create).not.toHaveBeenCalled()
+            await expect(result).rejects.toThrow('Data de nascimento maior que a data atual')
+            await expect(result).rejects.toBeInstanceOf(ValidationError)
+            
         })
 
 
