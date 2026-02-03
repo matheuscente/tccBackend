@@ -5,18 +5,18 @@ import { UserService } from "./user.service"
 import { ValidationError } from "../../../shared/errors/validation-error"
 
 describe('user service tests', () => {
-    const makeUser = (overrides?: Partial<User>):User => ({
-                id: "1",
-                name: "Test",
-                username: "test",
-                role: "USER",
-                birthDate: new Date("2000-01-01"),
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                password: "hashed password",
-                deletedAt: null,
-                ...overrides
-            })
+    const makeUser = (overrides?: Partial<User>): User => ({
+        id: "1",
+        name: "Test",
+        username: "test",
+        role: "USER",
+        birthDate: new Date("2000-01-01"),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        password: "hashed password",
+        deletedAt: null,
+        ...overrides
+    })
 
     const repositoryMock: jest.Mocked<IUserRepository> = {
         create: jest.fn(),
@@ -34,7 +34,7 @@ describe('user service tests', () => {
 
     const service = new UserService(repositoryMock, hashMock)
 
-    describe('create user tests', () => {
+    describe('create tests', () => {
 
         beforeEach(() => {
             jest.clearAllMocks()
@@ -57,6 +57,12 @@ describe('user service tests', () => {
             expect(result).not.toHaveProperty('password')
             expect(result).not.toHaveProperty('deletedAt')
             expect(result).toHaveProperty('id')
+            expect(result).toHaveProperty('name')
+            expect(result).toHaveProperty('username')
+            expect(result).toHaveProperty('role')
+            expect(result).toHaveProperty('birthDate')
+            expect(result).toHaveProperty('createdAt')
+            expect(result).toHaveProperty('updatedAt')
             expect(hashMock.hashPassword).toHaveBeenCalledWith('123')
             expect(repositoryMock.create).toHaveBeenCalledWith({
                 name: "Test",
@@ -102,7 +108,7 @@ describe('user service tests', () => {
             await expect(result).rejects.toThrow('Data inválida!')
             await expect(result).rejects.toBeInstanceOf(ValidationError)
 
-            
+
         })
 
         it("should return an error because the birthdate is later than the current date", async () => {
@@ -121,10 +127,48 @@ describe('user service tests', () => {
             expect(repositoryMock.create).not.toHaveBeenCalled()
             await expect(result).rejects.toThrow('Data de nascimento maior que a data atual')
             await expect(result).rejects.toBeInstanceOf(ValidationError)
-            
+
         })
 
 
+    })
+
+    describe('findById tests', () => {
+        beforeEach(() => {
+            jest.clearAllMocks()
+        })
+
+        it('should find a user sucessfully', async () => {
+            const user = makeUser()
+            repositoryMock.findById.mockResolvedValue(user)
+
+            const userTest = await service.findById(user.id)
+
+            expect(userTest).not.toBeNull()
+            expect(userTest).not.toHaveProperty('password')
+            expect(userTest).not.toHaveProperty('deletedAt')
+            expect(userTest).toHaveProperty('createdAt')
+            expect(userTest).toHaveProperty('updatedAt')
+            expect(repositoryMock.findById).toHaveBeenCalledWith(user.id)
+            expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(userTest).toMatchObject({
+                id: user.id,
+                name: user.name,
+                username: user.username,
+                role: user.role,
+                birthDate: user.birthDate,
+            })
+        })
+
+        it('should return null because it cannot find a user with the given ID', async () => {
+            repositoryMock.findById.mockResolvedValue(null)
+
+            const userTest = await service.findById('123')
+
+            expect(userTest).toBeNull()
+            expect(repositoryMock.findById).toHaveBeenCalledWith('123')
+            expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+        })
     })
 
 })
