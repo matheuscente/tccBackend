@@ -90,14 +90,6 @@ export class UserService implements IUserService {
     return returnUser;
   }
 
-  private async isUniqueUsername(username: string): Promise<boolean> {
-    const user = await this.findByUsername(username)
-
-    return user === null ? true : false
-  }
-
-
-
   async update(id: string, data: UpdateUserDTO): Promise<UserResponseDTO> {
     const user: UserResponseDTO | null = await this.findById(id);
 
@@ -142,6 +134,13 @@ export class UserService implements IUserService {
     await this.repository.softDelete(id);
     return;
   }
+
+  private async isUniqueUsername(username: string): Promise<boolean> {
+    const user = await this.findByUsername(username)
+
+    return user === null ? true : false
+  }
+
 
   private extractDate(date: string): [number, number, number] {
     const parts = date.split("/");

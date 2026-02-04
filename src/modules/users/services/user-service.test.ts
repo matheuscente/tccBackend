@@ -3,6 +3,7 @@ import type { IHashUtils } from "../../hash/interfaces/hash-utils.interface";
 import type { IUserRepository } from "../interfaces/user-repository.interface";
 import { UserService } from "./user.service";
 import { ValidationError } from "../../../shared/errors/validation-error";
+import { NotFoundError } from "../../../shared/errors/not-found-error";
 
 describe("user service tests", () => {
   const makeUser = (overrides?: Partial<User>): User => ({
@@ -34,10 +35,12 @@ describe("user service tests", () => {
 
   const service = new UserService(repositoryMock, hashMock);
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+
   describe("create tests", () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
 
     it("should create a user successfully", async () => {
       const mockUserReturn = makeUser();
@@ -125,9 +128,6 @@ describe("user service tests", () => {
   });
 
   describe("findById tests", () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
 
     it("should find a user sucessfully", async () => {
       const user = makeUser();
@@ -163,9 +163,6 @@ describe("user service tests", () => {
   });
 
   describe("findByUsername tests", () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
 
     it("should find a user sucessfully", async () => {
       const user = makeUser();
@@ -199,4 +196,62 @@ describe("user service tests", () => {
       expect(userTest).toBeNull();
     });
   });
+
+  describe("softDelete tests", () => {
+
+    it('should delete a user sucessfully', async () => {
+      const user = makeUser()
+      repositoryMock.findById.mockResolvedValue(user)
+
+      await service.softDelete(user.id)
+
+      expect(repositoryMock.softDelete).toHaveBeenCalledWith(user.id)
+      expect(repositoryMock.softDelete).toHaveBeenCalledTimes(1)
+
+
+    })
+
+    it('It should throw an error because there is no user with the given ID', async () => {
+      const user = makeUser()
+      repositoryMock.findById.mockResolvedValue(null)
+
+      const userTest = service.softDelete(user.id)
+
+      expect(repositoryMock.softDelete).not.toHaveBeenCalled()
+      await expect(userTest).rejects.toBeInstanceOf(NotFoundError)
+      await expect(userTest).rejects.toThrow("usuario não encontrado")
+
+    })
+
+
+  })
+
+    describe("updatePassword tests", () => {
+
+    it('should update a password sucessfully', async () => {
+      const user = makeUser()
+      repositoryMock.findById.mockResolvedValue(user)
+
+      await service.softDelete(user.id)
+
+      expect(repositoryMock.softDelete).toHaveBeenCalledWith(user.id)
+      expect(repositoryMock.softDelete).toHaveBeenCalledTimes(1)
+
+
+    })
+
+    it('It should throw an error because there is no user with the given ID', async () => {
+      const user = makeUser()
+      repositoryMock.findById.mockResolvedValue(null)
+
+      const userTest = service.softDelete(user.id)
+
+      expect(repositoryMock.softDelete).not.toHaveBeenCalled()
+      await expect(userTest).rejects.toBeInstanceOf(NotFoundError)
+      await expect(userTest).rejects.toThrow("usuario não encontrado")
+
+    })
+
+
+  })
 });
