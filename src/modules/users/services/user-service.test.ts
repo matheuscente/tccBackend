@@ -229,28 +229,19 @@ describe("user service tests", () => {
     describe("updatePassword tests", () => {
 
     it('should update a password sucessfully', async () => {
-      const user = makeUser()
+      const user = makeUser({password: 'hashed-old-password'})
       repositoryMock.findById.mockResolvedValue(user)
+      hashMock.comparePassword.mockResolvedValue(true)
 
-      await service.softDelete(user.id)
+      await service.updatePassword(user.id, 'old password', 'new password')
 
-      expect(repositoryMock.softDelete).toHaveBeenCalledWith(user.id)
-      expect(repositoryMock.softDelete).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.updatePassword).toHaveBeenCalledWith(user.id, 'old password', 'new password')
+      expect(repositoryMock.updatePassword).toHaveBeenCalledTimes(1)
+      expect(hashMock.comparePassword)
 
-
-    })
-
-    it('It should throw an error because there is no user with the given ID', async () => {
-      const user = makeUser()
-      repositoryMock.findById.mockResolvedValue(null)
-
-      const userTest = service.softDelete(user.id)
-
-      expect(repositoryMock.softDelete).not.toHaveBeenCalled()
-      await expect(userTest).rejects.toBeInstanceOf(NotFoundError)
-      await expect(userTest).rejects.toThrow("usuario não encontrado")
 
     })
+
 
 
   })
