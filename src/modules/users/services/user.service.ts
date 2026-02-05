@@ -14,21 +14,23 @@ export class UserService implements IUserService {
     private hasher: IHashUtils
   ) { }
   async updatePassword(id: string, oldPassword: string, newPassword: string): Promise<void> {
-    const user = await this.findById(id)
+    const user = await this.repository.findById(id)
 
     if (!user) throw new NotFoundError('usuário não encontrado')
 
-    const isPasswordOk = await this.hasher.comparePassword(oldPassword, newPassword)
+    const isPasswordOk = await this.hasher.comparePassword(oldPassword, user.password)
 
     if (!isPasswordOk) throw new ValidationError("senha inválida!")
 
-    await this.repository.updatePassword(id, newPassword)
+    const newHashedPassword = await this.hasher.hashPassword(newPassword) 
+
+    await this.repository.updatePassword(id, newHashedPassword)
     return
   }
 
   async create(data: CreateUserDTO): Promise<UserResponseDTO> {
 
-    if (!await this.isUniqueUsername(data.username)) {
+    if (await this.findByUsername(data.username)) {
       throw new ValidationError("Insira outro nome de usuário");
     }
 
@@ -98,7 +100,7 @@ export class UserService implements IUserService {
 
     if (data.username) {
 
-      if (!await this.isUniqueUsername(data.username))
+      if (await this.findByUsername(data.username))
         throw new ValidationError("Insira outro nome de usuário");
     }
 
@@ -110,7 +112,7 @@ export class UserService implements IUserService {
     const updateUser: UpdateUserDTO = {
       name: data.name ?? user.name,
       birthDate: data.birthDate ?? user.birthDate,
-      username: data.username ?? user.username,
+      username: data.username ?? user.username
     };
 
     const upadatedUser = await this.repository.update(id, updateUser);
@@ -134,13 +136,6 @@ export class UserService implements IUserService {
     await this.repository.softDelete(id);
     return;
   }
-
-  private async isUniqueUsername(username: string): Promise<boolean> {
-    const user = await this.findByUsername(username)
-
-    return user === null ? true : false
-  }
-
 
   private extractDate(date: string): [number, number, number] {
     const parts = date.split("/");

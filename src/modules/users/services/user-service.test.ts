@@ -1,9 +1,11 @@
-import type { User } from "@prisma/client";
+import { Role, type User } from "@prisma/client";
 import type { IHashUtils } from "../../hash/interfaces/hash-utils.interface";
 import type { IUserRepository } from "../interfaces/user-repository.interface";
 import { UserService } from "./user.service";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
+import type { CreateUserDTO } from "../DTOs/create-user.dto";
+import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 
 describe("user service tests", () => {
   const makeUser = (overrides?: Partial<User>): User => ({
@@ -226,23 +228,120 @@ describe("user service tests", () => {
 
   })
 
-    describe("updatePassword tests", () => {
+  describe("updatePassword tests", () => {
 
     it('should update a password sucessfully', async () => {
-      const user = makeUser({password: 'hashed-old-password'})
+      const user = makeUser({ password: 'hashed-old-password' })
       repositoryMock.findById.mockResolvedValue(user)
+      hashMock.hashPassword.mockResolvedValue('hashed-new-password')
       hashMock.comparePassword.mockResolvedValue(true)
 
       await service.updatePassword(user.id, 'old password', 'new password')
 
-      expect(repositoryMock.updatePassword).toHaveBeenCalledWith(user.id, 'old password', 'new password')
+      expect(hashMock.comparePassword).toHaveBeenCalledWith('old password', user.password)
+      expect(hashMock.hashPassword).toHaveBeenCalledTimes(1)
+      expect(hashMock.hashPassword).toHaveBeenCalledWith('new password')
       expect(repositoryMock.updatePassword).toHaveBeenCalledTimes(1)
-      expect(hashMock.comparePassword)
-
+      expect(repositoryMock.updatePassword).toHaveBeenCalledWith(user.id, 'hashed-new-password')
+      expect(repositoryMock.updatePassword).toHaveBeenCalledTimes(1)
 
     })
 
+    it('should throw an error because the entered password does not match the hashed password', async () => {
+      const user = makeUser({ password: 'hashed-old-password' })
+      repositoryMock.findById.mockResolvedValue(user)
+      hashMock.comparePassword.mockResolvedValue(false)
+
+      const test = service.updatePassword(user.id, 'old password', 'new password')
+
+      await expect(test).rejects.toBeInstanceOf(ValidationError)
+      await expect(test).rejects.toThrow("senha inválida!")
+      expect(hashMock.comparePassword).toHaveBeenCalledWith('old password', user.password)
+      expect(hashMock.hashPassword).not.toHaveBeenCalled()
+      expect(repositoryMock.updatePassword).not.toHaveBeenCalled()
+    })
+
+    it('should throw an error because there is no user with the given ID.', async () => {
+      const user = makeUser({ password: 'hashed-old-password' })
+      repositoryMock.findById.mockResolvedValue(null)
+
+      const test = service.updatePassword(user.id, 'old password', 'new password')
+
+      await expect(test).rejects.toBeInstanceOf(NotFoundError)
+      await expect(test).rejects.toThrow('usuário não encontrado')
+      expect(hashMock.hashPassword).not.toHaveBeenCalled()
+      expect(hashMock.comparePassword).not.toHaveBeenCalled()
+      expect(repositoryMock.updatePassword).not.toHaveBeenCalled()
+    })
+
+  })
+
+  describe("update test", () => {
+    it("should update a user sucessfully", async () => {
+      const user = makeUser()
+      repositoryMock.update.mockResolvedValue(user)
+      repositoryMock.findById.mockResolvedValue(user)
+      repositoryMock.findByUsername.mockResolvedValue(null)
+
+      const test = await service.update('1', { name: 'name updated' })
+
+      const dataUpdate: UpdateUserDTO = {
+        name: 'name updated',
+        username: user.username,
+        birthDate: user.birthDate
+      }
+
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.findById).toHaveBeenCalledWith('1')
+      expect(repositoryMock.findByUsername).not.toHaveBeenCalled()
+      expect(repositoryMock.update).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.update).toHaveBeenCalledWith('1', dataUpdate)
+      expect(test).toHaveProperty('role')
+      expect(test).not.toHaveProperty('password')
+      expect(test).not.toHaveProperty('deletedAt')
 
 
+      expect(test).toMatchObject({
+        id: expect.any(String),
+        birthDate: expect.any(Date),
+        name: expect.any(String),
+        username: expect.any(String),
+        updatedAt: expect.any(Date),
+        createdAt: expect.any(Date)
+      })
+    })
+
+    it("should throw error when username is already taken", async () => {
+      const user = makeUser({username: "duplicate"})
+      repositoryMock.findById.mockResolvedValue(user);
+      repositoryMock.findByUsername.mockResolvedValue(user);
+
+      const promise = service.update('1', { username: "duplicate" });
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError)
+      await expect(promise).rejects.toThrow("Insira outro nome de usuário");
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.findById).toHaveBeenCalledWith('1')
+      expect(repositoryMock.findByUsername).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.findByUsername).toHaveBeenCalledWith('duplicate')
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+
+    });
+
+    it("should throw an error when the user does not exist", async () => {
+      const user = makeUser()
+      repositoryMock.findById.mockResolvedValue(null);
+
+      const promise = service.update('1', { username: "test" });
+
+      await expect(promise).rejects.toBeInstanceOf(NotFoundError)
+      await expect(promise).rejects.toThrow("Usuário não encontrado");
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.findById).toHaveBeenCalledWith('1')
+      expect(repositoryMock.findByUsername).not.toHaveBeenCalled()
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+    });
+
+    
   })
 });
