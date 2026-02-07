@@ -34,11 +34,11 @@ describe("user service tests", () => {
 
   const service = new UserService(repositoryMock, hashMock);
 
-  describe("create tests", () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
+  describe("create tests", () => {
     it("should create a user successfully", async () => {
       const mockUserReturn = makeUser();
       repositoryMock.findByUsername.mockResolvedValue(null);
@@ -125,10 +125,6 @@ describe("user service tests", () => {
   });
 
   describe("findById tests", () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
-
     it("should find a user sucessfully", async () => {
       const user = makeUser();
       repositoryMock.findById.mockResolvedValue(user);
@@ -163,10 +159,6 @@ describe("user service tests", () => {
   });
 
   describe("findByUsername tests", () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
-
     it("should find a user sucessfully", async () => {
       const user = makeUser();
       repositoryMock.findByUsername.mockResolvedValue(user);
