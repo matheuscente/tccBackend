@@ -6,11 +6,13 @@ import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IUserRepository } from "../interfaces/user-repository.interface";
 import type { User } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
-import type { IHashUtils } from "../../hash/interfaces/hash-utils.interface";
+import type { IHashUtils } from "../../../shared/hash/interfaces/hash-utils.interface";
 import { InternalServerError } from "../../../shared/errors/internal-server-error";
+import { Sanitize } from "../../../shared/sanitize/sanitize.utils"
 
 export class UserService implements IUserService {
-  constructor(private repository: IUserRepository,
+  constructor(
+    private repository: IUserRepository,
     private hasher: IHashUtils
   ) { }
   async updatePassword(id: string, oldPassword: string, newPassword: string): Promise<void> {
@@ -41,8 +43,8 @@ export class UserService implements IUserService {
     const formatedDate = this.dateFormat(data.birthDate)
 
     const user = await this.repository.create({
-      name: data.name,
-      username: data.username,
+      name: Sanitize.sanitazeName(data.name),
+      username: Sanitize.sanitazeUsername(data.username),
       password: hashedPassoword,
       birthDate: formatedDate
     })
@@ -105,14 +107,14 @@ export class UserService implements IUserService {
     }
 
     if (data.birthDate) {
-      //transforma o birthDate em date, sempre virá como string, pois é validado no controller.
+      //transforma o birthDate em date, sempre virá como string, pois é validado no middlware.
       data.birthDate = this.dateFormat(data.birthDate);
     }
 
     const updateUser: UpdateUserDTO = {
-      name: data.name ?? user.name,
+      name: data.name ? Sanitize.sanitazeName(data.name) : user.name,
       birthDate: data.birthDate ?? user.birthDate,
-      username: data.username ?? user.username
+      username: data.username ? Sanitize.sanitazeUsername(data.username) : user.username
     };
 
     const upadatedUser = await this.repository.update(id, updateUser);
@@ -156,7 +158,7 @@ export class UserService implements IUserService {
 
   private dateFormat(date: string | Date): Date {
     if (!(typeof date === "string")) throw new ValidationError(" data inválida")
-
+      
     const [day, month, year] = this.extractDate(date);
 
     const formatedDate = new Date(Date.UTC(year, month, day, 0, 0, 0));

@@ -1,5 +1,5 @@
 import type { User } from "@prisma/client";
-import type { IHashUtils } from "../../hash/interfaces/hash-utils.interface";
+import type { IHashUtils } from "../../../shared/hash/interfaces/hash-utils.interface";
 import type { IUserRepository } from "../interfaces/user-repository.interface";
 import { UserService } from "./user.service";
 import { ValidationError } from "../../../shared/errors/validation-error";
