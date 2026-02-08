@@ -6,7 +6,7 @@ import heathCheckRoute from "../health-check.route/health-check.route"
 export const routes = (app: express.Express) => {
     
     //determina o app usar JSON em todas as rotas
-    app.use(expresson())
+    app.use(express.json())
 
     //instancia do router do express
     const api = Router()
