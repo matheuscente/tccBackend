@@ -8,7 +8,7 @@ import type { CreateUserDTO } from "../DTOs/create-user.dto";
 export class UserController implements IUserController {
     constructor(private readonly service: IUserService) {}
 
-    async create(req: Request<any, any, CreateUserDTO>, res: Response, next: NextFunction): Promise<void> {
+    create = async (req: Request<any, any, CreateUserDTO>, res: Response, next: NextFunction): Promise<void>  => {
         
         try {
 
@@ -20,14 +20,14 @@ export class UserController implements IUserController {
 
 
         } catch(err) {
-
+            console.log(err)
             next(err)
 
         }
 
     }
 
-    async findById(req: Request<any, any, any, { id: string; }>, res: Response, next: NextFunction): Promise<void> {
+    findById = async (req: Request<any, any, any, { id: string; }>, res: Response, next: NextFunction): Promise<void> => {
        try {
 
         const { id } = req.query
@@ -45,7 +45,7 @@ export class UserController implements IUserController {
        }
     }
 
-    async findByUsername(req: Request<any, any, any, { username: string; }>, res: Response, next: NextFunction): Promise<void> {
+     findByUsername = async (req: Request<any, any, any, { username: string; }>, res: Response, next: NextFunction): Promise<void> => {
        try {
 
         const { username } = req.query
@@ -64,7 +64,7 @@ export class UserController implements IUserController {
     
     }
 
-    async softDelete(req: Request<any, any, any, { id: string; }>, res: Response, next: NextFunction): Promise<void> {
+   softDelete = async (req: Request<any, any, any, { id: string; }>, res: Response, next: NextFunction): Promise<void> => {
         
         try {
             const { id } = req.query
@@ -79,7 +79,7 @@ export class UserController implements IUserController {
 
         }
     }
-    async update(req: Request<any, any, UpdateUserDTO, { id: string}>, res: Response, next: NextFunction): Promise<void> {
+    update = async (req: Request<any, any, UpdateUserDTO, { id: string}>, res: Response, next: NextFunction): Promise<void> => {
 
          try {
 
@@ -97,7 +97,7 @@ export class UserController implements IUserController {
         }
     }
     
-    async updatePassword(req: Request<any, any, { oldPassword: string, newPassword: string}, { id: string }>, res: Response, next: NextFunction): Promise<void> {
+    updatePassword = async (req: Request<any, any, { oldPassword: string, newPassword: string}, { id: string }>, res: Response, next: NextFunction): Promise<void> => {
         
         try {
 

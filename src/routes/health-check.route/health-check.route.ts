@@ -5,7 +5,7 @@ const heathCheckRoute = express.Router()
 
 heathCheckRoute.get("/", async (req, res) => {
     await prisma.$connect()
-    res.status(200)on({database: "conectado com sucesso"})
+    res.status(200).json({database: "conectado com sucesso"})
 })
 
 export default heathCheckRoute
