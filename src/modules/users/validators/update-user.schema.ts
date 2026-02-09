@@ -10,3 +10,4 @@ export const UpdateUserSchema = Joi.object().keys({
 }).prefs({abortEarly: false})
 .unknown(false)
 .min(1)
+.required()

@@ -17,8 +17,8 @@ userRoutes.get('/username', RequestValidator.queryValidator(FindUserByUsernameSc
 
 userRoutes.post('/', RequestValidator.bodyValidator(CreateUserSchema), userController.create)
 
-userRoutes.patch('/:username', RequestValidator.paramsValidator(FindUserByUsernameSchema), RequestValidator.bodyValidator(UpdateUserSchema), userController.update)
+userRoutes.patch('/:id', RequestValidator.paramsValidator(FindUserByIdSchema), RequestValidator.bodyValidator(UpdateUserSchema), userController.update)
 
-userRoutes.patch('/:username/password', RequestValidator.paramsValidator(FindUserByUsernameSchema), RequestValidator.bodyValidator(UpdateUserPasswordSchema), userController.updatePassword)
+userRoutes.patch('/:id/password', RequestValidator.paramsValidator(FindUserByIdSchema), RequestValidator.bodyValidator(UpdateUserPasswordSchema), userController.updatePassword)
 
-userRoutes.delete('/:username', RequestValidator.paramsValidator(FindUserByUsernameSchema), userController.softDelete)
+userRoutes.delete('/:id', RequestValidator.paramsValidator(FindUserByIdSchema), userController.softDelete)

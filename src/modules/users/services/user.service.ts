@@ -24,7 +24,7 @@ export class UserService implements IUserService {
 
     if (!isPasswordOk) throw new ValidationError("senha inválida!")
 
-    const newHashedPassword = await this.hasher.hashPassword(newPassword) 
+    const newHashedPassword = await this.hasher.hashPassword(newPassword)
 
     await this.repository.updatePassword(id, newHashedPassword)
     return
@@ -32,13 +32,15 @@ export class UserService implements IUserService {
 
   async create(data: CreateUserDTO): Promise<UserResponseDTO> {
 
-    if (await this.findByUsername(data.username)) {
+    const userExists = await this.repository.findByUsername(data.username)
+
+    if (userExists && !(userExists.deletedAt)) {
       throw new ValidationError("Insira outro nome de usuário");
     }
 
     const hashedPassoword = await this.hasher.hashPassword(data.password)
 
-    if(hashedPassoword === data.password) throw new InternalServerError("Ocorreu um erro interno, favor contatar o suporte")
+    if (hashedPassoword === data.password) throw new InternalServerError("Ocorreu um erro interno, favor contatar o suporte")
 
     const formatedDate = this.dateFormat(data.birthDate)
 
@@ -102,8 +104,11 @@ export class UserService implements IUserService {
 
     if (data.username) {
 
-      if (await this.findByUsername(data.username))
+      const userExists = await this.repository.findByUsername(data.username)
+
+      if (userExists && !(userExists.deletedAt)) {
         throw new ValidationError("Insira outro nome de usuário");
+      }
     }
 
     if (data.birthDate) {
@@ -158,7 +163,7 @@ export class UserService implements IUserService {
 
   private dateFormat(date: string | Date): Date {
     if (!(typeof date === "string")) throw new ValidationError(" data inválida")
-      
+
     const [day, month, year] = this.extractDate(date);
 
     const formatedDate = new Date(Date.UTC(year, month, day, 0, 0, 0));

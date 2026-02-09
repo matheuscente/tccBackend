@@ -21,7 +21,7 @@ export class UserRepository implements IUserRepository {
     }
 
     async findById(id: string): Promise<User | null> {
-        return this.orm.user.findUnique({where: {id, deletedAt: null} })
+        return this.orm.user.findFirst({where: {id, deletedAt: null} })
     }
 
     async findByUsername(username: string): Promise<User | null> {
@@ -29,6 +29,7 @@ export class UserRepository implements IUserRepository {
     }
 
     async update(id: string, data: UpdateUserDTO): Promise<User> {
+
         return this.orm.user.update({
             where: {id,
                 deletedAt: null

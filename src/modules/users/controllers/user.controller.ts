@@ -40,6 +40,7 @@ export class UserController implements IUserController {
 
        } catch (err) {
 
+        console.log(err)
         next(err)
 
        }
@@ -58,16 +59,19 @@ export class UserController implements IUserController {
 
        } catch (err) {
 
+        console.log(err)
         next(err)
 
        }
     
     }
 
-   softDelete = async (req: Request<any, any, any, { id: string; }>, res: Response, next: NextFunction): Promise<void> => {
+   softDelete = async (req: Request<{ id: string }, any, any>, res: Response, next: NextFunction): Promise<void> => {
         
         try {
-            const { id } = req.query
+            const { id } = req.params
+
+                    console.log("id controller", id)
 
             await this.service.softDelete(id)
 
@@ -75,15 +79,16 @@ export class UserController implements IUserController {
 
         } catch(err) {
 
+            console.log(err)
             next(err)
 
         }
     }
-    update = async (req: Request<any, any, UpdateUserDTO, { id: string}>, res: Response, next: NextFunction): Promise<void> => {
+    update = async (req: Request<{ id: string}, any, UpdateUserDTO>, res: Response, next: NextFunction): Promise<void> => {
 
          try {
 
-            const { id } = req.query
+            const { id } = req.params
             const data = req.body
 
             const user = await this.service.update(id, data)
@@ -92,16 +97,17 @@ export class UserController implements IUserController {
 
         } catch(err) {
 
+            console.log(err)
             next(err)
             
         }
     }
     
-    updatePassword = async (req: Request<any, any, { oldPassword: string, newPassword: string}, { id: string }>, res: Response, next: NextFunction): Promise<void> => {
+    updatePassword = async (req: Request<{ id: string }, any, { oldPassword: string, newPassword: string}>, res: Response, next: NextFunction): Promise<void> => {
         
         try {
 
-            const { id } = req.query
+            const { id } = req.params
             const { oldPassword, newPassword } = req.body
 
             await this.service.updatePassword(id, oldPassword, newPassword)
@@ -110,6 +116,7 @@ export class UserController implements IUserController {
 
         } catch(err) {
 
+            console.log(err)
             next(err)
             
         }

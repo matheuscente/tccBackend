@@ -9,4 +9,4 @@ export const CreateUserSchema = Joi.object().keys({
     password: baseUserFields.password.required(),
 
     birthDate: baseUserFields.birthDate.required()
-}).prefs({abortEarly: false}).unknown(false)
+}).prefs({abortEarly: false}).unknown(false).required()

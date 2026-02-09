@@ -10,3 +10,4 @@ export const UpdateUserPasswordSchema = Joi.object().keys({
 
 }).prefs({abortEarly: false})
 .unknown(false)
+.required()
