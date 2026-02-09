@@ -14,3 +14,5 @@ function birthDateFormat(date: string): Date {
     }
 
     console.log(birthDateFormat('31/10/2001'))
+
+    //ola
