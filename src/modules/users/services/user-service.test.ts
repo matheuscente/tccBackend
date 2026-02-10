@@ -174,7 +174,7 @@ describe("user service tests", () => {
     describe("findWithPassword tests", () => {
     it("should find a user sucessfully", async () => {
       const user = makeUser();
-      repositoryMock.findById.mockResolvedValue(user);
+      repositoryMock.findByUsername.mockResolvedValue(user);
 
       const userTest = await service.findWithPassword(user.id);
 
@@ -185,8 +185,8 @@ describe("user service tests", () => {
       expect(userTest).not.toHaveProperty("birthDate");
       expect(userTest).not.toHaveProperty("name");
       expect(userTest).not.toHaveProperty("role");
-      expect(repositoryMock.findById).toHaveBeenCalledWith(user.id);
-      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByUsername).toHaveBeenCalledWith(user.id);
+      expect(repositoryMock.findByUsername).toHaveBeenCalledTimes(1);
       expect(userTest).toMatchObject({
         id: user.id,
         username: user.username,
@@ -195,13 +195,13 @@ describe("user service tests", () => {
     });
 
     it("should return null because it cannot find a user with the given ID", async () => {
-      repositoryMock.findById.mockResolvedValue(null);
+      repositoryMock.findByUsername.mockResolvedValue(null);
 
-      const userTest = await service.findById("123");
+      const userTest = await service.findWithPassword("test");
 
       expect(userTest).toBeNull();
-      expect(repositoryMock.findById).toHaveBeenCalledWith("123");
-      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByUsername).toHaveBeenCalledWith("test");
+      expect(repositoryMock.findByUsername).toHaveBeenCalledTimes(1);
     });
   });
 

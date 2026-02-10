@@ -14,5 +14,5 @@ export interface IUserService {
         newPassword: string
     ): Promise<void>
     softDelete(id: string): Promise<void>
-    findWithPassword(id: string): Promise<Partial<Pick<User, "password" | "username">> | null>
+    findWithPassword(username: string): Promise<Partial<Pick<User, "password" | "username">> | null>
 }
