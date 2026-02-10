@@ -1,3 +1,4 @@
+import type { User } from "@prisma/client";
 import type { CreateUserDTO } from "../DTOs/create-user.dto";
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 import type { UserResponseDTO } from "../DTOs/user-response.dto";
@@ -13,4 +14,5 @@ export interface IUserService {
         newPassword: string
     ): Promise<void>
     softDelete(id: string): Promise<void>
+    findWithPassword(id: string): Promise<Partial<Pick<User, "password" | "username">> | null>
 }

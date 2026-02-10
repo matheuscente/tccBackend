@@ -1,5 +1,4 @@
-import { exec } from "node:child_process";
-import { Hash } from "../utils/hash-utils";
+import { Hash } from "../hash/hash-utils";
 
 describe('hash util test', () => {
     const saltRounds = 10;

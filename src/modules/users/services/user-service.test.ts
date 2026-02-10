@@ -5,11 +5,12 @@ import { UserService } from "./user.service";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
+import type { Isanitize } from "../../../shared/sanitize/sanitize.interface";
 
 describe("user service tests", () => {
   const makeUser = (overrides?: Partial<User>): User => ({
     id: "1",
-    name: "Test",
+    name: "test",
     username: "test",
     role: "USER",
     birthDate: new Date("2000-01-01"),
@@ -19,6 +20,16 @@ describe("user service tests", () => {
     deletedAt: null,
     ...overrides,
   });
+
+  const sanitizeMock: jest.Mocked<Isanitize> = {
+    sanitizeUsername: jest.fn(),
+    sanitizeName: jest.fn(),
+    removeAccents: jest.fn()
+  }
+
+  sanitizeMock.sanitizeName.mockImplementation( ((value) => value.toUpperCase().trim()))
+  sanitizeMock.sanitizeUsername.mockImplementation( ((value) => value.toLowerCase().trim()))
+
 
   const repositoryMock: jest.Mocked<IUserRepository> = {
     create: jest.fn(),
@@ -34,14 +45,11 @@ describe("user service tests", () => {
     comparePassword: jest.fn(),
   };
 
-  const service = new UserService(repositoryMock, hashMock);
+  const service = new UserService(repositoryMock, hashMock, sanitizeMock);
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
-
-
-  describe("create tests", () => {
 
   describe("create tests", () => {
     it("should create a user successfully", async () => {
@@ -69,7 +77,7 @@ describe("user service tests", () => {
       expect(result).toHaveProperty("updatedAt");
       expect(hashMock.hashPassword).toHaveBeenCalledWith("123");
       expect(repositoryMock.create).toHaveBeenCalledWith({
-        name: "Test",
+        name: "TEST",
         username: "test",
         password: "hashed password",
         birthDate: new Date(Date.UTC(2000, 0, 1)),
@@ -162,6 +170,41 @@ describe("user service tests", () => {
       expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
     });
   });
+
+    describe("findWithPassword tests", () => {
+    it("should find a user sucessfully", async () => {
+      const user = makeUser();
+      repositoryMock.findById.mockResolvedValue(user);
+
+      const userTest = await service.findWithPassword(user.id);
+
+      expect(userTest).not.toBeNull();
+      expect(userTest).not.toHaveProperty("deletedAt");
+      expect(userTest).not.toHaveProperty("createdAt");
+      expect(userTest).not.toHaveProperty("updatedAt");
+      expect(userTest).not.toHaveProperty("birthDate");
+      expect(userTest).not.toHaveProperty("name");
+      expect(userTest).not.toHaveProperty("role");
+      expect(repositoryMock.findById).toHaveBeenCalledWith(user.id);
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(userTest).toMatchObject({
+        id: user.id,
+        username: user.username,
+        password: user.password
+      });
+    });
+
+    it("should return null because it cannot find a user with the given ID", async () => {
+      repositoryMock.findById.mockResolvedValue(null);
+
+      const userTest = await service.findById("123");
+
+      expect(userTest).toBeNull();
+      expect(repositoryMock.findById).toHaveBeenCalledWith("123");
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+    });
+  });
+
 
   describe("findByUsername tests", () => {
     it("should find a user sucessfully", async () => {
@@ -293,7 +336,7 @@ describe("user service tests", () => {
       expect(repositoryMock.findById).toHaveBeenCalledWith('1')
       expect(repositoryMock.findByUsername).not.toHaveBeenCalled()
       expect(repositoryMock.update).toHaveBeenCalledTimes(1)
-      expect(repositoryMock.update).toHaveBeenCalledWith('1', dataUpdate)
+      expect(repositoryMock.update).toHaveBeenCalledWith('1', {...dataUpdate, name: "NAME UPDATED"})
       expect(test).toHaveProperty('role')
       expect(test).not.toHaveProperty('password')
       expect(test).not.toHaveProperty('deletedAt')
@@ -409,5 +452,3 @@ describe("user service tests", () => {
 
   })
 })
-
-});

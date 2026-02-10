@@ -8,12 +8,13 @@ import type { User } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { IHashUtils } from "../../../shared/hash/interfaces/hash-utils.interface";
 import { InternalServerError } from "../../../shared/errors/internal-server-error";
-import { Sanitize } from "../../../shared/sanitize/sanitize.utils"
+import type { Isanitize } from "../../../shared/sanitize/sanitize.interface";
 
 export class UserService implements IUserService {
   constructor(
     private repository: IUserRepository,
-    private hasher: IHashUtils
+    private hasher: IHashUtils,
+    private sanitize: Isanitize
   ) { }
   async updatePassword(id: string, oldPassword: string, newPassword: string): Promise<void> {
     const user = await this.repository.findById(id)
@@ -45,8 +46,8 @@ export class UserService implements IUserService {
     const formatedDate = this.dateFormat(data.birthDate)
 
     const user = await this.repository.create({
-      name: Sanitize.sanitazeName(data.name),
-      username: Sanitize.sanitazeUsername(data.username),
+      name: this.sanitize.sanitizeName(data.name),
+      username: this.sanitize.sanitizeUsername(data.username),
       password: hashedPassoword,
       birthDate: formatedDate
     })
@@ -78,6 +79,17 @@ export class UserService implements IUserService {
       updatedAt: user.updatedAt,
     };
     return returnUser;
+  }
+
+  async findWithPassword(id: string): Promise<Partial<Pick<User, "password" | "username" | "id">> | null> {
+    const user = await this.repository.findById(id);
+    if(!user) return user
+    return {
+      id: user.id,
+      username: user.name,
+      password: user.password
+    }
+    
   }
 
   async findByUsername(username: string): Promise<UserResponseDTO | null> {
@@ -117,9 +129,9 @@ export class UserService implements IUserService {
     }
 
     const updateUser: UpdateUserDTO = {
-      name: data.name ? Sanitize.sanitazeName(data.name) : user.name,
+      name: data.name ? this.sanitize.sanitizeName(data.name) : user.name,
       birthDate: data.birthDate ?? user.birthDate,
-      username: data.username ? Sanitize.sanitazeUsername(data.username) : user.username
+      username: data.username ? this.sanitize.sanitizeUsername(data.username) : user.username
     };
 
     const upadatedUser = await this.repository.update(id, updateUser);

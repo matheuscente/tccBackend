@@ -1,9 +1,11 @@
-export abstract class Sanitize {
-  static removeAccents(value: string): string {
+import type { Isanitize } from "./sanitize.interface";
+
+export class Sanitize implements Isanitize {
+ removeAccents(value: string): string {
     return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
 
-  static sanitazeName(name: string): string {
+ sanitizeName(name: string): string {
     return this.removeAccents(
         name
             .trim()
@@ -12,11 +14,11 @@ export abstract class Sanitize {
     )
   }
 
-  static sanitazeUsername(username: string) {
+ sanitizeUsername(username: string) {
     return this.removeAccents(
         username   
             .trim()
-            .toLocaleLowerCase()
+            .toLowerCase()
     )
   }
 }
