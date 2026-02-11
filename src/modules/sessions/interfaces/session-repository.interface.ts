@@ -1,5 +1,5 @@
 import type { Session } from "@prisma/client";
-import type { CreateSessionDTO } from "../DTOs/create-session.dto";
+import type { CreateSessionDTO } from "../DTOs/session-token-response.DTO";
 
 export interface ISessionRepository {
     create(data: CreateSessionDTO): Promise<Session>

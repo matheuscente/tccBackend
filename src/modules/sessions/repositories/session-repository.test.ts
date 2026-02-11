@@ -1,6 +1,6 @@
 import type { Session, User } from "@prisma/client"
 import { prismaTests } from "../../../lib/prisma-tests"
-import type { CreateSessionDTO } from "../DTOs/create-session.dto"
+import type { CreateSessionDTO } from "../DTOs/session-token-response.DTO"
 import { SessionRepository } from "./session.repository"
 import { UserRepository } from "../../users/repositories/user.repository"
 import { randomUUID } from "crypto"
