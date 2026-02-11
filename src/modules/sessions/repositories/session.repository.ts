@@ -1,6 +1,6 @@
 import type { PrismaClient, Session } from "@prisma/client";
 import type { CreateSessionDTO } from "../DTOs/create-session.dto";
-import type { ISessionRepository } from "./session-repository.interface";
+import type { ISessionRepository } from "../interfaces/session-repository.interface";
 
 
 export class SessionRepository implements ISessionRepository {
