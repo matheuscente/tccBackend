@@ -6,7 +6,7 @@ export interface ISessionRepository {
 
     findByRefreshToken(refreshToken: string): Promise<Session | null>
 
-    findByUserId(id: string): Promise<Session | null>
+    findByUserId(id: string): Promise<Session[]>
 
     invalidate(sessionId: string): Promise<void>
 }
