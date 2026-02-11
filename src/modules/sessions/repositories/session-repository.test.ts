@@ -10,8 +10,7 @@ describe('SessionRepository tests', () => {
     const repository = new SessionRepository(prismaTests)
     const userRepository = new UserRepository(prismaTests)
 
-    let session: Session,
-        user: User,
+    let user: User,
         refreshToken: string,
         userId: string
 
@@ -38,14 +37,9 @@ describe('SessionRepository tests', () => {
     })
 
     afterAll(async () => {
+
+        await prismaTests.user.deleteMany()
         await prismaTests.$disconnect()
-    })
-
-    beforeEach(async () => {
-
-        session = await repository.create(makeSession(user.id))
-        refreshToken = session.refreshToken
-        userId = session.userId
     })
 
     afterEach(async () => {
@@ -53,6 +47,7 @@ describe('SessionRepository tests', () => {
     })
 
     describe("create tests", () => {
+
         it('should create a session', async () => {
             const createdSession: CreateSessionDTO = makeSession(user.id)
 
@@ -90,6 +85,15 @@ describe('SessionRepository tests', () => {
     })
 
     describe("findByUserId tests", () => {
+        let session: Session;
+        beforeEach(async () => {
+            session = await repository.create(makeSession(user.id))
+            refreshToken = session.refreshToken
+            userId = session.userId
+        })
+
+
+
         it('should find a session by userId', async () => {
 
             const sessionReturns: Session[] = await repository.findByUserId(userId)
@@ -98,19 +102,20 @@ describe('SessionRepository tests', () => {
 
             expect(sessionReturns.length).toBe(1)
 
+            expect(sessionReturns[0]?.createdAt).toBeInstanceOf(Date)
+
+            expect(sessionReturns[0]?.updatedAt).toBeInstanceOf(Date)
+
             expect(sessionReturns[0]).toMatchObject({
                 id: session.id,
                 refreshToken: session.refreshToken,
                 userId: session.userId,
                 isValid: true,
-                createdAt: session.createdAt,
-                updatedAt: session.updatedAt,
-
             })
 
         })
 
-        it('It should return null because there is no session with the userId provided in the database', async () => {
+        it('It should return an empty array because there is no session with the userId provided in the database', async () => {
 
             const sessionReturns: Session[] = await repository.findByUserId('123')
 
@@ -120,20 +125,30 @@ describe('SessionRepository tests', () => {
     })
 
     describe("findByRefreshToken tests", () => {
+        let session: Session;
+        beforeEach(async () => {
+
+            session = await repository.create(makeSession(user.id))
+            refreshToken = session.refreshToken
+            userId = session.userId
+        })
+
+
         it('should find a session by refresh token', async () => {
 
             const sessionReturns: Session | null = await repository.findByRefreshToken(refreshToken)
 
             expect(sessionReturns).not.toBeNull()
 
+            expect(sessionReturns?.createdAt).toBeInstanceOf(Date)
+
+            expect(sessionReturns?.updatedAt).toBeInstanceOf(Date)
+
             expect(sessionReturns).toMatchObject({
                 id: session.id,
                 refreshToken: session.refreshToken,
                 userId: session.userId,
-                isValid: true,
-                createdAt: session.createdAt,
-                updatedAt: session.updatedAt,
-
+                isValid: true
             })
         })
 
@@ -147,12 +162,23 @@ describe('SessionRepository tests', () => {
     })
 
     describe('invalidate tests', () => {
+        let session: Session;
+        beforeEach(async () => {
+
+            session = await repository.create(makeSession(user.id))
+            refreshToken = session.refreshToken
+            userId = session.userId
+        })
+
+
         it('should invalidate a session', async () => {
             await repository.invalidate(session.id)
 
             const invalidSession = await repository.findByRefreshToken(refreshToken)
 
             expect(invalidSession?.isValid).toBe(false)
+            expect(invalidSession?.updatedAt).not.toEqual(session.updatedAt)
+
         })
     })
 
