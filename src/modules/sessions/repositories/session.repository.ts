@@ -20,14 +20,6 @@ export class SessionRepository implements ISessionRepository {
         })
     }
 
-    async findByRefreshToken(refreshToken: string): Promise<Session | null> {
-        return this.orm.session.findUnique({
-            where: {
-                refreshToken
-            }
-        })
-    }
-
     async findByUserId(id: string): Promise<Session[]> {
          return this.orm.session.findMany({
             where: {

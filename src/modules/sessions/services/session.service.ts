@@ -36,7 +36,7 @@ export class SessionService implements ISessionService {
         //The refresh token sent to the client is session id and secret unhashed
         return {
             refreshToken: `${session.id}.${secret}`,
-            expiresAt
+            expiresAt: session.expiresAt
         }
     }
 
@@ -75,6 +75,8 @@ export class SessionService implements ISessionService {
 
        if(!session) throw new NotFoundError("sessão não encontrada")
 
-        await this.repository.invalidate(sessionId)
+        if(!session?.isValid) return
+
+        return this.repository.invalidate(sessionId)
     }
 }
