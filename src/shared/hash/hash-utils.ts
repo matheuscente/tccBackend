@@ -1,4 +1,4 @@
-import type { IHashUtils } from "../interfaces/hash-utils.interface";
+import type { IHashUtils } from "../hash/interfaces/hash-utils.interface";
 import bcrypt from "bcrypt";
 
 
@@ -9,11 +9,11 @@ export class Hash implements IHashUtils {
     }
   }
 
-  async hashPassword(password: string): Promise<string> {
+  async hash(password: string): Promise<string> {
     return bcrypt.hash(password, this.salts);
   }
 
-  async comparePassword(password: string, hashedPassword: string): Promise<boolean> {
+  async compare(password: string, hashedPassword: string): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
   }
 }

@@ -21,11 +21,11 @@ export class UserService implements IUserService {
 
     if (!user) throw new NotFoundError('usuário não encontrado')
 
-    const isPasswordOk = await this.hasher.comparePassword(oldPassword, user.password)
+    const isPasswordOk = await this.hasher.compare(oldPassword, user.password)
 
     if (!isPasswordOk) throw new ValidationError("senha inválida!")
 
-    const newHashedPassword = await this.hasher.hashPassword(newPassword)
+    const newHashedPassword = await this.hasher.hash(newPassword)
 
     await this.repository.updatePassword(id, newHashedPassword)
     return
@@ -39,7 +39,7 @@ export class UserService implements IUserService {
       throw new ValidationError("Insira outro nome de usuário");
     }
 
-    const hashedPassoword = await this.hasher.hashPassword(data.password)
+    const hashedPassoword = await this.hasher.hash(data.password)
 
     if (hashedPassoword === data.password) throw new InternalServerError("Ocorreu um erro interno, favor contatar o suporte")
 
