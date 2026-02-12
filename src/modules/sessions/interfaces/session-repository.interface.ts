@@ -1,5 +1,5 @@
 import type { Session } from "@prisma/client";
-import type { CreateSessionDTO } from "../DTOs/create-session.dto";
+import type { CreateSessionDTO } from "../DTOs/create-session.DTO";
 
 export interface ISessionRepository {
     create(data: CreateSessionDTO): Promise<Session>
@@ -7,6 +7,8 @@ export interface ISessionRepository {
     findByRefreshToken(refreshToken: string): Promise<Session | null>
 
     findByUserId(id: string): Promise<Session[]>
+
+    findById(id: string): Promise<Session | null>
 
     invalidate(sessionId: string): Promise<void>
 }

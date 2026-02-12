@@ -1,6 +1,6 @@
 import type { Session, User } from "@prisma/client"
 import { prismaTests } from "../../../lib/prisma-tests"
-import type { CreateSessionDTO } from "../DTOs/session-token-response.DTO"
+import type { CreateSessionDTO } from "..//../sessions/DTOs/create-session.DTO"
 import { SessionRepository } from "./session.repository"
 import { UserRepository } from "../../users/repositories/user.repository"
 import { randomUUID } from "crypto"
@@ -123,6 +123,44 @@ describe('SessionRepository tests', () => {
 
         })
     })
+
+    describe("findById tests", () => {
+        let session: Session;
+        beforeEach(async () => {
+            session = await repository.create(makeSession(user.id))
+            refreshToken = session.refreshToken
+            userId = session.userId
+        })
+
+
+
+        it('should find a session by id', async () => {
+
+            const sessionReturns = repository.findById(session.id)
+
+            await expect(sessionReturns).resolves.not.toBeNull()
+
+            await expect(sessionReturns).resolves.toMatchObject({
+                id: session.id,
+                refreshToken: session.refreshToken,
+                userId: session.userId,
+                isValid: true,
+                createdAt: expect.any(Date),
+                updatedAt: expect.any(Date)
+
+            })
+
+        })
+
+        it('It should return an empty array because there is no session with the id provided in the database', async () => {
+
+            const sessionReturns = await repository.findById(session.id)
+
+            expect(sessionReturns).toBe(null)
+
+        })
+    })
+
 
     describe("findByRefreshToken tests", () => {
         let session: Session;

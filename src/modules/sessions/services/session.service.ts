@@ -1,3 +1,5 @@
+import { NotFoundError } from "../../../shared/errors/not-found-error";
+import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IHashUtils } from "../../../shared/hash/interfaces/hash-utils.interface";
 import type { RefreshSessionResponseDTO } from "../DTOs/refresh-session-response.DTO";
 import type { SessionTokenResponseDTO } from "../DTOs/session-token-response.DTO";
@@ -32,7 +34,11 @@ export class SessionService implements ISessionService {
     refreshSession(refreshToken: string): Promise<RefreshSessionResponseDTO> {
         throw new Error("Method not implemented.");
     }
-    invalidateSession(sessionId: string): Promise<void> {
-        throw new Error("Method not implemented.");
+    async invalidateSession(sessionId: string): Promise<void> {
+        const session = await this.repository.findById(sessionId)
+
+       if(!session) throw new NotFoundError("sessão não encontrada")
+
+        await this.repository.invalidate(sessionId)
     }
 }
