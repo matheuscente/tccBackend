@@ -47,7 +47,6 @@ describe('Session service test', () => {
 
             const session = await service.createSession(userId)
 
-
             expect(hashMock.hash).toHaveBeenCalledTimes(1)
             expect(repositoryMock.create).toHaveBeenCalledTimes(1)
             expect(repositoryMock.create).toHaveBeenCalledWith(expect.objectContaining({
@@ -158,4 +157,86 @@ describe('Session service test', () => {
         })
 
     })
+
+    describe("refreshSession tests", () => {
+
+        const sessionId = "123"
+        const secret = "456"
+        const refreshToken = `${sessionId}.${secret}`
+
+    const session = makeSession({
+
+                refreshToken: "hashed-secret",
+                 id: sessionId
+            })
+
+    it("should refresh session successfully", async () => {
+        
+        repositoryMock.findById.mockResolvedValue(session)
+        repositoryMock.invalidate.mockResolvedValue(undefined)
+        //To avoid mocking the internal method, mock the repository's create method for the return value of createSession.
+        repositoryMock.create.mockResolvedValue(makeSession())
+
+
+        hashMock.compare.mockResolvedValue(true)
+
+        const newSession = await service.refreshSession(refreshToken)
+
+        expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+        expect(repositoryMock.findById).toHaveBeenCalledWith(sessionId)
+
+        expect(hashMock.compare).toHaveBeenCalledTimes(1)
+        expect(hashMock.compare).toHaveBeenCalledWith(secret, session.refreshToken)
+
+        expect(repositoryMock.invalidate).toHaveBeenCalledTimes(1)
+        expect(repositoryMock.invalidate).toHaveBeenCalledWith(session.id)
+
+        expect(newSession).toMatchObject({
+            refreshToken: expect.any(String),
+            expiresAt: expect.any(Date)
+        })
+
+    })
+
+    it("should throw if token format is invalid", async () => {})
+
+    it("should throw if session does not exist", async () => {})
+
+    it("should throw if session is invalid", async () => {})
+
+    it("should throw if session is expired", async () => {})
+
+    it("should throw if secret does not match", async () => {})
+
+    it("should propagate repository findById error", async () => {})
+
+    it("should propagate compare error", async () => {})
+
+    it("should propagate invalidate error", async () => {})
+
+    it("should propagate create error", async () => {
+         
+        repositoryMock.findById.mockResolvedValue(session)
+        repositoryMock.invalidate.mockResolvedValue(undefined)
+        repositoryMock.create.mockRejectedValue(new Error("db error"))
+
+        hashMock.compare.mockResolvedValue(true)
+
+         await expect(service.refreshSession(refreshToken))
+            .rejects
+            .toThrow("db error")
+        
+        expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+        expect(repositoryMock.findById).toHaveBeenCalledWith(sessionId)
+
+        expect(hashMock.compare).toHaveBeenCalledTimes(1)
+        expect(hashMock.compare).toHaveBeenCalledWith(secret, session.refreshToken)
+
+        expect(repositoryMock.invalidate).toHaveBeenCalledTimes(1)
+        expect(repositoryMock.invalidate).toHaveBeenCalledWith(session.id)
+
+    })
+
+})
+
 })

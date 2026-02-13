@@ -9,14 +9,14 @@ import type { Session } from "@prisma/client";
 
 export class SessionService implements ISessionService {
 
-        constructor(
+    constructor(
         private readonly repository: ISessionRepository,
         private readonly hash: IHashUtils
-    ) {}
+    ) { }
 
     async createSession(userId: string): Promise<SessionTokenResponseDTO> {
 
-         //SECRET KEY
+        //SECRET KEY
         const secret = randomUUID()
 
         //secret key hash
@@ -40,26 +40,26 @@ export class SessionService implements ISessionService {
         }
     }
 
-    async refreshSession(refreshToken: string): Promise<SessionTokenResponseDTO> {        
+    async refreshSession(refreshToken: string): Promise<SessionTokenResponseDTO> {
         //separates the parts of the refresh token coming from the client.
         const [sessionId, secret] = refreshToken.split('.')
 
-        if(!sessionId || !secret) throw new ValidationError("Refresh token inválido")
-        
+        if (!sessionId || !secret) throw new ValidationError("Refresh token inválido")
+
         const session: Session | null = await this.repository.findById(sessionId)
 
-        if(!session || !session.isValid) throw new ValidationError("Refresh token inválido")
+        if (!session || !session.isValid) throw new ValidationError("Refresh token inválido")
 
 
-            //If the session expiration date is earlier than the current date, the session will be invalidated.
-            if(session.expiresAt < new Date()) {
+        //If the session expiration date is earlier than the current date, the session will be invalidated.
+        if (session.expiresAt < new Date()) {
             await this.repository.invalidate(sessionId)
             throw new ValidationError("Refresh token expirado")
         }
 
         //Compare client unhashed secret with database hashed secret 
         const isMatch = await this.hash.compare(secret, session.refreshToken)
-        if(!isMatch) throw new ValidationError("Refresh token inválido")
+        if (!isMatch) throw new ValidationError("Refresh token inválido")
 
         //If all checks pass, rotate refresh token.
         await this.repository.invalidate(sessionId)
@@ -73,9 +73,9 @@ export class SessionService implements ISessionService {
     async invalidateSession(sessionId: string): Promise<void> {
         const session = await this.repository.findById(sessionId)
 
-       if(!session) throw new NotFoundError("sessão não encontrada")
+        if (!session) throw new NotFoundError("sessão não encontrada")
 
-        if(!session?.isValid) return
+        if (!session?.isValid) return
 
         return this.repository.invalidate(sessionId)
     }
