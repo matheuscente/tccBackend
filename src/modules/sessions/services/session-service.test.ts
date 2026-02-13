@@ -2,6 +2,7 @@ import type { Session } from "@prisma/client";
 import type { IHashUtils } from "../../../shared/hash/interfaces/hash-utils.interface";
 import type { ISessionRepository } from "../interfaces/session-repository.interface"
 import { SessionService } from "./session.service";
+import { NotFoundError } from "../../../shared/errors/not-found-error";
 
 describe('Session service test', () => {
 
@@ -77,7 +78,7 @@ describe('Session service test', () => {
             await expect(service.createSession(userId))
                 .rejects
                 .toThrow("hash error")
-            
+
             expect(repositoryMock.create).not.toHaveBeenCalled()
 
         })
@@ -92,5 +93,69 @@ describe('Session service test', () => {
             expect(hashMock.hash).toHaveBeenCalled()
 
         })
+    })
+
+    describe("invalidationSession tests", () => {
+        const session = makeSession()
+
+        it("should invalidate a session", async () => {
+            repositoryMock.findById.mockResolvedValue(session)
+            const invalidSession = await service.invalidateSession(session.id)
+
+            expect(invalidSession).toBe(undefined)
+            expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(repositoryMock.findById).toHaveBeenCalledWith(session.id)
+            expect(repositoryMock.invalidate).toHaveBeenCalledTimes(1)
+            expect(repositoryMock.invalidate).toHaveBeenCalledWith(session.id)
+
+
+
+        })
+
+        it("hould return undefined, but not throw an error because the session exists but is not valid", async () => {
+            const session = makeSession({ isValid: false })
+            repositoryMock.findById.mockResolvedValue(session)
+            const invalidSession = await service.invalidateSession(session.id)
+
+            expect(invalidSession).toBe(undefined)
+            expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(repositoryMock.findById).toHaveBeenCalledWith(session.id)
+            expect(repositoryMock.invalidate).not.toHaveBeenCalled()
+        })
+
+        it("This should throw an error because the session does not exist", async () => {
+            repositoryMock.findById.mockResolvedValue(null)
+            const invalidSession = service.invalidateSession(session.id)
+
+            await expect(invalidSession).rejects.toBeInstanceOf(NotFoundError)
+            await expect(invalidSession).rejects.toThrow("sessão não encontrada")
+            expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(repositoryMock.findById).toHaveBeenCalledWith(session.id)
+            expect(repositoryMock.invalidate).not.toHaveBeenCalled()
+        })
+
+        it("should throw an error due to repository findById failure", async () => {
+            repositoryMock.findById.mockRejectedValue(new Error("db error"))
+
+            await expect(service.invalidateSession(session.id))
+                .rejects
+                .toThrow("db error")
+
+            expect(repositoryMock.invalidate).not.toHaveBeenCalled()
+
+        })
+
+        it("should throw an error due to repository invalidate failure", async () => {
+            repositoryMock.findById.mockResolvedValue(session)
+            repositoryMock.invalidate.mockRejectedValue(new Error("db error"))
+
+            await expect(service.invalidateSession(session.id))
+                .rejects
+                .toThrow("db error")
+
+            expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(repositoryMock.invalidate).toHaveBeenCalledTimes(1)
+        })
+
     })
 })
