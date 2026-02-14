@@ -3,8 +3,19 @@ import type { IHashUtils } from "../../../shared/hash/interfaces/hash-utils.inte
 import type { ISessionRepository } from "../interfaces/session-repository.interface"
 import { SessionService } from "./session.service";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
+import { ValidationError } from "../../../shared/errors/validation-error";
+import { after } from "node:test";
 
 describe('Session service test', () => {
+
+    beforeAll(() => {
+        jest.useFakeTimers()
+        jest.setSystemTime(new Date('2026-01-01T00:00:00Z'))
+    })
+
+    afterAll(() => {
+        jest.useRealTimers()
+    })
 
     const makeSession = (overrrides?: Partial<Session>): Session => ({
         id: "session-id",
@@ -35,6 +46,7 @@ describe('Session service test', () => {
 
     beforeEach(() => {
         jest.resetAllMocks();
+        jest.clearAllMocks();
     });
 
     describe("createSession tests", () => {
@@ -198,21 +210,208 @@ describe('Session service test', () => {
 
     })
 
-    it("should throw if token format is invalid", async () => {})
 
-    it("should throw if session does not exist", async () => {})
+    it("should throw if token format is invalid", async () => {
+        const refreshedSession = service.refreshSession("invalid token")
 
-    it("should throw if session is invalid", async () => {})
+         await expect(refreshedSession)
+            .rejects
+            .toThrow("Refresh token inválido")
 
-    it("should throw if session is expired", async () => {})
+        await expect(refreshedSession)
+            .rejects
+            .toBeInstanceOf(ValidationError)
+        
+        expect(repositoryMock.findById).not.toHaveBeenCalled()
 
-    it("should throw if secret does not match", async () => {})
+        expect(hashMock.compare).not.toHaveBeenCalled()
 
-    it("should propagate repository findById error", async () => {})
+        expect(repositoryMock.invalidate).not.toHaveBeenCalled()
 
-    it("should propagate compare error", async () => {})
+        expect(repositoryMock.create).not.toHaveBeenCalled()
 
-    it("should propagate invalidate error", async () => {})
+    })
+
+    it("should throw if session does not exist", async () => {
+        repositoryMock.findById.mockResolvedValue(null)
+
+        const refreshedSession = service.refreshSession(refreshToken)
+
+         await expect(refreshedSession)
+            .rejects
+            .toThrow("Sessão inválida")
+
+        await expect(refreshedSession)
+            .rejects
+            .toBeInstanceOf(ValidationError)
+        
+        expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+        expect(repositoryMock.findById).toHaveBeenCalledWith(sessionId)
+
+        expect(hashMock.compare).not.toHaveBeenCalled()
+
+        expect(repositoryMock.invalidate).not.toHaveBeenCalled()
+
+        expect(repositoryMock.create).not.toHaveBeenCalled()
+
+    })
+
+    it("should throw if session is invalid", async () => {
+        const session = makeSession({
+            refreshToken: "hashed-secret",
+            id: sessionId,
+            isValid: false
+        })
+         
+        repositoryMock.findById.mockResolvedValue(session)
+
+        const refreshedSession = service.refreshSession(refreshToken)
+
+         await expect(refreshedSession)
+            .rejects
+            .toThrow("Sessão inválida")
+
+        await expect(refreshedSession)
+            .rejects
+            .toBeInstanceOf(ValidationError)
+        
+        expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+        expect(repositoryMock.findById).toHaveBeenCalledWith(sessionId)
+
+        expect(hashMock.compare).not.toHaveBeenCalled()
+
+        expect(repositoryMock.invalidate).not.toHaveBeenCalled()
+
+        expect(repositoryMock.create).not.toHaveBeenCalled()
+
+    })
+
+    it("should throw if session is expired", async () => {
+        const session = makeSession({
+            refreshToken: "hashed-secret",
+            id: sessionId,
+            expiresAt: new Date(Date.now() - 1000)
+        })
+         
+        repositoryMock.findById.mockResolvedValue(session)
+        repositoryMock.invalidate.mockResolvedValue(undefined)
+
+        const refreshedSession = service.refreshSession(refreshToken)
+
+         await expect(refreshedSession)
+            .rejects
+            .toThrow("Session expirada")
+
+        await expect(refreshedSession)
+            .rejects
+            .toBeInstanceOf(ValidationError)
+        
+        expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+        expect(repositoryMock.findById).toHaveBeenCalledWith(sessionId)
+
+        expect(repositoryMock.invalidate).toHaveBeenCalledTimes(1)
+
+
+        expect(hashMock.compare).not.toHaveBeenCalled()
+
+
+        expect(repositoryMock.create).not.toHaveBeenCalled()
+
+    })
+
+    it("should throw if secret does not match", async () => {
+         
+        repositoryMock.findById.mockResolvedValue(session)
+        hashMock.compare.mockResolvedValue(false)
+
+        const refreshedSession = service.refreshSession(refreshToken)
+
+         await expect(refreshedSession)
+            .rejects
+            .toThrow("Refresh token inválido")
+
+        await expect(refreshedSession)
+            .rejects
+            .toBeInstanceOf(ValidationError)
+        
+        expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+        expect(repositoryMock.findById).toHaveBeenCalledWith(sessionId)
+
+        expect(hashMock.compare).toHaveBeenCalledTimes(1)
+        expect(hashMock.compare).toHaveBeenCalledWith(secret, session.refreshToken)
+
+        expect(repositoryMock.invalidate).not.toHaveBeenCalled()
+
+        expect(repositoryMock.create).not.toHaveBeenCalled()
+
+    })
+
+
+    it("should propagate repository findbyId error", async () => {
+         
+        repositoryMock.invalidate.mockResolvedValue(undefined)
+        repositoryMock.findById.mockRejectedValue(new Error("findbyId error"))
+
+         await expect(service.refreshSession(refreshToken))
+            .rejects
+            .toThrow("findbyId error")
+        
+        expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+        expect(repositoryMock.findById).toHaveBeenCalledWith(sessionId)
+
+        expect(hashMock.compare).not.toHaveBeenCalled()
+
+        expect(repositoryMock.invalidate).not.toHaveBeenCalled()
+
+        expect(repositoryMock.create).not.toHaveBeenCalled()
+
+    })
+
+    it("should propagate compare error", async () => {
+         
+        repositoryMock.findById.mockResolvedValue(session)
+        repositoryMock.invalidate.mockResolvedValue(undefined)
+        hashMock.compare.mockRejectedValue(new Error("compare error"))
+
+         await expect(service.refreshSession(refreshToken))
+            .rejects
+            .toThrow("compare error")
+        
+        expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+        expect(repositoryMock.findById).toHaveBeenCalledWith(sessionId)
+
+        expect(hashMock.compare).toHaveBeenCalledTimes(1)
+        expect(hashMock.compare).toHaveBeenCalledWith(secret, session.refreshToken)
+
+        expect(repositoryMock.invalidate).not.toHaveBeenCalled()
+
+        expect(repositoryMock.create).not.toHaveBeenCalled()
+
+    })
+
+    it("should propagate invalidate error", async () => {
+         
+        repositoryMock.findById.mockResolvedValue(session)
+        repositoryMock.invalidate.mockRejectedValue(new Error("invalidate error"))
+
+        hashMock.compare.mockResolvedValue(true)
+
+         await expect(service.refreshSession(refreshToken))
+            .rejects
+            .toThrow("invalidate error")
+        
+        expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+        expect(repositoryMock.findById).toHaveBeenCalledWith(sessionId)
+
+        expect(hashMock.compare).toHaveBeenCalledTimes(1)
+        expect(hashMock.compare).toHaveBeenCalledWith(secret, session.refreshToken)
+
+        expect(repositoryMock.invalidate).toHaveBeenCalledTimes(1)
+        expect(repositoryMock.invalidate).toHaveBeenCalledWith(session.id)
+
+        expect(repositoryMock.create).not.toHaveBeenCalled()
+
+    })
 
     it("should propagate create error", async () => {
          

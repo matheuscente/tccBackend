@@ -48,13 +48,12 @@ export class SessionService implements ISessionService {
 
         const session: Session | null = await this.repository.findById(sessionId)
 
-        if (!session || !session.isValid) throw new ValidationError("Refresh token inválido")
-
+        if (!session || !session.isValid) throw new ValidationError("Sessão inválida")
 
         //If the session expiration date is earlier than the current date, the session will be invalidated.
         if (session.expiresAt < new Date()) {
             await this.repository.invalidate(sessionId)
-            throw new ValidationError("Refresh token expirado")
+            throw new ValidationError("Session expirada")
         }
 
         //Compare client unhashed secret with database hashed secret 
