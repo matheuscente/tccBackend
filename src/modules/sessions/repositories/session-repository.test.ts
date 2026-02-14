@@ -126,15 +126,11 @@ describe('SessionRepository tests', () => {
 
     describe("findById tests", () => {
         let session: Session;
-        beforeEach(async () => {
+
+        it('should find a session by id', async () => {
             session = await repository.create(makeSession(user.id))
             refreshToken = session.refreshToken
             userId = session.userId
-        })
-
-
-
-        it('should find a session by id', async () => {
 
             const sessionReturns = repository.findById(session.id)
 
