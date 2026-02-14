@@ -38,7 +38,7 @@ describe('SessionRepository tests', () => {
 
     afterAll(async () => {
 
-        await prismaTests.user.deleteMany()
+        await prismaTests.session.deleteMany()
         await prismaTests.$disconnect()
     })
 
@@ -125,9 +125,10 @@ describe('SessionRepository tests', () => {
     })
 
     describe("findById tests", () => {
-        let session: Session;
+            let session: Session;
 
         it('should find a session by id', async () => {
+
             session = await repository.create(makeSession(user.id))
             refreshToken = session.refreshToken
             userId = session.userId
@@ -157,44 +158,6 @@ describe('SessionRepository tests', () => {
         })
     })
 
-
-    describe("findByRefreshToken tests", () => {
-        let session: Session;
-        beforeEach(async () => {
-
-            session = await repository.create(makeSession(user.id))
-            refreshToken = session.refreshToken
-            userId = session.userId
-        })
-
-
-        it('should find a session by refresh token', async () => {
-
-            const sessionReturns: Session | null = await repository.findByRefreshToken(refreshToken)
-
-            expect(sessionReturns).not.toBeNull()
-
-            expect(sessionReturns?.createdAt).toBeInstanceOf(Date)
-
-            expect(sessionReturns?.updatedAt).toBeInstanceOf(Date)
-
-            expect(sessionReturns).toMatchObject({
-                id: session.id,
-                refreshToken: session.refreshToken,
-                userId: session.userId,
-                isValid: true
-            })
-        })
-
-        it('It should return null because there is no session with the refresh token provided in the database', async () => {
-
-            const sessionReturns: Session | null = await repository.findByRefreshToken(randomUUID())
-
-            expect(sessionReturns).toBeNull()
-
-        })
-    })
-
     describe('invalidate tests', () => {
         let session: Session;
         beforeEach(async () => {
@@ -208,7 +171,7 @@ describe('SessionRepository tests', () => {
         it('should invalidate a session', async () => {
             await repository.invalidate(session.id)
 
-            const invalidSession = await repository.findByRefreshToken(refreshToken)
+            const invalidSession = await repository.findById(session.id)
 
             expect(invalidSession?.isValid).toBe(false)
             expect(invalidSession?.updatedAt).not.toEqual(session.updatedAt)

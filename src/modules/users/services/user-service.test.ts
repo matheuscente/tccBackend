@@ -41,8 +41,8 @@ describe("user service tests", () => {
   };
 
   const hashMock: jest.Mocked<IHashUtils> = {
-    hashPassword: jest.fn(),
-    comparePassword: jest.fn(),
+    hash: jest.fn(),
+    compare: jest.fn(),
   };
 
   const service = new UserService(repositoryMock, hashMock, sanitizeMock);
@@ -55,7 +55,7 @@ describe("user service tests", () => {
     it("should create a user successfully", async () => {
       const mockUserReturn = makeUser();
       repositoryMock.findByUsername.mockResolvedValue(null);
-      hashMock.hashPassword.mockResolvedValue("hashed password");
+      hashMock.hash.mockResolvedValue("hashed password");
 
       repositoryMock.create.mockResolvedValue(mockUserReturn);
 
@@ -75,7 +75,7 @@ describe("user service tests", () => {
       expect(result).toHaveProperty("birthDate");
       expect(result).toHaveProperty("createdAt");
       expect(result).toHaveProperty("updatedAt");
-      expect(hashMock.hashPassword).toHaveBeenCalledWith("123");
+      expect(hashMock.hash).toHaveBeenCalledWith("123");
       expect(repositoryMock.create).toHaveBeenCalledWith({
         name: "TEST",
         username: "test",
@@ -94,7 +94,7 @@ describe("user service tests", () => {
         birthDate: "11/11/2000",
       });
 
-      expect(hashMock.hashPassword).not.toHaveBeenCalled();
+      expect(hashMock.hash).not.toHaveBeenCalled();
       await expect(user).rejects.toBeInstanceOf(ValidationError);
       await expect(user).rejects.toThrow("Insira outro nome de usuário");
       expect(repositoryMock.create).not.toHaveBeenCalled();
@@ -102,7 +102,7 @@ describe("user service tests", () => {
 
     it("should return an error because the birthdate is invaid", async () => {
       repositoryMock.findByUsername.mockResolvedValue(null);
-      hashMock.hashPassword.mockResolvedValue("hashed password");
+      hashMock.hash.mockResolvedValue("hashed password");
 
       const result = service.create({
         name: "Test",
@@ -118,7 +118,7 @@ describe("user service tests", () => {
 
     it("should return an error because the birthdate is later than the current date", async () => {
       repositoryMock.findByUsername.mockResolvedValue(null);
-      hashMock.hashPassword.mockResolvedValue("hashed password");
+      hashMock.hash.mockResolvedValue("hashed password");
 
       const year = new Date().getFullYear() + 1;
 
@@ -274,14 +274,14 @@ describe("user service tests", () => {
     it('should update a password sucessfully', async () => {
       const user = makeUser({ password: 'hashed-old-password' })
       repositoryMock.findById.mockResolvedValue(user)
-      hashMock.hashPassword.mockResolvedValue('hashed-new-password')
-      hashMock.comparePassword.mockResolvedValue(true)
+      hashMock.hash.mockResolvedValue('hashed-new-password')
+      hashMock.compare.mockResolvedValue(true)
 
       await service.updatePassword(user.id, 'old password', 'new password')
 
-      expect(hashMock.comparePassword).toHaveBeenCalledWith('old password', user.password)
-      expect(hashMock.hashPassword).toHaveBeenCalledTimes(1)
-      expect(hashMock.hashPassword).toHaveBeenCalledWith('new password')
+      expect(hashMock.compare).toHaveBeenCalledWith('old password', user.password)
+      expect(hashMock.hash).toHaveBeenCalledTimes(1)
+      expect(hashMock.hash).toHaveBeenCalledWith('new password')
       expect(repositoryMock.updatePassword).toHaveBeenCalledTimes(1)
       expect(repositoryMock.updatePassword).toHaveBeenCalledWith(user.id, 'hashed-new-password')
       expect(repositoryMock.updatePassword).toHaveBeenCalledTimes(1)
@@ -291,14 +291,14 @@ describe("user service tests", () => {
     it('should throw an error because the entered password does not match the hashed password', async () => {
       const user = makeUser({ password: 'hashed-old-password' })
       repositoryMock.findById.mockResolvedValue(user)
-      hashMock.comparePassword.mockResolvedValue(false)
+      hashMock.compare.mockResolvedValue(false)
 
       const test = service.updatePassword(user.id, 'old password', 'new password')
 
       await expect(test).rejects.toBeInstanceOf(ValidationError)
       await expect(test).rejects.toThrow("senha inválida!")
-      expect(hashMock.comparePassword).toHaveBeenCalledWith('old password', user.password)
-      expect(hashMock.hashPassword).not.toHaveBeenCalled()
+      expect(hashMock.compare).toHaveBeenCalledWith('old password', user.password)
+      expect(hashMock.hash).not.toHaveBeenCalled()
       expect(repositoryMock.updatePassword).not.toHaveBeenCalled()
     })
 
@@ -310,8 +310,8 @@ describe("user service tests", () => {
 
       await expect(test).rejects.toBeInstanceOf(NotFoundError)
       await expect(test).rejects.toThrow('usuário não encontrado')
-      expect(hashMock.hashPassword).not.toHaveBeenCalled()
-      expect(hashMock.comparePassword).not.toHaveBeenCalled()
+      expect(hashMock.hash).not.toHaveBeenCalled()
+      expect(hashMock.compare).not.toHaveBeenCalled()
       expect(repositoryMock.updatePassword).not.toHaveBeenCalled()
     })
 
