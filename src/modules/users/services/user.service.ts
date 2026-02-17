@@ -6,14 +6,14 @@ import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IUserRepository } from "../interfaces/user-repository.interface";
 import type { User } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
-import type { IHashUtils } from "../../../shared/hash/interfaces/hash-utils.interface";
+import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provider.interface";
 import { InternalServerError } from "../../../shared/errors/internal-server-error";
-import type { Isanitize } from "../../../shared/sanitize/sanitize.interface";
+import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 
 export class UserService implements IUserService {
   constructor(
     private repository: IUserRepository,
-    private hasher: IHashUtils,
+    private hasher: IHashProvider,
     private sanitize: Isanitize
   ) { }
   async updatePassword(id: string, oldPassword: string, newPassword: string): Promise<void> {

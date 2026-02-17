@@ -1,6 +1,6 @@
-import type { Isanitize } from "./sanitize.interface";
+import type { Isanitize } from "../interfaces/sanitize.interface";
 
-export class Sanitize implements Isanitize {
+export class SanitizeUtils implements Isanitize {
  removeAccents(value: string): string {
     return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }

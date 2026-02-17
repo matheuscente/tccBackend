@@ -1,5 +1,7 @@
 export interface AuthResponseDTO {
     accessToken: string,
-    refreshToken: string,
-    expiresAt: number
+    refreshToken: {
+        token: string,
+        expiresAt: number
+    },
 }

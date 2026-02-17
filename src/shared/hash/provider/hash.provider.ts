@@ -1,8 +1,8 @@
-import type { IHashUtils } from "../hash/interfaces/hash-utils.interface";
+import type { IHashProvider } from "../interfaces/hash-provider.interface";
 import bcrypt from "bcrypt";
 
 
-export class Hash implements IHashUtils {
+export class HashProvider implements IHashProvider {
   constructor(private readonly salts: number) {
     if (!salts || salts <= 0) {
       throw new Error("saltRounds inválido ao criar HashService");

@@ -1,16 +1,16 @@
-import { Hash } from "../hash/hash-utils";
+import { HashProvider } from "./hash.provider";
 
 describe('hash util test', () => {
     const saltRounds = 10;
-    let hashUtil: Hash;
+    let hashProvider: HashProvider;
     const password = '123'
 
     beforeEach(() => {
-        hashUtil = new Hash(saltRounds)
+        hashProvider = new HashProvider(saltRounds)
     })
 
     it('should generate a password hash', async () => {
-        const hashed = await hashUtil.hash(password)
+        const hashed = await hashProvider.hash(password)
 
         expect(typeof hashed).toBe("string")
         expect(hashed).not.toBe(password)
@@ -18,9 +18,9 @@ describe('hash util test', () => {
     })
 
     it('should validate password', async () => {
-        const hashed = await hashUtil.hash(password)
+        const hashed = await hashProvider.hash(password)
 
-        const isValid = await hashUtil.compare(password, hashed)
+        const isValid = await hashProvider.compare(password, hashed)
 
         expect(isValid).toBe(true)
     })
@@ -28,14 +28,14 @@ describe('hash util test', () => {
     it("should be fail to validate a invalid password", async () => {
         const wrongPassword = 'incorrectPassword'
 
-        const isValid = await hashUtil.compare(password, wrongPassword)
+        const isValid = await hashProvider.compare(password, wrongPassword)
 
         expect(isValid).toBe(false)
     })
 
         it("should fail because the hashed password is the same as the original password", async () => {
 
-        const isValid = await hashUtil.compare(password, password)
+        const isValid = await hashProvider.compare(password, password)
 
         expect(isValid).toBe(false)
     })

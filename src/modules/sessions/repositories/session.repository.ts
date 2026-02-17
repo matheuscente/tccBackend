@@ -1,10 +1,23 @@
 import type { PrismaClient, Session } from "@prisma/client";
 import type { CreateSessionDTO } from "../../sessions/DTOs/create-session.DTO";
-import type { ISessionRepository } from "../interfaces/session-repository.interface";
+import type { ISessionRepository } from "../interfaces/repositories/session-repository.interface";
 
 
 export class SessionRepository implements ISessionRepository {
     constructor(private readonly orm: PrismaClient) {}
+
+    async update(sessionId: string, data: Omit<CreateSessionDTO, "userId">): Promise<void> {
+        await this.orm.session.update({
+        where: { id: sessionId,
+                isValid: true
+         },
+        data: {
+            refreshToken: data.refreshToken,
+            expiresAt: data.expiresAt,
+            isValid: true
+        }
+    })
+    }
     
     async findById(id: string): Promise<Session | null> {
          return this.orm.session.findUnique({

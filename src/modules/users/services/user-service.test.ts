@@ -1,11 +1,11 @@
 import type { User } from "@prisma/client";
-import type { IHashUtils } from "../../../shared/hash/interfaces/hash-utils.interface";
+import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provider.interface";
 import type { IUserRepository } from "../interfaces/user-repository.interface";
 import { UserService } from "./user.service";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
-import type { Isanitize } from "../../../shared/sanitize/sanitize.interface";
+import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 
 describe("user service tests", () => {
   const makeUser = (overrides?: Partial<User>): User => ({
@@ -40,7 +40,7 @@ describe("user service tests", () => {
     softDelete: jest.fn(),
   };
 
-  const hashMock: jest.Mocked<IHashUtils> = {
+  const hashMock: jest.Mocked<IHashProvider> = {
     hash: jest.fn(),
     compare: jest.fn(),
   };

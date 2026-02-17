@@ -1,14 +1,14 @@
-import { Hash } from "../../../shared/hash/hash-utils";
+import { HashProvider } from "../../../shared/hash/provider/hash.provider";
 import { UserController } from "../controllers/user.controller";
 import { UserRepository } from "../repositories/user.repository";
 import { UserService } from "../services/user.service";
 import { prisma } from "../../../lib/prisma"
-import { Sanitize } from "../../../shared/sanitize/sanitize.utils";
+import { SanitizeUtils } from "../../../shared/sanitize/utils/sanitize.utils";
 
 export function userFactory(): UserController {
   const repository = new UserRepository(prisma);
-  const hasher = new Hash(10);
-  const sanitize = new Sanitize()
+  const hasher = new HashProvider(10);
+  const sanitize = new SanitizeUtils()
 
   const service = new UserService(repository, hasher, sanitize);
   const controller = new UserController(service);

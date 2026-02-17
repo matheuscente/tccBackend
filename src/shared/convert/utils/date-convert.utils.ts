@@ -1,4 +1,4 @@
-import type { IDateConvert } from "./interfaces/date-convert.interface";
+import type { IDateConvert } from "../interfaces/date-convert.interface";
 
 export class DateConvert implements IDateConvert {
     dateToSeconds(date: Date): number {
