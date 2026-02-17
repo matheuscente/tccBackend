@@ -1,4 +1,4 @@
-import type { IDateConvert } from "../../../routes/convert/interfaces/date-convert.interface";
+import type { IDateConvert } from "../../../shared/convert/interfaces/date-convert.interface";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IHashUtils } from "../../../shared/hash/interfaces/hash-utils.interface";
 import type { ISessionService } from "../../sessions/interfaces/session-service.interface";
