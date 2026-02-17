@@ -81,7 +81,7 @@ export class UserService implements IUserService {
     return returnUser;
   }
 
-  async findWithPassword(username: string): Promise<Partial<Pick<User, "password" | "username" | "id">> | null> {
+  async findWithPassword(username: string): Promise<Pick<User, "password" | "username" | "id"> | null> {
     const user = await this.repository.findByUsername(username);
     if(!user) return user
     return {
