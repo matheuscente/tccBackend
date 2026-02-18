@@ -1,6 +1,7 @@
 /** @type {import('jest').Config} */
 module.exports = {
   testEnvironment: 'node',
+  maxWorkers: 1,
 
   // 🔒 Limita onde o Jest procura testes
   roots: ['<rootDir>/src'],

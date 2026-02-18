@@ -14,21 +14,24 @@ describe("SessionRepository tests", () => {
   beforeAll(async () => {
     await prismaTests.$connect();
 
-    user = await userRepository.create({
-      name: "test",
-      username: "test",
-      password: "test",
-      birthDate: new Date("2000-01-01"),
-    });
+
   });
 
   afterAll(async () => {
-    await prismaTests.session.deleteMany();
     await prismaTests.$disconnect();
   });
 
+  beforeEach(async () => {
+    user = await userRepository.create({
+      name: "test",
+      username: `test-${crypto.randomUUID()}`,
+      password: "test",
+      birthDate: new Date("2000-01-01"),
+    });
+  })
   afterEach(async () => {
     await prismaTests.session.deleteMany();
+    await prismaTests.user.deleteMany()
   });
 
   describe("create tests", () => {
@@ -124,7 +127,7 @@ describe("SessionRepository tests", () => {
     });
 
     it("It should return an empty array because there is no session with the id provided in the database", async () => {
-      const sessionReturns = await repository.findById(session.id);
+      const sessionReturns = await repository.findById("invalid id");
 
       expect(sessionReturns).toBe(null);
     });
