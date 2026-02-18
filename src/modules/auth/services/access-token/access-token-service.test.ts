@@ -1,16 +1,9 @@
-import type { GenerateAccessTokenDTO } from "../../DTOs/generate-access-token.dto";
+import { makePayload } from "../../../../tests/factories/make-payload";
 import { AccessTokenService } from "./access-token.service";
 
 describe("AccessTokenService", () => {
   const service = new AccessTokenService("test-secret");
 
-  const makePayload = (
-    overrides?: Partial<GenerateAccessTokenDTO>,
-  ): GenerateAccessTokenDTO => ({
-    sub: "user-1",
-    sessionId: "session-1",
-    ...overrides,
-  });
 
   describe("generateAccessToken", () => {
     it("should generate a token string", () => {

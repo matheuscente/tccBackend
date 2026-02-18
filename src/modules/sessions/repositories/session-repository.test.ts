@@ -3,21 +3,13 @@ import { prismaTests } from "../../../lib/prisma-tests";
 import type { CreateSessionDTO } from "..//../sessions/DTOs/create-session.DTO";
 import { SessionRepository } from "./session.repository";
 import { UserRepository } from "../../users/repositories/user.repository";
-import { randomUUID } from "crypto";
-
+import { makeSession } from "../../../tests/factories/make-session";
 describe("SessionRepository tests", () => {
   const repository = new SessionRepository(prismaTests);
   const userRepository = new UserRepository(prismaTests);
 
   let user: User, refreshToken: string, userId: string;
 
-  const makeSession = (userId: string): CreateSessionDTO => {
-    return {
-      userId: userId,
-      refreshToken: randomUUID(),
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
-    };
-  };
 
   beforeAll(async () => {
     await prismaTests.$connect();
@@ -41,7 +33,7 @@ describe("SessionRepository tests", () => {
 
   describe("create tests", () => {
     it("should create a session", async () => {
-      const createdSession: CreateSessionDTO = makeSession(user.id);
+      const createdSession: CreateSessionDTO = makeSession({userId: user.id});
 
       const sessionReturns = await repository.create(createdSession);
 
@@ -78,7 +70,7 @@ describe("SessionRepository tests", () => {
   describe("findByUserId tests", () => {
     let session: Session;
     beforeEach(async () => {
-      session = await repository.create(makeSession(user.id));
+      session = await repository.create(makeSession({userId: user.id}));
       refreshToken = session.refreshToken;
       userId = session.userId;
     });
@@ -113,7 +105,7 @@ describe("SessionRepository tests", () => {
     let session: Session;
 
     it("should find a session by id", async () => {
-      session = await repository.create(makeSession(user.id));
+      session = await repository.create(makeSession({userId: user.id}));
       refreshToken = session.refreshToken;
       userId = session.userId;
 
@@ -141,7 +133,7 @@ describe("SessionRepository tests", () => {
   describe("invalidate tests", () => {
     let session: Session;
     beforeEach(async () => {
-      session = await repository.create(makeSession(user.id));
+      session = await repository.create(makeSession({userId: user.id}));
       refreshToken = session.refreshToken;
       userId = session.userId;
     });

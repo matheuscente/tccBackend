@@ -6,20 +6,10 @@ import { ValidationError } from "../../../shared/errors/validation-error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
+import { makeUser } from "../../../tests/factories/make-user"
+
 
 describe("user service tests", () => {
-  const makeUser = (overrides?: Partial<User>): User => ({
-    id: "1",
-    name: "test",
-    username: "test",
-    role: "USER",
-    birthDate: new Date("2000-01-01"),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    password: "hashed password",
-    deletedAt: null,
-    ...overrides,
-  });
 
   const sanitizeMock: jest.Mocked<Isanitize> = {
     sanitizeUsername: jest.fn(),

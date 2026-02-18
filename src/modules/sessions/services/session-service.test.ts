@@ -4,6 +4,8 @@ import type { ISessionRepository } from "../interfaces/repositories/session-repo
 import { SessionService } from "./session.service";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { ValidationError } from "../../../shared/errors/validation-error";
+import { makeSession } from "../../../tests/factories/make-session";
+
 
 describe("Session service test", () => {
   beforeAll(() => {
@@ -13,17 +15,6 @@ describe("Session service test", () => {
 
   afterAll(() => {
     jest.useRealTimers();
-  });
-
-  const makeSession = (overrrides?: Partial<Session>): Session => ({
-    id: "session-id",
-    userId: "user-id",
-    refreshToken: "hashed-secret",
-    expiresAt: new Date(Date.now() + 100000),
-    isValid: true,
-    createdAt: new Date(Date.now()),
-    updatedAt: new Date(Date.now()),
-    ...overrrides,
   });
 
   const repositoryMock: jest.Mocked<ISessionRepository> = {

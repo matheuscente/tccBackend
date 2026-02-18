@@ -30,7 +30,7 @@ export class AccessTokenService implements IAccessTokenService {
     });
 
     if (typeof decoded === "string") {
-        throw new Error("Invalid token payload format");
+        throw new Error("fomato de payload do token inválido");
     }
 
     return decoded as ResponseAccessTokenDTO;

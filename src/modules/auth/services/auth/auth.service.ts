@@ -1,4 +1,5 @@
 import type { IDateConvert } from "../../../../shared/convert/interfaces/date-convert.interface"
+import { NotFoundError } from "../../../../shared/errors/not-found-error"
 import { ValidationError } from "../../../../shared/errors/validation-error"
 import type { IHashProvider } from "../../../../shared/hash/interfaces/hash-provider.interface"
 import type { ISessionService } from "../../../sessions/interfaces/services/session-service.interface"
@@ -50,7 +51,16 @@ export class AuthService implements IAuthService {
 
         const payload = this.accessTokenService.extractPayload(accessToken)
 
-        return this.sessionService.invalidateSession(payload.sessionId)
+        try {
+            await this.sessionService.invalidateSession(payload.sessionId)
+
+        } catch (err){
+            if(err instanceof NotFoundError) {
+                throw new ValidationError("sessão inválida")
+            }
+
+            throw err
+        }
     }
 
     async refreshSession(refreshToken: string): Promise<AuthResponseDTO> {
