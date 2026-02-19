@@ -321,20 +321,23 @@ describe(("authService teste"), ()=> {
     })
 
     describe("refreshSession tests", () => {
-      it("should update a session successfully", async () => {
-        const refreshToken = "test-refresToken"
-        const fakeAccessToken = "fake-accessToken"
-        const fakeExpiresAt = 10000
 
-        const session = makeSession({
-          refreshToken
+      const newRefreshToken = "test-refresToken"
+      const oldRefreshToken = "old-refresh-token"
+      const fakeAccessToken = "fake-accessToken"
+      const fakeExpiresAt = 10000
+      const session = makeSession({
+          refreshToken: newRefreshToken
         })
+
+
+      it("should update a session successfully", async () => {
 
         sessionerviceMock.refreshSession.mockResolvedValue(session)
         dateConvertMock.dateToSeconds.mockReturnValue(fakeExpiresAt)
         accessTokenMock.generateAccessToken.mockReturnValue(fakeAccessToken)
 
-        const updatedSession = await service.refreshSession("old-refresh-token")
+        const updatedSession = await service.refreshSession(oldRefreshToken)
 
         expect(updatedSession).toEqual(
           {
@@ -346,7 +349,83 @@ describe(("authService teste"), ()=> {
           }
         )
 
+        expect(sessionerviceMock.refreshSession).toHaveBeenCalledTimes(1)
+        expect(sessionerviceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)
+
+        expect(dateConvertMock.dateToSeconds).toHaveBeenCalledTimes(1)
+        expect(dateConvertMock.dateToSeconds).toHaveBeenCalledWith(session.expiresAt)
+
+        expect(accessTokenMock.generateAccessToken).toHaveBeenCalledTimes(1)
+        expect(accessTokenMock.generateAccessToken).toHaveBeenCalledWith({
+          sub: session.userId,
+          sessionId: session.id
+        })
       })
+
+      it("should throw an error due to generateAccessToken failure", async () => {
+
+        sessionerviceMock.refreshSession.mockResolvedValue(session)
+        dateConvertMock.dateToSeconds.mockReturnValue(fakeExpiresAt)
+        accessTokenMock.generateAccessToken.mockImplementation(() => {
+          throw new Error("generateAccessToken error")
+        })
+
+        const updatedSession = service.refreshSession(oldRefreshToken)
+
+        await expect(updatedSession).rejects.toThrow("generateAccessToken error")
+
+        expect(sessionerviceMock.refreshSession).toHaveBeenCalledTimes(1)
+        expect(sessionerviceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)
+
+        expect(dateConvertMock.dateToSeconds).toHaveBeenCalledTimes(1)
+        expect(dateConvertMock.dateToSeconds).toHaveBeenCalledWith(session.expiresAt)
+
+        expect(accessTokenMock.generateAccessToken).toHaveBeenCalledTimes(1)
+        expect(accessTokenMock.generateAccessToken).toHaveBeenCalledWith({
+          sub: session.userId,
+          sessionId: session.id
+        })
+      })
+
+      it("should throw an error due to dateToSeconds failure", async () => {
+
+        sessionerviceMock.refreshSession.mockResolvedValue(session)
+        dateConvertMock.dateToSeconds.mockImplementation(() => {
+          throw new Error("dateToSeconds error")
+        })
+
+        const updatedSession = service.refreshSession(oldRefreshToken)
+
+        await expect(updatedSession).rejects.toThrow("dateToSeconds error")
+
+        expect(sessionerviceMock.refreshSession).toHaveBeenCalledTimes(1)
+        expect(sessionerviceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)
+
+        expect(dateConvertMock.dateToSeconds).toHaveBeenCalledTimes(1)
+        expect(dateConvertMock.dateToSeconds).toHaveBeenCalledWith(session.expiresAt)
+
+        expect(accessTokenMock.generateAccessToken).not.toHaveBeenCalled()
+        
+      })
+
+      it("should throw an error due to refreshSession sesionService failure", async () => {
+
+        sessionerviceMock.refreshSession.mockRejectedValue(new ValidationError("refreshSession sesionService error"))
+
+        const updatedSession = service.refreshSession(oldRefreshToken)
+
+        await expect(updatedSession).rejects.toThrow("refreshSession sesionService error")
+        await expect(updatedSession).rejects.toBeInstanceOf(ValidationError)
+ 
+        expect(sessionerviceMock.refreshSession).toHaveBeenCalledTimes(1)
+        expect(sessionerviceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)
+
+        expect(dateConvertMock.dateToSeconds).not.toHaveBeenCalled()
+
+        expect(accessTokenMock.generateAccessToken).not.toHaveBeenCalled()
+        
+      })
+
     })
 
 })
