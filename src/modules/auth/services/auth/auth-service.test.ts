@@ -1,14 +1,10 @@
-import type { Session } from "@prisma/client"
 import type { IDateConvert } from "../../../../shared/convert/interfaces/date-convert.interface"
 import type { IHashProvider } from "../../../../shared/hash/interfaces/hash-provider.interface"
 import type { ISessionService } from "../../../sessions/interfaces/services/session-service.interface"
 import type { IUserService } from "../../../users/interfaces/user-service.interface"
-import type { AuthResponseDTO } from "../../DTOs/auth-response.dto"
-import type { LoginDTO } from "../../DTOs/login.dto"
 import type { IAccessTokenService } from "../../interfaces/access-token/access-token-service.interface"
 import { makeUser } from "../../../../tests/factories/make-user"
 import { makeSession } from "../../../../tests/factories/make-session"
-import { access } from "node:fs"
 import { AuthService } from "./auth.service"
 import { ValidationError } from "../../../../shared/errors/validation-error"
 import { NotFoundError } from "../../../../shared/errors/not-found-error"
@@ -322,6 +318,35 @@ describe(("authService teste"), ()=> {
       })
 
 
+    })
+
+    describe("refreshSession tests", () => {
+      it("should update a session successfully", async () => {
+        const refreshToken = "test-refresToken"
+        const fakeAccessToken = "fake-accessToken"
+        const fakeExpiresAt = 10000
+
+        const session = makeSession({
+          refreshToken
+        })
+
+        sessionerviceMock.refreshSession.mockResolvedValue(session)
+        dateConvertMock.dateToSeconds.mockReturnValue(fakeExpiresAt)
+        accessTokenMock.generateAccessToken.mockReturnValue(fakeAccessToken)
+
+        const updatedSession = await service.refreshSession("old-refresh-token")
+
+        expect(updatedSession).toEqual(
+          {
+            accessToken: fakeAccessToken,
+            refreshToken: {
+              token: session.refreshToken,
+              expiresAt: fakeExpiresAt
+            }
+          }
+        )
+
+      })
     })
 
 })
