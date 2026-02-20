@@ -21,6 +21,6 @@ export const routes = (app: express.Express) => {
 
     api.use('/user', userRoutes)
 
-    api.use('auth', authRoutes)
+    api.use('/auth', authRoutes)
 
 }

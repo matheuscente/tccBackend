@@ -93,7 +93,7 @@ export class AuthController implements IAuthController {
             })
 
         } catch (err) {
-
+            console.log(err)
             next(err)
 
         }
@@ -103,8 +103,9 @@ export class AuthController implements IAuthController {
     res.cookie("rToken", token, {
         httpOnly: true,
         secure: false, //mudar em produção
-        sameSite: "none",
-        path: "/auth/refresh",
+        sameSite: "lax",
+        //path: "/auth/refresh",
+        path: "/",
         expires: new Date(expiresAt * 1000)
 
     })
