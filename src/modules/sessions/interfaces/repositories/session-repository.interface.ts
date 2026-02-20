@@ -11,4 +11,6 @@ export interface ISessionRepository {
     invalidate(sessionId: string): Promise<void>
 
     update(sessionId: string, data: Omit<CreateSessionDTO, "userId">): Promise<void>
+
+    invalidateAllByUserId(userId: string): Promise<void>
 }

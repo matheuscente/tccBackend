@@ -51,5 +51,12 @@ export class SessionRepository implements ISessionRepository {
             }
         })
     }
+
+    async invalidateAllByUserId(userId: string): Promise<void> {
+        await this.orm.session.updateMany({
+            where: { userId },
+            data: { isValid: false }
+  })
+}
     
 }

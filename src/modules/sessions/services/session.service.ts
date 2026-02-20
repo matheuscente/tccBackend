@@ -91,4 +91,8 @@ export class SessionService implements ISessionService {
 
     return this.repository.invalidate(sessionId);
   }
+
+  async invalidateAllByUserId(userId: string): Promise<void> {
+    await this.repository.invalidateAllByUserId(userId)
+}
 }

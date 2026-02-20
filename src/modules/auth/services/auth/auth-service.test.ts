@@ -1,7 +1,7 @@
 import type { IDateConvert } from "../../../../shared/convert/interfaces/date-convert.interface"
 import type { IHashProvider } from "../../../../shared/hash/interfaces/hash-provider.interface"
 import type { ISessionService } from "../../../sessions/interfaces/services/session-service.interface"
-import type { IUserService } from "../../../users/interfaces/user-service.interface"
+import type { IUserRepository } from "../../../users/interfaces/user-repository.interface"
 import type { IAccessTokenService } from "../../interfaces/access-token/access-token-service.interface"
 import { makeUser } from "../../../../tests/factories/make-user"
 import { makeSession } from "../../../../tests/factories/make-session"
@@ -12,11 +12,10 @@ import { NotFoundError } from "../../../../shared/errors/not-found-error"
 
 describe(("authService teste"), ()=> {
 
-  const userServiceMock: jest.Mocked<IUserService> = {
+  const userServiceMock: jest.Mocked<IUserRepository> = {
     create: jest.fn(),
     findById: jest.fn(),
     findByUsername: jest.fn(),
-    findWithPassword: jest.fn(),
     update: jest.fn(),
     updatePassword: jest.fn(),
     softDelete: jest.fn(),
@@ -56,7 +55,7 @@ describe(("authService teste"), ()=> {
         it("should login successfully", async () => {
 
           hashMock.compare.mockResolvedValue(true)
-          userServiceMock.findWithPassword.mockResolvedValue(user)
+          userServiceMock.findByUsername.mockResolvedValue(user)
           sessionerviceMock.createSession.mockResolvedValue(session)
           dateConvertMock.dateToSeconds.mockReturnValue(20000)
           accessTokenMock.generateAccessToken.mockReturnValue("accessToken")
@@ -66,8 +65,8 @@ describe(("authService teste"), ()=> {
             password: "test"
           })
 
-          expect(userServiceMock.findWithPassword).toHaveBeenCalledTimes(1)
-          expect(userServiceMock.findWithPassword).toHaveBeenCalledWith("test")
+          expect(userServiceMock.findByUsername).toHaveBeenCalledTimes(1)
+          expect(userServiceMock.findByUsername).toHaveBeenCalledWith("test")
 
           expect(hashMock.compare).toHaveBeenCalledTimes(1)
           expect(hashMock.compare).toHaveBeenCalledWith("test", user.password)
@@ -94,7 +93,7 @@ describe(("authService teste"), ()=> {
         it("should throw an access token dependency error.", async () => {
 
           hashMock.compare.mockResolvedValue(true)
-          userServiceMock.findWithPassword.mockResolvedValue(user)
+          userServiceMock.findByUsername.mockResolvedValue(user)
           sessionerviceMock.createSession.mockResolvedValue(session)
           dateConvertMock.dateToSeconds.mockReturnValue(20000)
           accessTokenMock.generateAccessToken.mockImplementation(() => {
@@ -108,8 +107,8 @@ describe(("authService teste"), ()=> {
 
           await expect(login).rejects.toThrow("access token error") 
 
-          expect(userServiceMock.findWithPassword).toHaveBeenCalledTimes(1)
-          expect(userServiceMock.findWithPassword).toHaveBeenCalledWith("test")
+          expect(userServiceMock.findByUsername).toHaveBeenCalledTimes(1)
+          expect(userServiceMock.findByUsername).toHaveBeenCalledWith("test")
 
           expect(hashMock.compare).toHaveBeenCalledTimes(1)
           expect(hashMock.compare).toHaveBeenCalledWith("test", user.password)
@@ -126,7 +125,7 @@ describe(("authService teste"), ()=> {
         it("should throw an date convert dependency error.", async () => {
 
           hashMock.compare.mockResolvedValue(true)
-          userServiceMock.findWithPassword.mockResolvedValue(user)
+          userServiceMock.findByUsername.mockResolvedValue(user)
           sessionerviceMock.createSession.mockResolvedValue(session)
           dateConvertMock.dateToSeconds.mockImplementation(() => {
             throw new Error("date convert error")
@@ -139,8 +138,8 @@ describe(("authService teste"), ()=> {
 
           await expect(login).rejects.toThrow("date convert error") 
 
-          expect(userServiceMock.findWithPassword).toHaveBeenCalledTimes(1)
-          expect(userServiceMock.findWithPassword).toHaveBeenCalledWith("test")
+          expect(userServiceMock.findByUsername).toHaveBeenCalledTimes(1)
+          expect(userServiceMock.findByUsername).toHaveBeenCalledWith("test")
 
           expect(hashMock.compare).toHaveBeenCalledTimes(1)
           expect(hashMock.compare).toHaveBeenCalledWith("test", user.password)
@@ -156,7 +155,7 @@ describe(("authService teste"), ()=> {
         it("should throw an createSession dependency error.", async () => {
 
           hashMock.compare.mockResolvedValue(true)
-          userServiceMock.findWithPassword.mockResolvedValue(user)
+          userServiceMock.findByUsername.mockResolvedValue(user)
           sessionerviceMock.createSession.mockRejectedValue( new Error("createSession error"))
 
           const login = service.login({
@@ -166,8 +165,8 @@ describe(("authService teste"), ()=> {
 
           await expect(login).rejects.toThrow("createSession error") 
 
-          expect(userServiceMock.findWithPassword).toHaveBeenCalledTimes(1)
-          expect(userServiceMock.findWithPassword).toHaveBeenCalledWith("test")
+          expect(userServiceMock.findByUsername).toHaveBeenCalledTimes(1)
+          expect(userServiceMock.findByUsername).toHaveBeenCalledWith("test")
 
           expect(hashMock.compare).toHaveBeenCalledTimes(1)
           expect(hashMock.compare).toHaveBeenCalledWith("test", user.password)
@@ -183,7 +182,7 @@ describe(("authService teste"), ()=> {
         it("should throw an error for password invalid.", async () => {
 
           hashMock.compare.mockResolvedValue(false)
-          userServiceMock.findWithPassword.mockResolvedValue(user)
+          userServiceMock.findByUsername.mockResolvedValue(user)
 
           const login = service.login({
             username: "test",
@@ -193,8 +192,8 @@ describe(("authService teste"), ()=> {
           await expect(login).rejects.toThrow("usuário ou senha inválidos") 
           await expect(login).rejects.toBeInstanceOf(ValidationError)
 
-          expect(userServiceMock.findWithPassword).toHaveBeenCalledTimes(1)
-          expect(userServiceMock.findWithPassword).toHaveBeenCalledWith("test")
+          expect(userServiceMock.findByUsername).toHaveBeenCalledTimes(1)
+          expect(userServiceMock.findByUsername).toHaveBeenCalledWith("test")
 
           expect(hashMock.compare).toHaveBeenCalledTimes(1)
           expect(hashMock.compare).toHaveBeenCalledWith("test", user.password)
@@ -208,7 +207,7 @@ describe(("authService teste"), ()=> {
 
         it("should throw an error for username invalid.", async () => {
 
-          userServiceMock.findWithPassword.mockResolvedValue(null)
+          userServiceMock.findByUsername.mockResolvedValue(null)
 
           const login = service.login({
             username: "test",
@@ -219,8 +218,8 @@ describe(("authService teste"), ()=> {
           
           await expect(login).rejects.toBeInstanceOf(ValidationError)
 
-          expect(userServiceMock.findWithPassword).toHaveBeenCalledTimes(1)
-          expect(userServiceMock.findWithPassword).toHaveBeenCalledWith("test")
+          expect(userServiceMock.findByUsername).toHaveBeenCalledTimes(1)
+          expect(userServiceMock.findByUsername).toHaveBeenCalledWith("test")
 
           expect(hashMock.compare).not.toHaveBeenCalled()
 

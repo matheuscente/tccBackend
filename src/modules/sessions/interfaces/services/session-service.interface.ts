@@ -7,4 +7,6 @@ export interface ISessionService {
 
     invalidateSession(sessionId: string): Promise<void>
 
+    invalidateAllByUserId(userId: string): Promise<void>
+
 }

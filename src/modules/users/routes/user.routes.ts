@@ -1,7 +1,7 @@
 import express from "express"
 import { RequestValidator } from "../../../middlewares/data-validator.middleware"
 import { FindUserByIdSchema } from "../../../shared/schemas/find-by-id.schema.ts"
-import { userFactory } from "../factory/user.factory"
+import { userFactory } from "../factories/user.factory"
 import { FindUserByUsernameSchema } from "../validators/find-by-username.schema"
 import { CreateUserSchema } from "../validators/create-user.schema"
 import { UpdateUserSchema } from "../validators/update-user.schema"

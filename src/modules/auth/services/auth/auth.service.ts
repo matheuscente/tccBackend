@@ -3,7 +3,7 @@ import { NotFoundError } from "../../../../shared/errors/not-found-error"
 import { ValidationError } from "../../../../shared/errors/validation-error"
 import type { IHashProvider } from "../../../../shared/hash/interfaces/hash-provider.interface"
 import type { ISessionService } from "../../../sessions/interfaces/services/session-service.interface"
-import type { IUserService } from "../../../users/interfaces/user-service.interface"
+import type { IUserRepository } from "../../../users/interfaces/user-repository.interface"
 import type { AuthResponseDTO } from "../../DTOs/auth-response.dto"
 import type { LoginDTO } from "../../DTOs/login.dto"
 import type { IAccessTokenService } from "../../interfaces/access-token/access-token-service.interface"
@@ -12,7 +12,7 @@ import type { IAuthService } from "../../interfaces/auth/auth-service.interface"
 
 export class AuthService implements IAuthService {
     constructor(
-        private readonly userService: IUserService,
+        private readonly userRepository: IUserRepository,
         private readonly sessionService: ISessionService,
         private readonly hash: IHashProvider,
         private readonly dateConvert: IDateConvert,
@@ -20,7 +20,7 @@ export class AuthService implements IAuthService {
     ) {}
 
     async login(data: LoginDTO): Promise<AuthResponseDTO> {
-        const user = await this.userService.findWithPassword(data.username)
+        const user = await this.userRepository.findByUsername(data.username)
 
         if(!user) throw new ValidationError("usuário ou senha inválidos")
 

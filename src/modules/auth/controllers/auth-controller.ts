@@ -8,7 +8,7 @@ export class AuthController implements IAuthController {
         private readonly service: IAuthService
     ) { }
 
-    async login(req: Request<any, any, LoginDTO>, res: Response, next: NextFunction): Promise<void> {
+    login = async (req: Request<any, any, LoginDTO>, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { username, password } = req.body;
 
@@ -35,7 +35,7 @@ export class AuthController implements IAuthController {
 
     }
 
-    async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
 
             const authHeader = req.headers.authorization
@@ -66,7 +66,7 @@ export class AuthController implements IAuthController {
 
         }
     }
-    async refreshSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+    refreshSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
 
             const refreshToken: unknown = req.cookies.rToken
@@ -99,7 +99,7 @@ export class AuthController implements IAuthController {
         }
     }
 
-    private setRefreshCookie(res: Response, token: string, expiresAt: number): void {
+    setRefreshCookie = (res: Response, token: string, expiresAt: number): void => {
     res.cookie("rToken", token, {
         httpOnly: true,
         secure: false, //mudar em produção

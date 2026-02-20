@@ -9,12 +9,14 @@ import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provider.interface";
 import { InternalServerError } from "../../../shared/errors/internal-server-error";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
+import type { ISessionService } from "../../sessions/interfaces/services/session-service.interface";
 
 export class UserService implements IUserService {
   constructor(
     private repository: IUserRepository,
     private hasher: IHashProvider,
-    private sanitize: Isanitize
+    private sanitize: Isanitize,
+    private sessionService: ISessionService
   ) { }
   async updatePassword(id: string, oldPassword: string, newPassword: string): Promise<void> {
     const user = await this.repository.findById(id)
@@ -153,6 +155,7 @@ export class UserService implements IUserService {
 
     if (!user) throw new NotFoundError("usuario não encontrado");
     await this.repository.softDelete(id);
+    await this.sessionService.invalidateAllByUserId(user.id)
     return;
   }
 
