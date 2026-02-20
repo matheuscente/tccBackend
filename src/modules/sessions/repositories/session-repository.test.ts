@@ -4,6 +4,7 @@ import type { CreateSessionDTO } from "..//../sessions/DTOs/create-session.DTO";
 import { SessionRepository } from "./session.repository";
 import { UserRepository } from "../../users/repositories/user.repository";
 import { makeSession } from "../../../tests/factories/make-session";
+import { randomUUID } from "crypto";
 describe("SessionRepository tests", () => {
   const repository = new SessionRepository(prismaTests);
   const userRepository = new UserRepository(prismaTests);
@@ -207,4 +208,28 @@ describe("SessionRepository tests", () => {
       ).rejects.toThrow();
     });
   });
+
+   describe("invalidateAllByUserId tests", () => {
+    let session: Session;
+    beforeEach(async () => {
+      session = await repository.create(makeSession({userId: user.id}));
+      refreshToken = session.refreshToken;
+      userId = session.userId;
+    });
+
+    it("should invalidate all sessions for a user.", async () => {
+      await repository.create(makeSession({
+        id: randomUUID(),
+        userId: user.id,
+        refreshToken: randomUUID()
+      }))
+      await repository.invalidateAllByUserId(user.id);
+
+      const invalidSessions = await repository.findByUserId(user.id);
+
+      expect(invalidSessions.length).toBe(2)
+      expect(invalidSessions.every(item => item.isValid === false)).toBe(true)
+    });
+  });
+
 });

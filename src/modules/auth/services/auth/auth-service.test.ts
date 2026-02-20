@@ -12,7 +12,7 @@ import { NotFoundError } from "../../../../shared/errors/not-found-error"
 
 describe(("authService teste"), ()=> {
 
-  const userServiceMock: jest.Mocked<IUserRepository> = {
+  const userRepositoryMock: jest.Mocked<IUserRepository> = {
     create: jest.fn(),
     findById: jest.fn(),
     findByUsername: jest.fn(),
@@ -21,10 +21,12 @@ describe(("authService teste"), ()=> {
     softDelete: jest.fn(),
   }
 
-  const sessionerviceMock: jest.Mocked<ISessionService> = {
+  const sessionServiceMock: jest.Mocked<ISessionService> = {
     createSession: jest.fn(),
     refreshSession: jest.fn(),
-    invalidateSession: jest.fn()
+    invalidateSession: jest.fn(),
+    invalidateAllByUserId: jest.fn()
+
   }
 
     const hashMock: jest.Mocked<IHashProvider> = {
@@ -41,7 +43,7 @@ describe(("authService teste"), ()=> {
     extractPayload: jest.fn()
   }
 
-  const service = new AuthService(userServiceMock, sessionerviceMock, hashMock, dateConvertMock, accessTokenMock)
+  const service = new AuthService(userRepositoryMock, sessionServiceMock, hashMock, dateConvertMock, accessTokenMock)
 
     beforeEach(() => {
         jest.resetAllMocks();
@@ -55,8 +57,8 @@ describe(("authService teste"), ()=> {
         it("should login successfully", async () => {
 
           hashMock.compare.mockResolvedValue(true)
-          userServiceMock.findByUsername.mockResolvedValue(user)
-          sessionerviceMock.createSession.mockResolvedValue(session)
+          userRepositoryMock.findByUsername.mockResolvedValue(user)
+          sessionServiceMock.createSession.mockResolvedValue(session)
           dateConvertMock.dateToSeconds.mockReturnValue(20000)
           accessTokenMock.generateAccessToken.mockReturnValue("accessToken")
 
@@ -65,14 +67,14 @@ describe(("authService teste"), ()=> {
             password: "test"
           })
 
-          expect(userServiceMock.findByUsername).toHaveBeenCalledTimes(1)
-          expect(userServiceMock.findByUsername).toHaveBeenCalledWith("test")
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledTimes(1)
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledWith("test")
 
           expect(hashMock.compare).toHaveBeenCalledTimes(1)
           expect(hashMock.compare).toHaveBeenCalledWith("test", user.password)
 
-          expect(sessionerviceMock.createSession).toHaveBeenCalledTimes(1)
-          expect(sessionerviceMock.createSession).toHaveBeenCalledWith(user.id)
+          expect(sessionServiceMock.createSession).toHaveBeenCalledTimes(1)
+          expect(sessionServiceMock.createSession).toHaveBeenCalledWith(user.id)
 
           expect(dateConvertMock.dateToSeconds).toHaveBeenCalledTimes(1)
 
@@ -93,8 +95,8 @@ describe(("authService teste"), ()=> {
         it("should throw an access token dependency error.", async () => {
 
           hashMock.compare.mockResolvedValue(true)
-          userServiceMock.findByUsername.mockResolvedValue(user)
-          sessionerviceMock.createSession.mockResolvedValue(session)
+          userRepositoryMock.findByUsername.mockResolvedValue(user)
+          sessionServiceMock.createSession.mockResolvedValue(session)
           dateConvertMock.dateToSeconds.mockReturnValue(20000)
           accessTokenMock.generateAccessToken.mockImplementation(() => {
             throw new Error("access token error")
@@ -107,14 +109,14 @@ describe(("authService teste"), ()=> {
 
           await expect(login).rejects.toThrow("access token error") 
 
-          expect(userServiceMock.findByUsername).toHaveBeenCalledTimes(1)
-          expect(userServiceMock.findByUsername).toHaveBeenCalledWith("test")
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledTimes(1)
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledWith("test")
 
           expect(hashMock.compare).toHaveBeenCalledTimes(1)
           expect(hashMock.compare).toHaveBeenCalledWith("test", user.password)
 
-          expect(sessionerviceMock.createSession).toHaveBeenCalledTimes(1)
-          expect(sessionerviceMock.createSession).toHaveBeenCalledWith(user.id)
+          expect(sessionServiceMock.createSession).toHaveBeenCalledTimes(1)
+          expect(sessionServiceMock.createSession).toHaveBeenCalledWith(user.id)
 
           expect(dateConvertMock.dateToSeconds).toHaveBeenCalledTimes(1)
 
@@ -125,8 +127,8 @@ describe(("authService teste"), ()=> {
         it("should throw an date convert dependency error.", async () => {
 
           hashMock.compare.mockResolvedValue(true)
-          userServiceMock.findByUsername.mockResolvedValue(user)
-          sessionerviceMock.createSession.mockResolvedValue(session)
+          userRepositoryMock.findByUsername.mockResolvedValue(user)
+          sessionServiceMock.createSession.mockResolvedValue(session)
           dateConvertMock.dateToSeconds.mockImplementation(() => {
             throw new Error("date convert error")
           })
@@ -138,14 +140,14 @@ describe(("authService teste"), ()=> {
 
           await expect(login).rejects.toThrow("date convert error") 
 
-          expect(userServiceMock.findByUsername).toHaveBeenCalledTimes(1)
-          expect(userServiceMock.findByUsername).toHaveBeenCalledWith("test")
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledTimes(1)
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledWith("test")
 
           expect(hashMock.compare).toHaveBeenCalledTimes(1)
           expect(hashMock.compare).toHaveBeenCalledWith("test", user.password)
 
-          expect(sessionerviceMock.createSession).toHaveBeenCalledTimes(1)
-          expect(sessionerviceMock.createSession).toHaveBeenCalledWith(user.id)
+          expect(sessionServiceMock.createSession).toHaveBeenCalledTimes(1)
+          expect(sessionServiceMock.createSession).toHaveBeenCalledWith(user.id)
 
           expect(dateConvertMock.dateToSeconds).toHaveBeenCalledTimes(1)
 
@@ -155,8 +157,8 @@ describe(("authService teste"), ()=> {
         it("should throw an createSession dependency error.", async () => {
 
           hashMock.compare.mockResolvedValue(true)
-          userServiceMock.findByUsername.mockResolvedValue(user)
-          sessionerviceMock.createSession.mockRejectedValue( new Error("createSession error"))
+          userRepositoryMock.findByUsername.mockResolvedValue(user)
+          sessionServiceMock.createSession.mockRejectedValue( new Error("createSession error"))
 
           const login = service.login({
             username: "test",
@@ -165,14 +167,14 @@ describe(("authService teste"), ()=> {
 
           await expect(login).rejects.toThrow("createSession error") 
 
-          expect(userServiceMock.findByUsername).toHaveBeenCalledTimes(1)
-          expect(userServiceMock.findByUsername).toHaveBeenCalledWith("test")
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledTimes(1)
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledWith("test")
 
           expect(hashMock.compare).toHaveBeenCalledTimes(1)
           expect(hashMock.compare).toHaveBeenCalledWith("test", user.password)
 
-          expect(sessionerviceMock.createSession).toHaveBeenCalledTimes(1)
-          expect(sessionerviceMock.createSession).toHaveBeenCalledWith(user.id)
+          expect(sessionServiceMock.createSession).toHaveBeenCalledTimes(1)
+          expect(sessionServiceMock.createSession).toHaveBeenCalledWith(user.id)
 
           expect(dateConvertMock.dateToSeconds).not.toHaveBeenCalled()
 
@@ -182,7 +184,7 @@ describe(("authService teste"), ()=> {
         it("should throw an error for password invalid.", async () => {
 
           hashMock.compare.mockResolvedValue(false)
-          userServiceMock.findByUsername.mockResolvedValue(user)
+          userRepositoryMock.findByUsername.mockResolvedValue(user)
 
           const login = service.login({
             username: "test",
@@ -192,13 +194,13 @@ describe(("authService teste"), ()=> {
           await expect(login).rejects.toThrow("usuário ou senha inválidos") 
           await expect(login).rejects.toBeInstanceOf(ValidationError)
 
-          expect(userServiceMock.findByUsername).toHaveBeenCalledTimes(1)
-          expect(userServiceMock.findByUsername).toHaveBeenCalledWith("test")
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledTimes(1)
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledWith("test")
 
           expect(hashMock.compare).toHaveBeenCalledTimes(1)
           expect(hashMock.compare).toHaveBeenCalledWith("test", user.password)
 
-          expect(sessionerviceMock.createSession).not.toHaveBeenCalled()
+          expect(sessionServiceMock.createSession).not.toHaveBeenCalled()
 
           expect(dateConvertMock.dateToSeconds).not.toHaveBeenCalled()
 
@@ -207,7 +209,7 @@ describe(("authService teste"), ()=> {
 
         it("should throw an error for username invalid.", async () => {
 
-          userServiceMock.findByUsername.mockResolvedValue(null)
+          userRepositoryMock.findByUsername.mockResolvedValue(null)
 
           const login = service.login({
             username: "test",
@@ -218,12 +220,12 @@ describe(("authService teste"), ()=> {
           
           await expect(login).rejects.toBeInstanceOf(ValidationError)
 
-          expect(userServiceMock.findByUsername).toHaveBeenCalledTimes(1)
-          expect(userServiceMock.findByUsername).toHaveBeenCalledWith("test")
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledTimes(1)
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledWith("test")
 
           expect(hashMock.compare).not.toHaveBeenCalled()
 
-          expect(sessionerviceMock.createSession).not.toHaveBeenCalled()
+          expect(sessionServiceMock.createSession).not.toHaveBeenCalled()
 
           expect(dateConvertMock.dateToSeconds).not.toHaveBeenCalled()
 
@@ -240,15 +242,15 @@ describe(("authService teste"), ()=> {
           sessionId: "sessionId-test"
         })
 
-        sessionerviceMock.invalidateSession.mockResolvedValue(undefined)
+        sessionServiceMock.invalidateSession.mockResolvedValue(undefined)
 
         expect(await service.logout("test")).toBe(undefined)
 
         expect(accessTokenMock.extractPayload).toHaveBeenCalledTimes(1)
         expect(accessTokenMock.extractPayload).toHaveBeenCalledWith("test")
 
-        expect(sessionerviceMock.invalidateSession).toHaveBeenCalledTimes(1)
-        expect(sessionerviceMock.invalidateSession).toHaveBeenCalledWith("sessionId-test")
+        expect(sessionServiceMock.invalidateSession).toHaveBeenCalledTimes(1)
+        expect(sessionServiceMock.invalidateSession).toHaveBeenCalledWith("sessionId-test")
 
 
       })
@@ -265,7 +267,7 @@ describe(("authService teste"), ()=> {
         expect(accessTokenMock.extractPayload).toHaveBeenCalledTimes(1)
         expect(accessTokenMock.extractPayload).toHaveBeenCalledWith("test")
 
-        expect(sessionerviceMock.invalidateSession).not.toHaveBeenCalled()
+        expect(sessionServiceMock.invalidateSession).not.toHaveBeenCalled()
 
       })
 
@@ -277,7 +279,7 @@ describe(("authService teste"), ()=> {
           sessionId: "sessionId-test"
         })
 
-        sessionerviceMock.invalidateSession.mockRejectedValue(new NotFoundError("sessão não encontrada"))
+        sessionServiceMock.invalidateSession.mockRejectedValue(new NotFoundError("sessão não encontrada"))
 
         const logout = service.logout("test")
 
@@ -287,8 +289,8 @@ describe(("authService teste"), ()=> {
         expect(accessTokenMock.extractPayload).toHaveBeenCalledTimes(1)
         expect(accessTokenMock.extractPayload).toHaveBeenCalledWith("test")
 
-        expect(sessionerviceMock.invalidateSession).toHaveBeenCalledTimes(1)
-        expect(sessionerviceMock.invalidateSession).toHaveBeenCalledWith("sessionId-test")
+        expect(sessionServiceMock.invalidateSession).toHaveBeenCalledTimes(1)
+        expect(sessionServiceMock.invalidateSession).toHaveBeenCalledWith("sessionId-test")
 
 
       })
@@ -301,7 +303,7 @@ describe(("authService teste"), ()=> {
           sessionId: "sessionId-test"
         })
 
-        sessionerviceMock.invalidateSession.mockRejectedValue(new Error("invalidateSession error"))
+        sessionServiceMock.invalidateSession.mockRejectedValue(new Error("invalidateSession error"))
 
         const logout = service.logout("test")
 
@@ -310,8 +312,8 @@ describe(("authService teste"), ()=> {
         expect(accessTokenMock.extractPayload).toHaveBeenCalledTimes(1)
         expect(accessTokenMock.extractPayload).toHaveBeenCalledWith("test")
 
-        expect(sessionerviceMock.invalidateSession).toHaveBeenCalledTimes(1)
-        expect(sessionerviceMock.invalidateSession).toHaveBeenCalledWith("sessionId-test")
+        expect(sessionServiceMock.invalidateSession).toHaveBeenCalledTimes(1)
+        expect(sessionServiceMock.invalidateSession).toHaveBeenCalledWith("sessionId-test")
 
 
       })
@@ -332,7 +334,7 @@ describe(("authService teste"), ()=> {
 
       it("should update a session successfully", async () => {
 
-        sessionerviceMock.refreshSession.mockResolvedValue(session)
+        sessionServiceMock.refreshSession.mockResolvedValue(session)
         dateConvertMock.dateToSeconds.mockReturnValue(fakeExpiresAt)
         accessTokenMock.generateAccessToken.mockReturnValue(fakeAccessToken)
 
@@ -348,8 +350,8 @@ describe(("authService teste"), ()=> {
           }
         )
 
-        expect(sessionerviceMock.refreshSession).toHaveBeenCalledTimes(1)
-        expect(sessionerviceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)
+        expect(sessionServiceMock.refreshSession).toHaveBeenCalledTimes(1)
+        expect(sessionServiceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)
 
         expect(dateConvertMock.dateToSeconds).toHaveBeenCalledTimes(1)
         expect(dateConvertMock.dateToSeconds).toHaveBeenCalledWith(session.expiresAt)
@@ -363,7 +365,7 @@ describe(("authService teste"), ()=> {
 
       it("should throw an error due to generateAccessToken failure", async () => {
 
-        sessionerviceMock.refreshSession.mockResolvedValue(session)
+        sessionServiceMock.refreshSession.mockResolvedValue(session)
         dateConvertMock.dateToSeconds.mockReturnValue(fakeExpiresAt)
         accessTokenMock.generateAccessToken.mockImplementation(() => {
           throw new Error("generateAccessToken error")
@@ -373,8 +375,8 @@ describe(("authService teste"), ()=> {
 
         await expect(updatedSession).rejects.toThrow("generateAccessToken error")
 
-        expect(sessionerviceMock.refreshSession).toHaveBeenCalledTimes(1)
-        expect(sessionerviceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)
+        expect(sessionServiceMock.refreshSession).toHaveBeenCalledTimes(1)
+        expect(sessionServiceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)
 
         expect(dateConvertMock.dateToSeconds).toHaveBeenCalledTimes(1)
         expect(dateConvertMock.dateToSeconds).toHaveBeenCalledWith(session.expiresAt)
@@ -388,7 +390,7 @@ describe(("authService teste"), ()=> {
 
       it("should throw an error due to dateToSeconds failure", async () => {
 
-        sessionerviceMock.refreshSession.mockResolvedValue(session)
+        sessionServiceMock.refreshSession.mockResolvedValue(session)
         dateConvertMock.dateToSeconds.mockImplementation(() => {
           throw new Error("dateToSeconds error")
         })
@@ -397,8 +399,8 @@ describe(("authService teste"), ()=> {
 
         await expect(updatedSession).rejects.toThrow("dateToSeconds error")
 
-        expect(sessionerviceMock.refreshSession).toHaveBeenCalledTimes(1)
-        expect(sessionerviceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)
+        expect(sessionServiceMock.refreshSession).toHaveBeenCalledTimes(1)
+        expect(sessionServiceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)
 
         expect(dateConvertMock.dateToSeconds).toHaveBeenCalledTimes(1)
         expect(dateConvertMock.dateToSeconds).toHaveBeenCalledWith(session.expiresAt)
@@ -409,15 +411,15 @@ describe(("authService teste"), ()=> {
 
       it("should throw an error due to refreshSession sesionService failure", async () => {
 
-        sessionerviceMock.refreshSession.mockRejectedValue(new ValidationError("refreshSession sesionService error"))
+        sessionServiceMock.refreshSession.mockRejectedValue(new ValidationError("refreshSession sesionService error"))
 
         const updatedSession = service.refreshSession(oldRefreshToken)
 
         await expect(updatedSession).rejects.toThrow("refreshSession sesionService error")
         await expect(updatedSession).rejects.toBeInstanceOf(ValidationError)
  
-        expect(sessionerviceMock.refreshSession).toHaveBeenCalledTimes(1)
-        expect(sessionerviceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)
+        expect(sessionServiceMock.refreshSession).toHaveBeenCalledTimes(1)
+        expect(sessionServiceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)
 
         expect(dateConvertMock.dateToSeconds).not.toHaveBeenCalled()
 

@@ -48,4 +48,4 @@ class AppContainer {
   authController = new AuthController(this.authService)
 } 
 
-export const conteiner = new AppContainer()
+export const container = new AppContainer()

@@ -1,7 +1,7 @@
 import express from 'express'
-import { routes } from './routes/index/index.routes'
-import { PageNotFoundMiddleware } from './middlewares/page-not-found.middleware'
-import { ErrorHandler } from './middlewares/error-handler.middleware'
+import { routes } from '../routes/index/index.routes'
+import { PageNotFoundMiddleware } from '../middlewares/page-not-found.middleware'
+import { ErrorHandler } from '../middlewares/error-handler.middleware'
 
 const app = express()
 

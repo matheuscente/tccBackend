@@ -7,7 +7,9 @@ export const baseUserFields = {
 
   username: Joi.string()
   .min(5)
-  .max(20),
+  .max(20)
+  .pattern(/^[a-zA-Z0-9_]+$/, "alphanumeric with underscores")
+,
 
   birthDate: Joi.string()
   .pattern(/^\d{2}\/\d{2}\/\d{4}$/),

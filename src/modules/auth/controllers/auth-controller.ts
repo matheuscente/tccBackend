@@ -99,7 +99,7 @@ export class AuthController implements IAuthController {
         }
     }
 
-    setRefreshCookie = (res: Response, token: string, expiresAt: number): void => {
+    private setRefreshCookie = (res: Response, token: string, expiresAt: number): void => {
     res.cookie("rToken", token, {
         httpOnly: true,
         secure: false, //mudar em produção

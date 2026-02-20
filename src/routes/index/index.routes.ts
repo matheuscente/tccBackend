@@ -1,6 +1,7 @@
 import express, { Router } from "express"
 import heathCheckRoute from "../health-check.route/health-check.route"
 import { userRoutes } from "../../modules/users/routes/user.routes"
+import { authRoutes } from "../../modules/auth/routes/auth.routes"
 
 
 // função responsável por organizar e contralizar as rotas.
@@ -19,5 +20,7 @@ export const routes = (app: express.Express) => {
     api.use('/health', heathCheckRoute)
 
     api.use('/user', userRoutes)
+
+    api.use('auth', authRoutes)
 
 }

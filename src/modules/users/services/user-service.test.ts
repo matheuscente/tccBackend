@@ -7,6 +7,7 @@ import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import { makeUser } from "../../../tests/factories/make-user"
+import type { ISessionService } from "../../sessions/interfaces/services/session-service.interface";
 
 
 describe("user service tests", () => {
@@ -35,7 +36,15 @@ describe("user service tests", () => {
     compare: jest.fn(),
   };
 
-  const service = new UserService(repositoryMock, hashMock, sanitizeMock);
+  const sessionServiceMock: jest.Mocked<ISessionService> = {
+    createSession: jest.fn(),
+    refreshSession: jest.fn(),
+    invalidateSession: jest.fn(),
+    invalidateAllByUserId: jest.fn()
+    
+  }
+
+  const service = new UserService(repositoryMock, hashMock, sanitizeMock, sessionServiceMock);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -235,13 +244,14 @@ describe("user service tests", () => {
     it('should delete a user sucessfully', async () => {
       const user = makeUser()
       repositoryMock.findById.mockResolvedValue(user)
+      sessionServiceMock.invalidateAllByUserId.mockResolvedValue(undefined)
 
       await service.softDelete(user.id)
 
       expect(repositoryMock.softDelete).toHaveBeenCalledWith(user.id)
       expect(repositoryMock.softDelete).toHaveBeenCalledTimes(1)
-
-
+      expect(sessionServiceMock.invalidateAllByUserId).toHaveBeenCalledTimes(1)
+      expect(sessionServiceMock.invalidateAllByUserId).toHaveBeenCalledWith(user.id)
     })
 
     it('It should throw an error because there is no user with the given ID', async () => {
@@ -250,10 +260,10 @@ describe("user service tests", () => {
 
       const userTest = service.softDelete(user.id)
 
-      expect(repositoryMock.softDelete).not.toHaveBeenCalled()
       await expect(userTest).rejects.toBeInstanceOf(NotFoundError)
       await expect(userTest).rejects.toThrow("usuario não encontrado")
-
+      expect(repositoryMock.softDelete).not.toHaveBeenCalled()
+      expect(sessionServiceMock.invalidateAllByUserId).not.toHaveBeenCalled()
     })
 
 

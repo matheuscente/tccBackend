@@ -82,6 +82,4 @@ describe('UserRepository tests', () => {
         
         expect(newPassword).toBe('new password')
     })
-
-
 })

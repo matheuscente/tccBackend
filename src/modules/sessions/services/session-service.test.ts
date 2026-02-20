@@ -23,6 +23,7 @@ describe("Session service test", () => {
     findById: jest.fn(),
     invalidate: jest.fn(),
     update: jest.fn(),
+    invalidateAllByUserId: jest.fn()
   };
 
   const hashMock: jest.Mocked<IHashProvider> = {
@@ -364,4 +365,20 @@ describe("Session service test", () => {
   });
 
   describe("update tests", () => {});
+
+  describe("invalidateAllByUserId tests", () => {
+
+
+    it("should call repository invalidateAllByUserId with correct userId", async () => {
+      const userId = "user-id-test"
+      repositoryMock.invalidateAllByUserId.mockResolvedValue(undefined);
+
+      await service.invalidateAllByUserId(userId)
+
+      expect(repositoryMock.invalidateAllByUserId).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.invalidateAllByUserId).toHaveBeenCalledWith(userId);
+    });
+
+    
+  });
 });
