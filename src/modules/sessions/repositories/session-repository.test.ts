@@ -232,4 +232,38 @@ describe("SessionRepository tests", () => {
     });
   });
 
+  describe("findByIdWithUser tests", () => {
+    let session: Session;
+
+    it("should find a session by id", async () => {
+      session = await repository.create(makeSession({userId: user.id}));
+      refreshToken = session.refreshToken;
+      userId = session.userId;
+
+      const sessionReturns = await repository.findByIdWithUser(session.id);
+
+      expect(sessionReturns).not.toBeNull();
+      expect(sessionReturns).toMatchObject({
+        id: session.id,
+        refreshToken: session.refreshToken,
+        userId: session.userId,
+        isValid: true,
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+        user: {
+          id: expect.any(String),
+          role: expect.any(String),
+          deletedAt: null
+        }
+      });
+    });
+
+    it("It should return an empty array because there is no session with the id provided in the database", async () => {
+      const sessionReturns = await repository.findById("invalid id");
+
+      expect(sessionReturns).toBe(null);
+    });
+  });
+
+
 });
