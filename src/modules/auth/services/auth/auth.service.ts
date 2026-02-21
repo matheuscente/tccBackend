@@ -1,4 +1,5 @@
 import type { IDateConvert } from "../../../../shared/convert/interfaces/date-convert.interface"
+import { AuthorizationError } from "../../../../shared/errors/authorization.error"
 import { NotFoundError } from "../../../../shared/errors/not-found-error"
 import { ValidationError } from "../../../../shared/errors/validation-error"
 import type { IHashProvider } from "../../../../shared/hash/interfaces/hash-provider.interface"
@@ -22,11 +23,11 @@ export class AuthService implements IAuthService {
     async login(data: LoginDTO): Promise<AuthResponseDTO> {
         const user = await this.userRepository.findByUsername(data.username)
 
-        if(!user) throw new ValidationError("usuário ou senha inválidos")
+        if(!user) throw new AuthorizationError("usuário ou senha inválidos")
 
         const isTruePassword = await this.hash.compare(data.password, user.password)
 
-        if(!isTruePassword) throw new ValidationError("usuário ou senha inválidos")
+        if(!isTruePassword) throw new AuthorizationError("usuário ou senha inválidos")
 
         const session = await this.sessionService.createSession(user.id)
 
@@ -56,7 +57,7 @@ export class AuthService implements IAuthService {
 
         } catch (err){
             if(err instanceof NotFoundError) {
-                throw new ValidationError("sessão inválida")
+                throw new AuthorizationError("sessão inválida")
             }
 
             throw err

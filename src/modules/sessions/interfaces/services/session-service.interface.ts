@@ -1,4 +1,5 @@
 import type { SessionResponseDTO } from "../../DTOs/session-response.DTO"
+import type { ValidateSessionResponseDTO } from "../../DTOs/validate-session-response.DTO"
 
 export interface ISessionService {
     createSession(userId: string): Promise<SessionResponseDTO>
@@ -8,5 +9,7 @@ export interface ISessionService {
     invalidateSession(sessionId: string): Promise<void>
 
     invalidateAllByUserId(userId: string): Promise<void>
+
+    validateSession(sessionId: string): Promise<ValidateSessionResponseDTO>
 
 }

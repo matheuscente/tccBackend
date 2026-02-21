@@ -6,8 +6,8 @@ import type { IAccessTokenService } from "../../interfaces/access-token/access-t
 import { makeUser } from "../../../../tests/factories/make-user"
 import { makeSession } from "../../../../tests/factories/make-session"
 import { AuthService } from "./auth.service"
-import { ValidationError } from "../../../../shared/errors/validation-error"
 import { NotFoundError } from "../../../../shared/errors/not-found-error"
+import { AuthorizationError } from "../../../../shared/errors/authorization.error"
 
 
 describe(("authService teste"), ()=> {
@@ -25,8 +25,8 @@ describe(("authService teste"), ()=> {
     createSession: jest.fn(),
     refreshSession: jest.fn(),
     invalidateSession: jest.fn(),
-    invalidateAllByUserId: jest.fn()
-
+    invalidateAllByUserId: jest.fn(),
+    validateSession: jest.fn()
   }
 
     const hashMock: jest.Mocked<IHashProvider> = {
@@ -192,7 +192,7 @@ describe(("authService teste"), ()=> {
           })
 
           await expect(login).rejects.toThrow("usuário ou senha inválidos") 
-          await expect(login).rejects.toBeInstanceOf(ValidationError)
+          await expect(login).rejects.toBeInstanceOf(AuthorizationError)
 
           expect(userRepositoryMock.findByUsername).toHaveBeenCalledTimes(1)
           expect(userRepositoryMock.findByUsername).toHaveBeenCalledWith("test")
@@ -218,7 +218,7 @@ describe(("authService teste"), ()=> {
 
           await expect(login).rejects.toThrow("usuário ou senha inválidos")
           
-          await expect(login).rejects.toBeInstanceOf(ValidationError)
+          await expect(login).rejects.toBeInstanceOf(AuthorizationError)
 
           expect(userRepositoryMock.findByUsername).toHaveBeenCalledTimes(1)
           expect(userRepositoryMock.findByUsername).toHaveBeenCalledWith("test")
@@ -284,7 +284,7 @@ describe(("authService teste"), ()=> {
         const logout = service.logout("test")
 
         await expect(logout).rejects.toThrow("sessão inválida")
-        await expect(logout).rejects.toBeInstanceOf(ValidationError)
+        await expect(logout).rejects.toBeInstanceOf(AuthorizationError)
 
         expect(accessTokenMock.extractPayload).toHaveBeenCalledTimes(1)
         expect(accessTokenMock.extractPayload).toHaveBeenCalledWith("test")
@@ -411,12 +411,12 @@ describe(("authService teste"), ()=> {
 
       it("should throw an error due to refreshSession sesionService failure", async () => {
 
-        sessionServiceMock.refreshSession.mockRejectedValue(new ValidationError("refreshSession sesionService error"))
+        sessionServiceMock.refreshSession.mockRejectedValue(new AuthorizationError("refreshSession sesionService error"))
 
         const updatedSession = service.refreshSession(oldRefreshToken)
 
         await expect(updatedSession).rejects.toThrow("refreshSession sesionService error")
-        await expect(updatedSession).rejects.toBeInstanceOf(ValidationError)
+        await expect(updatedSession).rejects.toBeInstanceOf(AuthorizationError)
  
         expect(sessionServiceMock.refreshSession).toHaveBeenCalledTimes(1)
         expect(sessionServiceMock.refreshSession).toHaveBeenCalledWith(oldRefreshToken)

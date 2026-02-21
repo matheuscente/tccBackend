@@ -40,7 +40,8 @@ describe("user service tests", () => {
     createSession: jest.fn(),
     refreshSession: jest.fn(),
     invalidateSession: jest.fn(),
-    invalidateAllByUserId: jest.fn()
+    invalidateAllByUserId: jest.fn(),
+    validateSession: jest.fn()
     
   }
 

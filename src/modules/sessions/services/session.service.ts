@@ -6,6 +6,7 @@ import type { ISessionRepository } from "../interfaces/repositories/session-repo
 import type { ISessionService } from "../interfaces/services/session-service.interface";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import type { Session } from "@prisma/client";
+import type { ValidateSessionResponseDTO } from "../DTOs/validate-session-response.DTO";
 
 export class SessionService implements ISessionService {
   constructor(
@@ -95,4 +96,20 @@ export class SessionService implements ISessionService {
   async invalidateAllByUserId(userId: string): Promise<void> {
     await this.repository.invalidateAllByUserId(userId)
 }
+
+  async validateSession(sessionId: string): Promise<ValidateSessionResponseDTO> {
+    const session = await this.repository.findByIdWithUser(sessionId)
+
+    if(!session || !session.isValid || session.expiresAt.getTime() < new Date().getTime()) throw new ValidationError("Sessão inválida ou não encontrada")
+    
+    if(session.user.deletedAt) throw new ValidationError("Usuário desativado")
+
+      return {
+        userId: session.user.id,
+        userRole: session.user.role,
+
+      }
+
+
+  }
 }
