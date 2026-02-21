@@ -5,7 +5,7 @@ import { SessionService } from "./session.service";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import { makeSession } from "../../../tests/factories/make-session";
-
+import type { SessionWithUserDTO } from "../DTOs/session-with-user.DTO";
 
 describe("Session service test", () => {
   beforeAll(() => {
@@ -23,7 +23,8 @@ describe("Session service test", () => {
     findById: jest.fn(),
     invalidate: jest.fn(),
     update: jest.fn(),
-    invalidateAllByUserId: jest.fn()
+    invalidateAllByUserId: jest.fn(),
+    findByIdWithUser: jest.fn(),
   };
 
   const hashMock: jest.Mocked<IHashProvider> = {
@@ -367,18 +368,110 @@ describe("Session service test", () => {
   describe("update tests", () => {});
 
   describe("invalidateAllByUserId tests", () => {
-
-
     it("should call repository invalidateAllByUserId with correct userId", async () => {
-      const userId = "user-id-test"
+      const userId = "user-id-test";
       repositoryMock.invalidateAllByUserId.mockResolvedValue(undefined);
 
-      await service.invalidateAllByUserId(userId)
+      await service.invalidateAllByUserId(userId);
 
       expect(repositoryMock.invalidateAllByUserId).toHaveBeenCalledTimes(1);
       expect(repositoryMock.invalidateAllByUserId).toHaveBeenCalledWith(userId);
     });
+  });
 
-    
+  describe("validateSession tests", () => {
+    const sessionId = "123";
+
+    const session = makeSession({
+      refreshToken: "hashed-secret",
+      id: sessionId,
+    });
+
+
+    it("should validate the session and return the data of its respective user", async () => {
+
+            const repoReturns: SessionWithUserDTO = {
+        ...session,
+        user: {
+          id: "123",
+          role: "USER",
+          deletedAt: null,
+        },
+      };
+
+      repositoryMock.findByIdWithUser.mockResolvedValue(repoReturns);
+
+      const userSessionData = await service.validateSession(sessionId);
+
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+      expect(userSessionData).toMatchObject({
+        userId: expect.any(String),
+        userRole: expect.any(String),
+      });
+    });
+
+    it("should throw a validationError because the session does not exist.", async () => {
+      repositoryMock.findByIdWithUser.mockResolvedValue(null);
+
+      const userSessionData = service.validateSession(sessionId);
+
+      await expect(userSessionData).rejects.toThrow(
+        "Sessão inválida ou não encontrada",
+      );
+      await expect(userSessionData).rejects.toBeInstanceOf(ValidationError);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+    });
+
+    it("should throw a validationError because the session does not valid.", async () => {
+      const session = makeSession({isValid: false})
+            const repoReturns: SessionWithUserDTO = {
+        ...session,
+        user: {
+          id: "123",
+          role: "USER",
+          deletedAt: null,
+        },
+      };
+
+      repositoryMock.findByIdWithUser.mockResolvedValue(repoReturns);
+
+      const userSessionData = service.validateSession(sessionId);
+
+      await expect(userSessionData).rejects.toThrow(
+        "Sessão inválida ou não encontrada",
+      );
+      await expect(userSessionData).rejects.toBeInstanceOf(ValidationError);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+    });
+
+    it("should throw a validationError because the session does not expired.", async () => {
+      jest.useFakeTimers().setSystemTime(new Date("2026-02-21T10:00:00"))
+
+      const session = makeSession({expiresAt: new Date("2026-02-20T10:00:00") })
+            const repoReturns: SessionWithUserDTO = {
+        ...session,
+        user: {
+          id: "123",
+          role: "USER",
+          deletedAt: null,
+        },
+      };
+
+      repositoryMock.findByIdWithUser.mockResolvedValue(repoReturns);
+
+      const userSessionData = service.validateSession(sessionId);
+
+      await expect(userSessionData).rejects.toThrow(
+        "Sessão inválida ou não encontrada",
+      );
+      await expect(userSessionData).rejects.toBeInstanceOf(ValidationError);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+
+      jest.useRealTimers()
+    });
   });
 });
