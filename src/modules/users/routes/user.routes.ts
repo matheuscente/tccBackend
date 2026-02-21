@@ -10,14 +10,15 @@ import { UpdateUserPasswordSchema } from "../validators/update-password.schema"
 export const userRoutes = express.Router()
 
 const userController = container.userController
-userRoutes.get('/id', RequestValidator.queryValidator(FindUserByIdSchema), userController.findById)
+const authentication = container.authenticationMiddleware
+userRoutes.get('/id', RequestValidator.queryValidator(FindUserByIdSchema), authentication, userController.findById)
 
-userRoutes.get('/username', RequestValidator.queryValidator(FindUserByUsernameSchema), userController.findByUsername)
+userRoutes.get('/username', RequestValidator.queryValidator(FindUserByUsernameSchema), authentication, userController.findByUsername)
 
 userRoutes.post('/', RequestValidator.bodyValidator(CreateUserSchema), userController.create)
 
-userRoutes.patch('/:id', RequestValidator.paramsValidator(FindUserByIdSchema), RequestValidator.bodyValidator(UpdateUserSchema), userController.update)
+userRoutes.patch('/:id', RequestValidator.paramsValidator(FindUserByIdSchema), RequestValidator.bodyValidator(UpdateUserSchema), authentication, userController.update)
 
-userRoutes.patch('/:id/password', RequestValidator.paramsValidator(FindUserByIdSchema), RequestValidator.bodyValidator(UpdateUserPasswordSchema), userController.updatePassword)
+userRoutes.patch('/:id/password', RequestValidator.paramsValidator(FindUserByIdSchema), RequestValidator.bodyValidator(UpdateUserPasswordSchema), authentication, userController.updatePassword)
 
-userRoutes.delete('/:id', RequestValidator.paramsValidator(FindUserByIdSchema), userController.softDelete)
+userRoutes.delete('/:id', RequestValidator.paramsValidator(FindUserByIdSchema), authentication, userController.softDelete)

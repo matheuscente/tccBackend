@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma"
+import { authenticationMiddleware } from "../middlewares/authentication/authentication.middleware"
 import { AuthController } from "../modules/auth/controllers/auth-controller"
 import { AccessTokenService } from "../modules/auth/services/access-token/access-token.service"
 import { AuthService } from "../modules/auth/services/auth/auth.service"
@@ -41,6 +42,12 @@ class AppContainer {
     this.hashProvider,
     this.dateConvert,
     this.accessTokenService
+  )
+
+  //middlewares
+  authenticationMiddleware = authenticationMiddleware(
+    this.accessTokenService,
+    this.sessionService
   )
 
   // controllers
