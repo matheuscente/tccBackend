@@ -28,8 +28,10 @@ model User {
   updatedAt DateTime @updatedAt
 
   sessions Session[]
+  courses Course[]
 
   @@index([username])
+  @@map("users")
 }
 
 model Session {
@@ -46,6 +48,22 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@map("sessions")
+}
+
+model Course {
+  id String @id @default(uuid())
+  userId String
+  title String
+  description String?
+  createdAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("cousers")
 }
 
 enum Role {
