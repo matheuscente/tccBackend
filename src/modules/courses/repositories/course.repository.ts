@@ -24,6 +24,17 @@ export class CourseRepository implements ICouseRepository {
         })
     }
 
+    async findOwnedById(courseId: string, userId: string): Promise<Course | null> {
+        return this.orm.course.findFirst({
+            where: {
+                id: courseId,
+                userId,
+                deletedAt: null
+            }
+        })
+    }
+
+
     findAllByUserId(userId: string): Promise<Course[]> {
        return this.orm.course.findMany({
             where: {
@@ -39,16 +50,17 @@ export class CourseRepository implements ICouseRepository {
     update(courseId: string, data: Partial<Omit<CreateCourseDTO, "userId">>): Promise<Course> {
         return this.orm.course.update({
             where: {
-                id: courseId
+                id: courseId,
             },
              data
         })
     }
 
-    async softDelete(courseId: string): Promise<void> {
+    async softDelete(courseId: string, userId: string): Promise<void> {
         await this.orm.course.updateMany({
             where: {
                 id: courseId,
+                userId,
                 deletedAt: null
             },
             data: {

@@ -7,10 +7,12 @@ export interface ICouseRepository {
 
     findById(courseId: string): Promise<Course | null>
 
+    findOwnedById(courseId: string, userId: string): Promise<Course | null>
+
     findAllByUserId(userId: string): Promise<Course[]>
 
     update(courseId: string, data: Partial<Omit<CreateCourseDTO, "userId">>): Promise<Course>
 
-    softDelete(courseId: string): Promise<void>
+    softDelete(courseId: string, userId: string): Promise<void>
 
 }
