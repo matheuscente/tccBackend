@@ -1,9 +1,10 @@
 import type { Course } from "@prisma/client";
 import type { CreateCourseDTO } from "../../DTOs/create-course.DTO";
+import type { CreateCourseRepositoryDTO } from "../../DTOs/create-course-repository.DTO";
 
 export interface ICouseRepository {
     
-    create(data: CreateCourseDTO): Promise<Course>
+    create(data: CreateCourseRepositoryDTO): Promise<Course>
 
     findById(courseId: string): Promise<Course | null>
 
@@ -11,7 +12,7 @@ export interface ICouseRepository {
 
     findAllByUserId(userId: string): Promise<Course[]>
 
-    update(courseId: string, data: Partial<Omit<CreateCourseDTO, "userId">>): Promise<Course>
+    update(courseId: string, data: Partial<Omit<CreateCourseRepositoryDTO, "userId">>): Promise<Course>
 
     softDelete(courseId: string, userId: string): Promise<void>
 

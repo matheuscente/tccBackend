@@ -1,6 +1,7 @@
 import type { Course, PrismaClient } from "@prisma/client";
 import type { CreateCourseDTO } from "../DTOs/create-course.DTO";
 import type { ICouseRepository } from "../interfaces/repository/course-repository.interface";
+import type { CreateCourseRepositoryDTO } from "../DTOs/create-course-repository.DTO";
 
 export class CourseRepository implements ICouseRepository {
 
@@ -8,7 +9,7 @@ export class CourseRepository implements ICouseRepository {
         private readonly orm: PrismaClient
     ) {}
 
-    create(data: CreateCourseDTO): Promise<Course> {
+    create(data: CreateCourseRepositoryDTO): Promise<Course> {
 
         return this.orm.course.create({
             data
@@ -47,7 +48,7 @@ export class CourseRepository implements ICouseRepository {
         })
     }
 
-    update(courseId: string, data: Partial<Omit<CreateCourseDTO, "userId">>): Promise<Course> {
+    update(courseId: string, data: Partial<Omit<CreateCourseRepositoryDTO, "userId">>): Promise<Course> {
         return this.orm.course.update({
             where: {
                 id: courseId,

@@ -1,5 +1,5 @@
 export interface CreateCourseDTO {
-    userId: string,
     title: string,
-    description?: string | null
+    description?: string | null,
+    userId?: string
 }
