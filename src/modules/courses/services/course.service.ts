@@ -17,14 +17,12 @@ export class CourseService implements ICourseService {
   ) {}
 
   async create(
-    userId: string,
+    authUser: AuthUserDTO,
     data: CreateCourseDTO,
   ): Promise<CourseResponseDTO> {
     let ownerId: string;
 
     
-    const authUser = await this.getAuthenticatedUser(userId)
-
     if (authUser.role === "ADMIN") {
         if (data.userId) {
             const userExists = await this.userRepository.findById(data.userId);
@@ -58,11 +56,9 @@ export class CourseService implements ICourseService {
   }
 
   async findById(
-    userId: string,
+    authUser: AuthUserDTO,
     courseId: string,
   ): Promise<CourseResponseDTO | null> {
-
-    const authUser = await this.getAuthenticatedUser(userId)
 
     const course =
       authUser.role === "ADMIN"
@@ -75,11 +71,9 @@ export class CourseService implements ICourseService {
   }
 
   async findAllByUserId(
-  authenticatedUserId: string,
+  authUser: AuthUserDTO,
   targetUserId: string
 ): Promise<CourseResponseDTO[]>  {
-
-    const authUser = await this.getAuthenticatedUser(authenticatedUserId)
 
     // Se não for admin, só pode buscar o próprio usuário
     if (authUser.role !== "ADMIN" && authUser.id !== targetUserId) {
@@ -94,7 +88,7 @@ export class CourseService implements ICourseService {
   }
 
   async update(
-    userId: string,
+    authUser: AuthUserDTO,
     courseId: string,
     data: Partial<Omit<CreateCourseDTO, "userId">>,
   ): Promise<CourseResponseDTO> {
@@ -103,9 +97,6 @@ export class CourseService implements ICourseService {
     if (!course) {
       throw new NotFoundError("Curso não encontrado");
     }
-
-    const authUser = await this.getAuthenticatedUser(userId)
-
     this.validateOwnership(authUser, course.userId);
 
     const updatedCourse = await this.courseRepository.update(courseId, {
@@ -117,13 +108,10 @@ export class CourseService implements ICourseService {
     return this.mapResponse(updatedCourse);
   }
 
-  async softDelete(userId: string, courseId: string): Promise<void> {
+  async softDelete(authUser: AuthUserDTO, courseId: string): Promise<void> {
     const course = await this.courseRepository.findById(courseId);
 
     if (!course) return;
-
-    const authUser = await this.getAuthenticatedUser(userId)
-
 
     this.validateOwnership(authUser, course.userId);
 
@@ -146,13 +134,4 @@ export class CourseService implements ICourseService {
     };
   }
 
-  private async getAuthenticatedUser(userId: string) {
-  const user = await this.userRepository.findById(userId);
-
-  if (!user) {
-    throw new AuthorizationError("Usuário inválido");
-  }
-
-  return user;
-}
 }
