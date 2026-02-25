@@ -1,4 +1,4 @@
-import type { Course } from "@prisma/client";
+import type { Course, User } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
@@ -17,11 +17,13 @@ export class CourseService implements ICourseService {
   ) {}
 
   async create(
-    authUser: AuthUserDTO,
+    userId: string,
     data: CreateCourseDTO,
   ): Promise<CourseResponseDTO> {
     let ownerId: string;
 
+    
+    const authUser = await this.getAuthenticatedUser(userId)
 
     if (authUser.role === "ADMIN") {
         if (data.userId) {
@@ -56,9 +58,12 @@ export class CourseService implements ICourseService {
   }
 
   async findById(
-    authUser: AuthUserDTO,
+    userId: string,
     courseId: string,
   ): Promise<CourseResponseDTO | null> {
+
+    const authUser = await this.getAuthenticatedUser(userId)
+
     const course =
       authUser.role === "ADMIN"
         ? await this.courseRepository.findById(courseId)
@@ -70,15 +75,18 @@ export class CourseService implements ICourseService {
   }
 
   async findAllByUserId(
-    authUser: AuthUserDTO,
-    userId: string,
-  ): Promise<CourseResponseDTO[]> {
+  authenticatedUserId: string,
+  targetUserId: string
+): Promise<CourseResponseDTO[]>  {
+
+    const authUser = await this.getAuthenticatedUser(authenticatedUserId)
+
     // Se não for admin, só pode buscar o próprio usuário
-    if (authUser.role !== "ADMIN" && authUser.id !== userId) {
+    if (authUser.role !== "ADMIN" && authUser.id !== targetUserId) {
       throw new AuthorizationError("Ação não autorizada");
     }
 
-    const courses = await this.courseRepository.findAllByUserId(userId);
+    const courses = await this.courseRepository.findAllByUserId(targetUserId);
 
     if (courses.length === 0) return [];
 
@@ -86,7 +94,7 @@ export class CourseService implements ICourseService {
   }
 
   async update(
-    authUser: AuthUserDTO,
+    userId: string,
     courseId: string,
     data: Partial<Omit<CreateCourseDTO, "userId">>,
   ): Promise<CourseResponseDTO> {
@@ -95,6 +103,8 @@ export class CourseService implements ICourseService {
     if (!course) {
       throw new NotFoundError("Curso não encontrado");
     }
+
+    const authUser = await this.getAuthenticatedUser(userId)
 
     this.validateOwnership(authUser, course.userId);
 
@@ -107,18 +117,21 @@ export class CourseService implements ICourseService {
     return this.mapResponse(updatedCourse);
   }
 
-  async softDelete(authUser: AuthUserDTO, courseId: string): Promise<void> {
+  async softDelete(userId: string, courseId: string): Promise<void> {
     const course = await this.courseRepository.findById(courseId);
 
     if (!course) return;
+
+    const authUser = await this.getAuthenticatedUser(userId)
+
 
     this.validateOwnership(authUser, course.userId);
 
     await this.courseRepository.softDelete(courseId, course.userId);
   }
 
-  private validateOwnership(authUser: AuthUserDTO, ownerId: string): void {
-    if (authUser.role !== "ADMIN" && authUser.id !== ownerId) {
+  private validateOwnership(user: Pick<User, "id" | "role">, ownerId: string): void {
+    if (user.role !== "ADMIN" && user.id !== ownerId) {
       throw new AuthorizationError("Ação não autorizada");
     }
   }
@@ -132,4 +145,14 @@ export class CourseService implements ICourseService {
       updatedAt: course.updatedAt,
     };
   }
+
+  private async getAuthenticatedUser(userId: string) {
+  const user = await this.userRepository.findById(userId);
+
+  if (!user) {
+    throw new AuthorizationError("Usuário inválido");
+  }
+
+  return user;
+}
 }

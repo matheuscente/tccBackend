@@ -3,26 +3,20 @@ import type { CourseResponseDTO } from "../../DTOs/course-response.DTO";
 import type { CreateCourseDTO } from "../../DTOs/create-course.DTO";
 
 export interface ICourseService {
-  create(
-    authUser: AuthUserDTO,
-    data: CreateCourseDTO,
-  ): Promise<CourseResponseDTO>;
+  create(userId: string, data: CreateCourseDTO): Promise<CourseResponseDTO>;
 
-  findById(
-    authUser: AuthUserDTO,
-    courseId: string,
-  ): Promise<CourseResponseDTO | null>;
+  findById(userId: string, courseId: string): Promise<CourseResponseDTO | null>;
 
   findAllByUserId(
-    authUser: AuthUserDTO,
-    userId: string,
+    authenticatedUserId: string,
+    targetUserId: string,
   ): Promise<CourseResponseDTO[]>;
 
   update(
-    authUser: AuthUserDTO,
+    userId: string,
     courseId: string,
     data: Partial<Omit<CreateCourseDTO, "userId">>,
   ): Promise<CourseResponseDTO>;
 
-  softDelete(authUser: AuthUserDTO, courseId: string): Promise<void>;
+  softDelete(userId: string, courseId: string): Promise<void>;
 }
