@@ -30,9 +30,6 @@ describe("course service tests", () => {
         sanitizeUsername: jest.fn()
     }
 
-    sanitizeMock.sanitizeName.mockImplementation(((value) => value.toUpperCase().trim()))
-    sanitizeMock.sanitizeUsername.mockImplementation(((value) => value.toLowerCase().trim()))
-
     const service = new CourseService(courseRepositoryMock, userRepositoryMock, sanitizeMock)
 
     beforeEach(() => {
@@ -59,15 +56,139 @@ describe("course service tests", () => {
             const findedCourse = await service.findById(user, course.id)
 
             expect(findedCourse).toEqual({
-                    id: course.id,
-                    title: course.title,
-                    createdAt: course.createdAt.toISOString(),
-                    updatedAt: course.updatedAt.toISOString(),
-                    description: course.description
-                })
+                id: course.id,
+                title: course.title,
+                createdAt: course.createdAt.toISOString(),
+                updatedAt: course.updatedAt.toISOString(),
+                description: course.description
+            })
             expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1)
             expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id)
             expect(courseRepositoryMock.findOwnedById).not.toHaveBeenCalled()
         })
+
+        it("should find a course with role user successfully", async () => {
+            const id = "1"
+            const user: AuthUserDTO = {
+                id,
+                role: "USER"
+            }
+            const course = makeCourse({ userId: id })
+
+            courseRepositoryMock.findOwnedById.mockResolvedValue(course)
+
+            const findedCourse = await service.findById(user, course.id)
+
+            expect(findedCourse).toEqual({
+                id: course.id,
+                title: course.title,
+                createdAt: course.createdAt.toISOString(),
+                updatedAt: course.updatedAt.toISOString(),
+                description: course.description
+            })
+            expect(courseRepositoryMock.findById).not.toHaveBeenCalled()
+
+            expect(courseRepositoryMock.findOwnedById).toHaveBeenCalled()
+            expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledWith(course.id, user.id)
+        })
+
+        it("should return null because admin does not have a course with the given ID.", async () => {
+            const user: AuthUserDTO = {
+                id: "1",
+                role: "ADMIN"
+            }
+            const course = makeCourse()
+
+            courseRepositoryMock.findById.mockResolvedValue(null)
+
+            const findedCourse = await service.findById(user, course.id)
+
+            expect(findedCourse).toBe(null)
+            expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id)
+            expect(courseRepositoryMock.findOwnedById).not.toHaveBeenCalled()
+        })
+
+        it("should return null because user does not have a course with the given ID.", async () => {
+
+            const id = "1"
+            const user: AuthUserDTO = {
+                id,
+                role: "USER"
+            }
+            const course = makeCourse({ userId: id })
+
+            courseRepositoryMock.findOwnedById.mockResolvedValue(null)
+
+            const findedCourse = await service.findById(user, course.id)
+
+            expect(findedCourse).toBe(null)
+            expect(courseRepositoryMock.findById).not.toHaveBeenCalled()
+
+            expect(courseRepositoryMock.findOwnedById).toHaveBeenCalled()
+            expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledWith(course.id, user.id)
+        })
+
+        it("should propagate a findById dependency error", async () => {
+            const user: AuthUserDTO = {
+                id: "1",
+                role: "ADMIN"
+            }
+            const course = makeCourse()
+
+            courseRepositoryMock.findById.mockRejectedValue(new Error())
+
+            const findedCourse = service.findById(user, course.id)
+
+            await expect(findedCourse).rejects.toBeInstanceOf(Error)
+            expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id)
+            expect(courseRepositoryMock.findOwnedById).not.toHaveBeenCalled()
+        })
+
+        it("should propagate a findByOwnedId dependency error", async () => {
+            const id = "1"
+            const user: AuthUserDTO = {
+                id,
+                role: "USER"
+            }
+            const course = makeCourse({ userId: id })
+
+            courseRepositoryMock.findOwnedById.mockRejectedValue(new Error)
+
+            const findedCourse = service.findById(user, course.id)
+
+            await expect(findedCourse).rejects.toBeInstanceOf(Error)
+            expect(courseRepositoryMock.findById).not.toHaveBeenCalled()
+
+            expect(courseRepositoryMock.findOwnedById).toHaveBeenCalled()
+            expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledWith(course.id, user.id)
+        })
+    })
+
+    describe("findAllByUserId tests", () => {
+        it("should return all courses for a specified user", async () => {
+    const id = "1"
+    const user: AuthUserDTO = { id, role: "USER" }
+
+    const course1 = makeCourse({ userId: user.id })
+    const course2 = makeCourse({ userId: user.id })
+
+    courseRepositoryMock.findAllByUserId.mockResolvedValue([course1, course2])
+
+    const courses = await service.findAllByUserId(user, user.id)
+
+    const expectedCourses = [course1, course2].map(course => ({
+        id: course.id,
+        title: course.title,
+        description: course.description,
+        createdAt: course.createdAt.toISOString(),
+        updatedAt: course.updatedAt.toISOString()
+    }))
+
+    expect(courses).toEqual(expectedCourses)
+    expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledTimes(1)
+    expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(user.id)
+})
     })
 })

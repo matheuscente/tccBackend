@@ -76,9 +76,7 @@ export class CourseService implements ICourseService {
 ): Promise<CourseResponseDTO[]>  {
 
     // Se não for admin, só pode buscar o próprio usuário
-    if (authUser.role !== "ADMIN" && authUser.id !== targetUserId) {
-      throw new AuthorizationError("Ação não autorizada");
-    }
+    this.validateOwnership(authUser, targetUserId)
 
     const courses = await this.courseRepository.findAllByUserId(targetUserId);
 
