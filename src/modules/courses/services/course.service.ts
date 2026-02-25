@@ -2,16 +2,16 @@ import type { Course, User } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
-import type { IUserRepository } from "../../users/interfaces/user-repository.interface";
 import type { CourseResponseDTO } from "../DTOs/course-response.DTO";
 import type { CreateCourseDTO } from "../DTOs/create-course.DTO";
-import type { ICouseRepository } from "../interfaces/repository/course-repository.interface";
+import type { ICourseRepository } from "../interfaces/repository/course-repository.interface";
 import type { ICourseService } from "../interfaces/services/courses-service-interface";
 import type { AuthUserDTO } from "../DTOs/auth-user.DTO";
+import type { IUserRepository } from "../../users/interfaces/user-repository.interface";
 
 export class CourseService implements ICourseService {
   constructor(
-    private readonly courseRepository: ICouseRepository,
+    private readonly courseRepository: ICourseRepository,
     private readonly userRepository: IUserRepository,
     private readonly sanitize: Isanitize,
   ) {}
@@ -129,8 +129,8 @@ export class CourseService implements ICourseService {
       id: course.id,
       title: course.title,
       description: course.description,
-      createdAt: course.createdAt,
-      updatedAt: course.updatedAt,
+      createdAt: course.createdAt.toISOString(),
+      updatedAt: course.updatedAt.toISOString(),
     };
   }
 

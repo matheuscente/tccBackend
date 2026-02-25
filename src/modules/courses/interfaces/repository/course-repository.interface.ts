@@ -1,8 +1,7 @@
 import type { Course } from "@prisma/client";
-import type { CreateCourseDTO } from "../../DTOs/create-course.DTO";
 import type { CreateCourseRepositoryDTO } from "../../DTOs/create-course-repository.DTO";
 
-export interface ICouseRepository {
+export interface ICourseRepository {
     
     create(data: CreateCourseRepositoryDTO): Promise<Course>
 
