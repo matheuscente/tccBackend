@@ -1,7 +1,9 @@
+import { AuthorizationError } from "../../../shared/errors/authorization.error"
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface"
 import { makeCourse } from "../../../tests/factories/make-course"
 import type { IUserRepository } from "../../users/interfaces/user-repository.interface"
 import type { AuthUserDTO } from "../DTOs/auth-user.DTO"
+import type { CourseResponseDTO } from "../DTOs/course-response.DTO"
 import type { ICourseRepository } from "../interfaces/repository/course-repository.interface"
 import { CourseService } from "./course.service"
 
@@ -168,27 +170,94 @@ describe("course service tests", () => {
 
     describe("findAllByUserId tests", () => {
         it("should return all courses for a specified user", async () => {
-    const id = "1"
-    const user: AuthUserDTO = { id, role: "USER" }
+            const id = "1"
+            const authUser: AuthUserDTO = { id, role: "USER" }
 
-    const course1 = makeCourse({ userId: user.id })
-    const course2 = makeCourse({ userId: user.id })
+            const course1 = makeCourse({ userId: authUser.id })
+            const course2 = makeCourse({ userId: authUser.id })
 
-    courseRepositoryMock.findAllByUserId.mockResolvedValue([course1, course2])
+            courseRepositoryMock.findAllByUserId.mockResolvedValue([course1, course2])
 
-    const courses = await service.findAllByUserId(user, user.id)
+            const courses = await service.findAllByUserId(authUser, authUser.id)
 
-    const expectedCourses = [course1, course2].map(course => ({
-        id: course.id,
-        title: course.title,
-        description: course.description,
-        createdAt: course.createdAt.toISOString(),
-        updatedAt: course.updatedAt.toISOString()
-    }))
+            const expectedCourses = [course1, course2].map(course => ({
+                id: course.id,
+                title: course.title,
+                description: course.description,
+                createdAt: course.createdAt.toISOString(),
+                updatedAt: course.updatedAt.toISOString()
+            }))
 
-    expect(courses).toEqual(expectedCourses)
-    expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledTimes(1)
-    expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(user.id)
-})
+            expect(courses).toEqual(expectedCourses)
+            expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(authUser.id)
+        })
+
+        it("should return a courses empty array for a specified user", async () => {
+            const id = "1"
+            const authUser: AuthUserDTO = { id, role: "USER" }
+
+            courseRepositoryMock.findAllByUserId.mockResolvedValue([])
+
+            const courses = await service.findAllByUserId(authUser, authUser.id)
+
+            expect(courses).toHaveLength(0)
+            expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(authUser.id)
+        })
+
+        it("should throw an authorization error when the USER rule attempts to search for another user's course.", async () => {
+            const id = "1"
+            const authUser: AuthUserDTO = { id, role: "USER" }
+
+            const courses = service.findAllByUserId(authUser, "2")
+
+            await expect(courses).rejects.toThrow("Ação não autorizada")
+            await expect(courses).rejects.toBeInstanceOf(AuthorizationError)
+            expect(courseRepositoryMock.findAllByUserId).not.toHaveBeenCalled()
+        })
+
+        it("should propagate a findAllByUserId dependency error", async () => {
+            const id = "1"
+            const authUser: AuthUserDTO = { id, role: "USER" }
+
+
+            courseRepositoryMock.findAllByUserId.mockRejectedValue(new Error())
+
+            const courses = service.findAllByUserId(authUser, authUser.id)
+
+
+            await expect(courses).rejects.toBeInstanceOf(Error)
+            expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(authUser.id)
+        })
+
+        it("should allow ADMIN to access another user's courses", async () => {
+            const authUser: AuthUserDTO = {
+                id: "999",
+                role: "ADMIN"
+            }
+
+            const course = makeCourse({ userId: "1" })
+
+            courseRepositoryMock.findAllByUserId.mockResolvedValue([course])
+
+            const result = await service.findAllByUserId(authUser, "1")
+
+            expect(courseRepositoryMock.findAllByUserId)
+                .toHaveBeenCalledWith("1")
+
+            expect(result).toEqual([
+                {
+                    id: course.id,
+                    title: course.title,
+                    description: course.description,
+                    createdAt: course.createdAt.toISOString(),
+                    updatedAt: course.updatedAt.toISOString()
+                }
+            ])
+        })
+
+
     })
 })
