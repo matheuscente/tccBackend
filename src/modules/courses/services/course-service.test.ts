@@ -3,7 +3,6 @@ import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.int
 import { makeCourse } from "../../../tests/factories/make-course"
 import type { IUserRepository } from "../../users/interfaces/user-repository.interface"
 import type { AuthUserDTO } from "../DTOs/auth-user.DTO"
-import type { CourseResponseDTO } from "../DTOs/course-response.DTO"
 import type { ICourseRepository } from "../interfaces/repository/course-repository.interface"
 import { CourseService } from "./course.service"
 
@@ -32,6 +31,16 @@ describe("course service tests", () => {
         sanitizeUsername: jest.fn()
     }
 
+    const adminAuthUser: AuthUserDTO = {
+        id: "1",
+        role: "ADMIN"
+    }
+
+    const userAuthUser: AuthUserDTO = {
+        id: "2",
+        role: "USER"
+    }
+
     const service = new CourseService(courseRepositoryMock, userRepositoryMock, sanitizeMock)
 
     beforeEach(() => {
@@ -47,15 +56,12 @@ describe("course service tests", () => {
 
     describe("findById tests", () => {
         it("should find a course with role admin successfully", async () => {
-            const user: AuthUserDTO = {
-                id: "1",
-                role: "ADMIN"
-            }
-            const course = makeCourse()
+
+            const course = makeCourse({ userId: "2" })
 
             courseRepositoryMock.findById.mockResolvedValue(course)
 
-            const findedCourse = await service.findById(user, course.id)
+            const findedCourse = await service.findById(adminAuthUser, course.id)
 
             expect(findedCourse).toEqual({
                 id: course.id,
@@ -70,16 +76,11 @@ describe("course service tests", () => {
         })
 
         it("should find a course with role user successfully", async () => {
-            const id = "1"
-            const user: AuthUserDTO = {
-                id,
-                role: "USER"
-            }
-            const course = makeCourse({ userId: id })
+            const course = makeCourse({ userId: userAuthUser.id })
 
             courseRepositoryMock.findOwnedById.mockResolvedValue(course)
 
-            const findedCourse = await service.findById(user, course.id)
+            const findedCourse = await service.findById(userAuthUser, course.id)
 
             expect(findedCourse).toEqual({
                 id: course.id,
@@ -91,48 +92,36 @@ describe("course service tests", () => {
             expect(courseRepositoryMock.findById).not.toHaveBeenCalled()
 
             expect(courseRepositoryMock.findOwnedById).toHaveBeenCalled()
-            expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledWith(course.id, user.id)
+            expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledWith(course.id, userAuthUser.id)
         })
 
         it("should return null because admin does not have a course with the given ID.", async () => {
-            const user: AuthUserDTO = {
-                id: "1",
-                role: "ADMIN"
-            }
-            const course = makeCourse()
 
             courseRepositoryMock.findById.mockResolvedValue(null)
 
-            const findedCourse = await service.findById(user, course.id)
+            const findedCourse = await service.findById(adminAuthUser, "fakeId")
 
             expect(findedCourse).toBe(null)
             expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1)
-            expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id)
+            expect(courseRepositoryMock.findById).toHaveBeenCalledWith("fakeId")
             expect(courseRepositoryMock.findOwnedById).not.toHaveBeenCalled()
         })
 
         it("should return null because user does not have a course with the given ID.", async () => {
 
-            const id = "1"
-            const user: AuthUserDTO = {
-                id,
-                role: "USER"
-            }
-            const course = makeCourse({ userId: id })
-
             courseRepositoryMock.findOwnedById.mockResolvedValue(null)
 
-            const findedCourse = await service.findById(user, course.id)
+            const findedCourse = await service.findById(userAuthUser, "fakeId")
 
             expect(findedCourse).toBe(null)
             expect(courseRepositoryMock.findById).not.toHaveBeenCalled()
 
             expect(courseRepositoryMock.findOwnedById).toHaveBeenCalled()
-            expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledWith(course.id, user.id)
+            expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledWith("fakeId", userAuthUser.id)
         })
 
         it("should propagate a findById dependency error", async () => {
-            const user: AuthUserDTO = {
+            const authUser: AuthUserDTO = {
                 id: "1",
                 role: "ADMIN"
             }
@@ -140,7 +129,7 @@ describe("course service tests", () => {
 
             courseRepositoryMock.findById.mockRejectedValue(new Error())
 
-            const findedCourse = service.findById(user, course.id)
+            const findedCourse = service.findById(authUser, course.id)
 
             await expect(findedCourse).rejects.toBeInstanceOf(Error)
             expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1)
@@ -149,36 +138,30 @@ describe("course service tests", () => {
         })
 
         it("should propagate a findByOwnedId dependency error", async () => {
-            const id = "1"
-            const user: AuthUserDTO = {
-                id,
-                role: "USER"
-            }
-            const course = makeCourse({ userId: id })
+
+            const course = makeCourse({ userId: userAuthUser.id })
 
             courseRepositoryMock.findOwnedById.mockRejectedValue(new Error)
 
-            const findedCourse = service.findById(user, course.id)
+            const findedCourse = service.findById(userAuthUser, course.id)
 
             await expect(findedCourse).rejects.toBeInstanceOf(Error)
             expect(courseRepositoryMock.findById).not.toHaveBeenCalled()
 
             expect(courseRepositoryMock.findOwnedById).toHaveBeenCalled()
-            expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledWith(course.id, user.id)
+            expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledWith(course.id, userAuthUser.id)
         })
     })
 
     describe("findAllByUserId tests", () => {
         it("should return all courses for a specified user", async () => {
-            const id = "1"
-            const authUser: AuthUserDTO = { id, role: "USER" }
 
-            const course1 = makeCourse({ userId: authUser.id })
-            const course2 = makeCourse({ userId: authUser.id })
+            const course1 = makeCourse({ userId: userAuthUser.id })
+            const course2 = makeCourse({ userId: userAuthUser.id })
 
             courseRepositoryMock.findAllByUserId.mockResolvedValue([course1, course2])
 
-            const courses = await service.findAllByUserId(authUser, authUser.id)
+            const courses = await service.findAllByUserId(userAuthUser, userAuthUser.id)
 
             const expectedCourses = [course1, course2].map(course => ({
                 id: course.id,
@@ -190,27 +173,25 @@ describe("course service tests", () => {
 
             expect(courses).toEqual(expectedCourses)
             expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledTimes(1)
-            expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(authUser.id)
+            expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(userAuthUser.id)
         })
 
+
         it("should return a courses empty array for a specified user", async () => {
-            const id = "1"
-            const authUser: AuthUserDTO = { id, role: "USER" }
 
             courseRepositoryMock.findAllByUserId.mockResolvedValue([])
 
-            const courses = await service.findAllByUserId(authUser, authUser.id)
+            const courses = await service.findAllByUserId(userAuthUser, userAuthUser.id)
 
             expect(courses).toHaveLength(0)
             expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledTimes(1)
-            expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(authUser.id)
+            expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(userAuthUser.id)
         })
 
-        it("should throw an authorization error when the USER rule attempts to search for another user's course.", async () => {
-            const id = "1"
-            const authUser: AuthUserDTO = { id, role: "USER" }
 
-            const courses = service.findAllByUserId(authUser, "2")
+        it("should throw an authorization error when the USER rule attempts to search for another user's course.", async () => {
+
+            const courses = service.findAllByUserId(userAuthUser, "3")
 
             await expect(courses).rejects.toThrow("Ação não autorizada")
             await expect(courses).rejects.toBeInstanceOf(AuthorizationError)
@@ -218,31 +199,25 @@ describe("course service tests", () => {
         })
 
         it("should propagate a findAllByUserId dependency error", async () => {
-            const id = "1"
-            const authUser: AuthUserDTO = { id, role: "USER" }
 
 
             courseRepositoryMock.findAllByUserId.mockRejectedValue(new Error())
 
-            const courses = service.findAllByUserId(authUser, authUser.id)
+            const courses = service.findAllByUserId(userAuthUser, userAuthUser.id)
 
 
             await expect(courses).rejects.toBeInstanceOf(Error)
             expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledTimes(1)
-            expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(authUser.id)
+            expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(userAuthUser.id)
         })
 
         it("should allow ADMIN to access another user's courses", async () => {
-            const authUser: AuthUserDTO = {
-                id: "999",
-                role: "ADMIN"
-            }
 
-            const course = makeCourse({ userId: "1" })
+            const course = makeCourse({ userId: adminAuthUser.id })
 
             courseRepositoryMock.findAllByUserId.mockResolvedValue([course])
 
-            const result = await service.findAllByUserId(authUser, "1")
+            const result = await service.findAllByUserId(adminAuthUser, "1")
 
             expect(courseRepositoryMock.findAllByUserId)
                 .toHaveBeenCalledWith("1")
@@ -256,8 +231,114 @@ describe("course service tests", () => {
                     updatedAt: course.updatedAt.toISOString()
                 }
             ])
+
         })
 
-
     })
+
+
+    describe("softdelete tests", () => {
+        it("should soft delete a course sucessfully", async () => {
+            const course = makeCourse({ userId: userAuthUser.id })
+
+            courseRepositoryMock.findById.mockResolvedValue(course)
+            courseRepositoryMock.softDelete.mockResolvedValue(undefined)
+
+            const softDeletedCourse = await service.softDelete(userAuthUser, course.id)
+
+            expect(softDeletedCourse).toBe(undefined)
+
+            expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id)
+
+            expect(courseRepositoryMock.softDelete).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.softDelete).toHaveBeenCalledWith(course.id, course.userId)
+
+        })
+
+        it("administrator should be able to delete another user's course", async () => {
+            const course = makeCourse({ userId: "2" })
+
+            courseRepositoryMock.findById.mockResolvedValue(course)
+            courseRepositoryMock.softDelete.mockResolvedValue(undefined)
+
+            const softDeletedCourse = await service.softDelete(adminAuthUser, course.id)
+
+            expect(softDeletedCourse).toBe(undefined)
+
+            expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id)
+
+            expect(courseRepositoryMock.softDelete).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.softDelete).toHaveBeenCalledWith(course.id, course.userId)
+
+        })
+
+        it("should throw an authorization error because a regular user tried to delete another user's course", async () => {
+            const course = makeCourse({ userId: "3" })
+
+            courseRepositoryMock.findById.mockResolvedValue(course)
+
+            const softDeletedCourse = service.softDelete(userAuthUser, course.id)
+
+            await expect(softDeletedCourse).rejects.toThrow("Ação não autorizada")
+            await expect(softDeletedCourse).rejects.toBeInstanceOf(AuthorizationError)
+
+            expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id)
+
+            expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled()
+
+        })
+
+        it("should propagate a findById dependency error.", async () => {
+            courseRepositoryMock.findById.mockRejectedValue(new Error())
+
+            const softDeletedCourse = service.softDelete(userAuthUser, "1")
+
+            await expect(softDeletedCourse).rejects.toBeInstanceOf(Error)
+
+            expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.findById).toHaveBeenCalledWith("1")
+
+            expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled()
+
+        })
+
+        it("should propagatse a softDelete dependency error.", async () => {
+            const course = makeCourse({ userId: "3" })
+
+            courseRepositoryMock.findById.mockResolvedValue(course)
+            courseRepositoryMock.softDelete.mockRejectedValue(new Error())
+
+            const softDeletedCourse = service.softDelete(adminAuthUser, course.id)
+
+            await expect(softDeletedCourse).rejects.toBeInstanceOf(Error)
+
+            expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id)
+
+            expect(courseRepositoryMock.softDelete).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.softDelete).toHaveBeenCalledWith(course.id, course.userId)
+
+        })
+
+        it("Nothing should be returned because the course no longer exists.", async () => {
+
+
+            courseRepositoryMock.findById.mockResolvedValue(null)
+
+            const softDeletedCourse = await service.softDelete(userAuthUser, "3")
+
+            expect(softDeletedCourse).toBe(undefined)
+
+            expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1)
+            expect(courseRepositoryMock.findById).toHaveBeenCalledWith("3")
+
+            expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled()
+
+        })
+    })
+
 })
+

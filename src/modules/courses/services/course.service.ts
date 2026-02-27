@@ -107,6 +107,7 @@ export class CourseService implements ICourseService {
   }
 
   async softDelete(authUser: AuthUserDTO, courseId: string): Promise<void> {
+
     const course = await this.courseRepository.findById(courseId);
 
     if (!course) return;
