@@ -20,31 +20,8 @@ export class CourseService implements ICourseService {
     authUser: AuthUserDTO,
     data: CreateCourseDTO,
   ): Promise<CourseResponseDTO> {
-    let ownerId: string;
 
-    
-    if (authUser.role === "ADMIN") {
-        if (data.userId) {
-            const userExists = await this.userRepository.findById(data.userId);
-
-            if (!userExists) {
-                throw new NotFoundError("Usuário não encontrado");
-            }
-        
-        // ja que data.userId existe, atribuimos ele em ownerId
-        ownerId = data.userId;
-      } else {
-        //como não existe data.userId, deduzimos que o admin deseja alterar um curso prórpio
-        ownerId = authUser.id;
-      }
-
-
-    } else {
-        //se role nao for admin, atribuimos automaticamente o id do usuario autenticado
-        ownerId = authUser.id;
-    }
-
-    
+    const ownerId = await this.resolveOwnerId(authUser, data.userId)
 
     const course = await this.courseRepository.create({
       userId: ownerId,
@@ -59,7 +36,6 @@ export class CourseService implements ICourseService {
     authUser: AuthUserDTO,
     courseId: string,
   ): Promise<CourseResponseDTO | null> {
-
     const course =
       authUser.role === "ADMIN"
         ? await this.courseRepository.findById(courseId)
@@ -71,18 +47,17 @@ export class CourseService implements ICourseService {
   }
 
   async findAllByUserId(
-  authUser: AuthUserDTO,
-  targetUserId: string
-): Promise<CourseResponseDTO[]>  {
-
+    authUser: AuthUserDTO,
+    targetUserId: string,
+  ): Promise<CourseResponseDTO[]> {
     // Se não for admin, só pode buscar o próprio usuário
-    this.validateOwnership(authUser, targetUserId)
+    this.validateOwnership(authUser, targetUserId);
 
     const courses = await this.courseRepository.findAllByUserId(targetUserId);
 
     if (courses.length === 0) return [];
 
-    return courses.map(course => this.mapResponse(course));
+    return courses.map((course) => this.mapResponse(course));
   }
 
   async update(
@@ -107,7 +82,6 @@ export class CourseService implements ICourseService {
   }
 
   async softDelete(authUser: AuthUserDTO, courseId: string): Promise<void> {
-
     const course = await this.courseRepository.findById(courseId);
 
     if (!course) return;
@@ -117,7 +91,10 @@ export class CourseService implements ICourseService {
     await this.courseRepository.softDelete(courseId, course.userId);
   }
 
-  private validateOwnership(user: Pick<User, "id" | "role">, ownerId: string): void {
+  private validateOwnership(
+    user: Pick<User, "id" | "role">,
+    ownerId: string,
+  ): void {
     if (user.role !== "ADMIN" && user.id !== ownerId) {
       throw new AuthorizationError("Ação não autorizada");
     }
@@ -133,4 +110,25 @@ export class CourseService implements ICourseService {
     };
   }
 
+  private async resolveOwnerId(
+  authUser: AuthUserDTO,
+  userId?: string
+): Promise<string> {
+  if (authUser.role === "ADMIN") {
+    if (userId && userId !== authUser.id) {
+      const userExists = await this.userRepository.findById(userId);
+      if (!userExists) {
+        throw new NotFoundError("Usuário não encontrado");
+      }
+      return userId;
+    }
+    return authUser.id;
+  }
+
+  if (userId && userId !== authUser.id) {
+    throw new AuthorizationError("Ação não autorizada");
+  }
+
+  return authUser.id;
+}
 }
