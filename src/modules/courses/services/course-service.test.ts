@@ -3,6 +3,8 @@ import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import { makeCourse } from "../../../tests/factories/make-course";
 import { makeUser } from "../../../tests/factories/make-user";
+import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
+import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 import type { IUserRepository } from "../../users/interfaces/user-repository.interface";
 import type { AuthUserDTO } from "../DTOs/auth-user.DTO";
 import type { CreateCourseDTO } from "../DTOs/create-course.DTO";
@@ -17,6 +19,7 @@ describe("course service tests", () => {
     findAllByUserId: jest.fn(),
     update: jest.fn(),
     softDelete: jest.fn(),
+    softDeleteAllByUserid: jest.fn()
   };
 
   const userRepositoryMock: jest.Mocked<IUserRepository> = {
@@ -34,6 +37,31 @@ describe("course service tests", () => {
     sanitizeUsername: jest.fn(),
   };
 
+  const moduleRepositoryMock: jest.Mocked<IModuleRepository> = {
+    findById: jest.fn(),
+
+    findAllByCourseId: jest.fn(),
+
+    findAllByUserId: jest.fn(),
+
+    create: jest.fn(),
+
+    update: jest.fn(),
+
+    softDeleteById: jest.fn(),
+
+    softDeleteByCourseId: jest.fn(),
+  };
+
+  const transactionMock: jest.Mocked<ITransaction> = {
+    execute: jest.fn().mockImplementation(async (callback) => {
+      return callback({
+        moduleRepository: moduleRepositoryMock,
+        courseRepository: courseRepositoryMock,
+      });
+    }),
+  };
+
   const adminAuthUser: AuthUserDTO = {
     id: "1",
     role: "ADMIN",
@@ -48,10 +76,11 @@ describe("course service tests", () => {
     courseRepositoryMock,
     userRepositoryMock,
     sanitizeMock,
+    transactionMock,
   );
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
     sanitizeMock.sanitizeName.mockImplementation((value) =>
       value.toUpperCase().trim(),
     );
@@ -257,23 +286,24 @@ describe("course service tests", () => {
   });
 
   describe("softdelete tests", () => {
-    it("should soft delete a course sucessfully", async () => {
+    it("should soft delete course and its modules inside a transaction", async () => {
       const course = makeCourse({ userId: userAuthUser.id });
 
       courseRepositoryMock.findById.mockResolvedValue(course);
-      courseRepositoryMock.softDelete.mockResolvedValue(undefined);
 
-      const softDeletedCourse = await service.softDelete(
-        userAuthUser,
+      await service.softDelete(userAuthUser, course.id);
+
+      expect(transactionMock.execute).toHaveBeenCalledTimes(1);
+
+      expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
+
+      expect(moduleRepositoryMock.softDeleteByCourseId).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(moduleRepositoryMock.softDeleteByCourseId).toHaveBeenCalledWith(
         course.id,
       );
 
-      expect(softDeletedCourse).toBe(undefined);
-
-      expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
-      expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
-
-      expect(courseRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledWith(
         course.id,
         course.userId,
@@ -291,10 +321,15 @@ describe("course service tests", () => {
         course.id,
       );
 
+      expect(transactionMock.execute).toHaveBeenCalledTimes(1);
+
       expect(softDeletedCourse).toBe(undefined);
 
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
+
+      expect(moduleRepositoryMock.softDeleteByCourseId).toHaveBeenCalledTimes(1)
+      expect(moduleRepositoryMock.softDeleteByCourseId).toHaveBeenCalledWith(course.id)
 
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledWith(
@@ -315,8 +350,13 @@ describe("course service tests", () => {
         AuthorizationError,
       );
 
+      expect(transactionMock.execute).toHaveBeenCalledTimes(1);
+
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
+
+
+      expect(moduleRepositoryMock.softDeleteByCourseId).not.toHaveBeenCalled();
 
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
     });
@@ -330,6 +370,8 @@ describe("course service tests", () => {
 
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith("1");
+
+      expect(moduleRepositoryMock.softDeleteByCourseId).not.toHaveBeenCalled();
 
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
     });
@@ -347,6 +389,13 @@ describe("course service tests", () => {
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
 
+      expect(moduleRepositoryMock.softDeleteByCourseId).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(moduleRepositoryMock.softDeleteByCourseId).toHaveBeenCalledWith(
+        course.id,
+      );
+
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledWith(
         course.id,
@@ -361,8 +410,12 @@ describe("course service tests", () => {
 
       expect(softDeletedCourse).toBe(undefined);
 
+      expect(transactionMock.execute).toHaveBeenCalledTimes(1);
+
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith("3");
+
+      expect(moduleRepositoryMock.softDeleteByCourseId).not.toHaveBeenCalled();
 
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
     });
@@ -799,7 +852,7 @@ describe("course service tests", () => {
       const course = makeCourse({ userId: userAuthUser.id });
 
       courseRepositoryMock.findById.mockResolvedValue(course);
-      courseRepositoryMock.update.mockRejectedValue(new Error())
+      courseRepositoryMock.update.mockRejectedValue(new Error());
 
       const updatedCourse = service.update(userAuthUser, course.id, data);
 
@@ -811,7 +864,7 @@ describe("course service tests", () => {
       expect(courseRepositoryMock.update).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.update).toHaveBeenCalledWith(course.id, {
         title: "TEST UPDATED",
-        description: course.description
+        description: course.description,
       });
 
       expect(sanitizeMock.sanitizeName).toHaveBeenCalledTimes(1);
@@ -819,9 +872,9 @@ describe("course service tests", () => {
     });
 
     it("Tests behavior when updating description.", async () => {
-        const data = {
-            description: "Description Updated" 
-        }
+      const data = {
+        description: "Description Updated",
+      };
       const course = makeCourse({ userId: userAuthUser.id });
 
       courseRepositoryMock.findById.mockResolvedValue(course);

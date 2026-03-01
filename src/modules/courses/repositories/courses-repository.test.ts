@@ -5,10 +5,13 @@ import { makeCourse } from "../../../tests/factories/make-course";
 import { makeUser } from "../../../tests/factories/make-user";
 import { UserRepository } from "../../users/repositories/user.repository";
 import { CourseRepository } from "./course.repository";
+import { ModuleRepository } from "../../modules/repositories/module.repository";
+import { makeModule } from "../../../shared/make-module";
 
 describe("courses repository tests", () => {
   const userRepository = new UserRepository(prismaTests);
-  const repository = new CourseRepository(prismaTests);
+  const moduleRepository = new ModuleRepository(prismaTests);
+  const repository = new CourseRepository(prismaTests, moduleRepository);
   let user: User;
 
   beforeAll(async () => {
@@ -24,6 +27,7 @@ describe("courses repository tests", () => {
   });
 
   afterEach(async () => {
+    await prismaTests.module.deleteMany();
     await prismaTests.course.deleteMany();
     await prismaTests.user.deleteMany();
   });
@@ -175,6 +179,40 @@ describe("courses repository tests", () => {
       });
 
       await expect(updatedCourse).rejects.toThrow();
+    });
+  });
+
+  describe("softDeleteAllByUserId tests", () => {
+    it("should delete a course based on the provided ID.", async () => {
+      const id = "1";
+
+      await repository.create(makeCourse({ id: "1" }));
+      await repository.create(makeCourse({ id: "2" }));
+
+      await prismaTests.module.create({ data: makeModule({ courseId: id }) });
+
+      await repository.softDeleteAllByUserId(user.id);
+
+      const course = await repository.findAllByUserId(user.id);
+
+      const modules = await prismaTests.module.findMany({
+        where: {
+          courseId: id,
+        },
+      });
+
+      expect(course).toHaveLength(0);
+      expect(modules).toHaveLength(1);
+      expect(modules[0]).toBeDefined();
+      expect(modules[0]?.deletedAt).not.toBe(null);
+    });
+
+    it("should not return an error even if there are no courses in the database.", async () => {
+      const id = "1";
+
+      const course = repository.softDeleteAllByUserId(user.id);
+
+      await expect(course).resolves.toBeUndefined();
     });
   });
 });

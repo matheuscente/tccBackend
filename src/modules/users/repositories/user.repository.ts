@@ -1,10 +1,10 @@
-import { PrismaClient, type User } from "@prisma/client";
+import { Prisma, PrismaClient, type User } from "@prisma/client";
 import type { CreateUserDTO } from "../DTOs/create-user.dto";
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 import type { IUserRepository } from "../interfaces/user-repository.interface";
 
 export class UserRepository implements IUserRepository {
-    constructor(private orm: PrismaClient) {}
+    constructor(private orm: PrismaClient | Prisma.TransactionClient) {}
 
     async updatePassword(id: string, newPassword: string): Promise<void> {
         await this.orm.user.update({

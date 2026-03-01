@@ -15,4 +15,6 @@ export interface ICourseRepository {
 
     softDelete(courseId: string, userId: string): Promise<void>
 
+    softDeleteAllByUserId(userId: string): Promise<void>
+
 }

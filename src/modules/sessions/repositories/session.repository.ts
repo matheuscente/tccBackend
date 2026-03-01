@@ -1,11 +1,11 @@
-import type { PrismaClient, Session } from "@prisma/client";
+import type { Prisma, PrismaClient, Session } from "@prisma/client";
 import type { CreateSessionDTO } from "../../sessions/DTOs/create-session.DTO";
 import type { ISessionRepository } from "../interfaces/repositories/session-repository.interface";
 import type { SessionWithUserDTO } from "../DTOs/session-with-user.DTO";
 
 
 export class SessionRepository implements ISessionRepository {
-    constructor(private readonly orm: PrismaClient) {}
+    constructor(private readonly orm: PrismaClient | Prisma.TransactionClient) {}
     findByIdWithUser(id: string): Promise<SessionWithUserDTO | null> {
         return this.orm.session.findUnique({
             where: { id },

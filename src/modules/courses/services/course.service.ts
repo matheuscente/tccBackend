@@ -8,12 +8,14 @@ import type { ICourseRepository } from "../interfaces/repository/course-reposito
 import type { ICourseService } from "../interfaces/services/courses-service-interface";
 import type { AuthUserDTO } from "../DTOs/auth-user.DTO";
 import type { IUserRepository } from "../../users/interfaces/user-repository.interface";
+import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 
 export class CourseService implements ICourseService {
   constructor(
     private readonly courseRepository: ICourseRepository,
     private readonly userRepository: IUserRepository,
     private readonly sanitize: Isanitize,
+    private readonly transaction: ITransaction
   ) {}
 
   async create(
@@ -82,13 +84,17 @@ export class CourseService implements ICourseService {
   }
 
   async softDelete(authUser: AuthUserDTO, courseId: string): Promise<void> {
-    const course = await this.courseRepository.findById(courseId);
+    return this.transaction.execute(async (repositories) => {
+    const course = await repositories.courseRepository.findById(courseId);
 
     if (!course) return;
 
     this.validateOwnership(authUser, course.userId);
 
-    await this.courseRepository.softDelete(courseId, course.userId);
+    await repositories.moduleRepository.softDeleteAllByCourseId([courseId])
+
+    await repositories.courseRepository.softDelete(courseId, course.userId);
+    })
   }
 
   private validateOwnership(

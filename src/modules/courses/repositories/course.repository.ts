@@ -1,11 +1,14 @@
-import type { Course, PrismaClient } from "@prisma/client";
+import type { Course, Prisma, PrismaClient } from "@prisma/client";
 import type { ICourseRepository } from "../interfaces/repository/course-repository.interface";
 import type { CreateCourseRepositoryDTO } from "../DTOs/create-course-repository.DTO";
+import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
 
 export class CourseRepository implements ICourseRepository {
 
     constructor(
-        private readonly orm: PrismaClient
+        private readonly orm: PrismaClient | Prisma.TransactionClient,
+        private readonly moduleRepository: IModuleRepository
+
     ) {}
 
     create(data: CreateCourseRepositoryDTO): Promise<Course> {
@@ -57,6 +60,7 @@ export class CourseRepository implements ICourseRepository {
     }
 
     async softDelete(courseId: string, userId: string): Promise<void> {
+        
         await this.orm.course.updateMany({
             where: {
                 id: courseId,
@@ -68,5 +72,23 @@ export class CourseRepository implements ICourseRepository {
             }
         })
     }
-    
+
+    async softDeleteAllByUserId(userId: string): Promise<void> {
+        const courses = await this.findAllByUserId(userId)
+
+        const coursesId = courses.map(course => course.id)
+
+        await this.moduleRepository.softDeleteAllByCourseId(coursesId)
+
+        await this.orm.course.updateMany({
+            where: {
+                userId,
+                deletedAt: null
+            },
+            data: {
+                deletedAt: new Date()
+            }
+        })
+    }
+
 }

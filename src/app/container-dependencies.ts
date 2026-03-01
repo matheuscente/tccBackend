@@ -14,6 +14,9 @@ import { UserService } from "../modules/users/services/user.service"
 import { DateConvert } from "../shared/convert/utils/date-convert.utils"
 import { HashProvider } from "../shared/hash/provider/hash.provider"
 import { SanitizeUtils } from "../shared/sanitize/utils/sanitize.utils"
+import { Trasanction } from "../modules/transaction/services/transaction.service"
+import { PrismaClient } from "@prisma/client/extension"
+import { ModuleRepository } from "../modules/modules/repositories/module.repository"
 
 class AppContainer {
      // shared singletons
@@ -21,11 +24,13 @@ class AppContainer {
   sanitizeUtils = new SanitizeUtils()
   dateConvert = new DateConvert()
   accessTokenService = new AccessTokenService("test")
+  transaction = new Trasanction(PrismaClient)
 
   // repositories
   userRepository = new UserRepository(prisma)
   sessionRepository = new SessionRepository(prisma)
-  courseRpository = new CourseRepository(prisma)
+  moduleRepository = new ModuleRepository(prisma)
+  courseRpository = new CourseRepository(prisma, this.moduleRepository)
 
   // services
     sessionService = new SessionService(
@@ -37,7 +42,8 @@ class AppContainer {
     this.userRepository,
     this.hashProvider,
     this.sanitizeUtils,
-    this.sessionService
+    this.sessionRepository,
+    this.transaction
   )
   authService = new AuthService(
     this.userRepository,
@@ -50,7 +56,8 @@ class AppContainer {
   courseService = new CourseService(
     this.courseRpository,
     this.userRepository,
-    this.sanitizeUtils
+    this.sanitizeUtils,
+    this.transaction
   )
 
   //middlewares
