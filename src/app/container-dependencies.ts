@@ -3,6 +3,9 @@ import { authenticationMiddleware } from "../middlewares/authentication/authenti
 import { AuthController } from "../modules/auth/controllers/auth-controller"
 import { AccessTokenService } from "../modules/auth/services/access-token/access-token.service"
 import { AuthService } from "../modules/auth/services/auth/auth.service"
+import { CourseController } from "../modules/courses/controllers/course.controller"
+import { CourseRepository } from "../modules/courses/repositories/course.repository"
+import { CourseService } from "../modules/courses/services/course.service"
 import { SessionRepository } from "../modules/sessions/repositories/session.repository"
 import { SessionService } from "../modules/sessions/services/session.service"
 import { UserController } from "../modules/users/controllers/user.controller"
@@ -22,9 +25,9 @@ class AppContainer {
   // repositories
   userRepository = new UserRepository(prisma)
   sessionRepository = new SessionRepository(prisma)
+  courseRpository = new CourseRepository(prisma)
 
   // services
-
     sessionService = new SessionService(
     this.sessionRepository,
     this.hashProvider
@@ -44,6 +47,12 @@ class AppContainer {
     this.accessTokenService
   )
 
+  courseService = new CourseService(
+    this.courseRpository,
+    this.userRepository,
+    this.sanitizeUtils
+  )
+
   //middlewares
   authenticationMiddleware = authenticationMiddleware(
     this.accessTokenService,
@@ -53,6 +62,7 @@ class AppContainer {
   // controllers
   userController = new UserController(this.userService)
   authController = new AuthController(this.authService)
+  courseController = new CourseController(this.courseService)
 } 
 
 export const container = new AppContainer()

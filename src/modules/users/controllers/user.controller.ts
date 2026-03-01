@@ -27,10 +27,10 @@ export class UserController implements IUserController {
 
     }
 
-    findById = async (req: Request<any, any, any, { id: string; }>, res: Response, next: NextFunction): Promise<void> => {
+    findById = async (req: Request<{id: string}>, res: Response, next: NextFunction): Promise<void> => {
        try {
 
-        const { id } = req.query
+        const { id } = req.params
 
         const user = await this.service.findById(id)
 
@@ -46,10 +46,10 @@ export class UserController implements IUserController {
        }
     }
 
-     findByUsername = async (req: Request<any, any, any, { username: string; }>, res: Response, next: NextFunction): Promise<void> => {
+     findByUsername = async (req: Request<{username: string}>, res: Response, next: NextFunction): Promise<void> => {
        try {
 
-        const { username } = req.query
+        const { username } = req.params
 
         const user = await this.service.findByUsername(username)
 

@@ -1,9 +1,8 @@
 import type { Course, PrismaClient } from "@prisma/client";
-import type { CreateCourseDTO } from "../DTOs/create-course.DTO";
-import type { ICouseRepository } from "../interfaces/repository/course-repository.interface";
+import type { ICourseRepository } from "../interfaces/repository/course-repository.interface";
 import type { CreateCourseRepositoryDTO } from "../DTOs/create-course-repository.DTO";
 
-export class CourseRepository implements ICouseRepository {
+export class CourseRepository implements ICourseRepository {
 
     constructor(
         private readonly orm: PrismaClient

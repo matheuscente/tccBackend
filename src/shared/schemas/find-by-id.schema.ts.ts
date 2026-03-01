@@ -1,6 +1,6 @@
 import { Joi } from "celebrate";
 
-export const FindUserByIdSchema = Joi.object({
+export const FindByIdSchema = Joi.object({
   id: Joi.string()
     .uuid({ version: "uuidv4" })
     .required(),

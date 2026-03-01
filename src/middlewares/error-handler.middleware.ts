@@ -9,6 +9,7 @@ export abstract class ErrorHandler {
     static handler(app: express.Express) {
         app.use(errors())
         app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+            console.log(err)
             if(!(err instanceof ValidationError || err instanceof NotFoundError || err instanceof AuthorizationError)) {
                 new InternalServerError().send(res)
             } else {
