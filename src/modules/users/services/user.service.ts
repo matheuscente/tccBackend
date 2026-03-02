@@ -9,7 +9,6 @@ import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provider.interface";
 import { InternalServerError } from "../../../shared/errors/internal-server-error";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
-import type { ISessionRepository } from "../../sessions/interfaces/repositories/session-repository.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 
 export class UserService implements IUserService {
@@ -17,7 +16,6 @@ export class UserService implements IUserService {
     private repository: IUserRepository,
     private hasher: IHashProvider,
     private sanitize: Isanitize,
-    private ISessionRepository: ISessionRepository,
     private transaction: ITransaction
   ) { }
   async updatePassword(id: string, oldPassword: string, newPassword: string): Promise<void> {
@@ -158,7 +156,7 @@ export class UserService implements IUserService {
 
     if (!user) throw new NotFoundError("usuario não encontrado");
 
-    await repositories.courseRepository.softDeleteAllByUserid(user.id)
+    await repositories.courseRepository.softDeleteAllByUserId(user.id)
     await repositories.userRepository.softDelete(id);
     await repositories.sessionRepository.invalidateAllByUserId(user.id)
     return;

@@ -7,7 +7,6 @@ import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import { makeUser } from "../../../tests/factories/make-user"
-import type { ISessionService } from "../../sessions/interfaces/services/session-service.interface";
 import type { ISessionRepository } from "../../sessions/interfaces/repositories/session-repository.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
@@ -60,16 +59,18 @@ describe("user service tests", () => {
     findById: jest.fn(),
     
     findAllByCourseId: jest.fn(),
-    
-    findAllByUserId: jest.fn(),
-    
+
+    findAllByCourseIdWithOwner: jest.fn(),
+
+    findByIdWithOwner: jest.fn(),
+        
     create: jest.fn(),
     
     update: jest.fn(),
     
     softDelete: jest.fn(),
     
-    softDeleteAllByCourseId: jest.fn()
+    softDeleteAllByCourseIds: jest.fn()
   }
 
     const courseRepositoryMock: jest.Mocked<ICourseRepository> = {
@@ -85,7 +86,7 @@ describe("user service tests", () => {
       
           softDelete: jest.fn(),
           
-          softDeleteAllByUserid: jest.fn()
+          softDeleteAllByUserId: jest.fn()
   }
 
     const transactionMock: jest.Mocked<ITransaction> = {
@@ -93,13 +94,14 @@ describe("user service tests", () => {
         return callback({
           moduleRepository: moduleRepositoryMock,
           courseRepository: courseRepositoryMock,
-          userRepository: repositoryMock
+          userRepository: repositoryMock,
+          sessionRepository: sessionRepositoryMock
         });
       }),
     };
   
 
-  const service = new UserService(repositoryMock, hashMock, sanitizeMock, sessionRepositoryMock, transactionMock);
+  const service = new UserService(repositoryMock, hashMock, sanitizeMock, transactionMock);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -305,8 +307,8 @@ describe("user service tests", () => {
 
       expect(transactionMock.execute).toHaveBeenCalledTimes(1);
 
-      expect(courseRepositoryMock.softDeleteAllByUserid).toHaveBeenCalledTimes(1)
-      expect(courseRepositoryMock.softDeleteAllByUserid).toHaveBeenCalledWith(user.id)
+      expect(courseRepositoryMock.softDeleteAllByUserId).toHaveBeenCalledTimes(1)
+      expect(courseRepositoryMock.softDeleteAllByUserId).toHaveBeenCalledWith(user.id)
       expect(repositoryMock.softDelete).toHaveBeenCalledWith(user.id)
       expect(repositoryMock.softDelete).toHaveBeenCalledTimes(1)
       expect(sessionRepositoryMock.invalidateAllByUserId).toHaveBeenCalledTimes(1)
@@ -324,7 +326,7 @@ describe("user service tests", () => {
       await expect(userTest).rejects.toThrow("usuario não encontrado")
 
       expect(transactionMock.execute).toHaveBeenCalledTimes(1);
-      expect(courseRepositoryMock.softDeleteAllByUserid).not.toHaveBeenCalled()
+      expect(courseRepositoryMock.softDeleteAllByUserId).not.toHaveBeenCalled()
       expect(repositoryMock.softDelete).not.toHaveBeenCalled()
       expect(sessionRepositoryMock.invalidateAllByUserId).not.toHaveBeenCalled()
     })

@@ -6,7 +6,11 @@ findById(moduleId: string): Promise<Module | null>
 
 findAllByCourseId(courseId: string): Promise<Module[]>
 
-findAllByUserId(userId: string): Promise<Module[]>
+findAllByCourseIdWithOwner(courseId: string, userId: string): Promise<Module[]> 
+
+findByIdWithOwner(moduleId: string, userId: string): Promise<Module | null>
+
+findAllByUserId(userId: string): Promise<Module[]> 
 
 create(data: CreateModuleDTO): Promise<Module>
 
@@ -14,5 +18,5 @@ update(moduleId: string, data: Partial<CreateModuleDTO>): Promise<Module>
 
 softDelete(moduleId: string): Promise<void>
 
-softDeleteAllByCourseId(courseId: string[]): Promise<void> 
+softDeleteAllByCourseIds(courseIds: string[]): Promise<void> 
 }

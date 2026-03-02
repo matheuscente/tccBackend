@@ -19,7 +19,7 @@ describe("course service tests", () => {
     findAllByUserId: jest.fn(),
     update: jest.fn(),
     softDelete: jest.fn(),
-    softDeleteAllByUserid: jest.fn()
+    softDeleteAllByUserId: jest.fn()
   };
 
   const userRepositoryMock: jest.Mocked<IUserRepository> = {
@@ -42,15 +42,17 @@ describe("course service tests", () => {
 
     findAllByCourseId: jest.fn(),
 
-    findAllByUserId: jest.fn(),
+    findAllByCourseIdWithOwner: jest.fn(),
+
+    findByIdWithOwner: jest.fn(),
 
     create: jest.fn(),
 
     update: jest.fn(),
 
-    softDeleteById: jest.fn(),
+    softDelete: jest.fn(),
 
-    softDeleteByCourseId: jest.fn(),
+    softDeleteAllByCourseIds: jest.fn(),
   };
 
   const transactionMock: jest.Mocked<ITransaction> = {
@@ -297,11 +299,11 @@ describe("course service tests", () => {
 
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
 
-      expect(moduleRepositoryMock.softDeleteByCourseId).toHaveBeenCalledTimes(
+      expect(moduleRepositoryMock.softDeleteAllByCourseIds).toHaveBeenCalledTimes(
         1,
       );
-      expect(moduleRepositoryMock.softDeleteByCourseId).toHaveBeenCalledWith(
-        course.id,
+      expect(moduleRepositoryMock.softDeleteAllByCourseIds).toHaveBeenCalledWith(
+        [course.id]
       );
 
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledWith(
@@ -328,8 +330,8 @@ describe("course service tests", () => {
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
 
-      expect(moduleRepositoryMock.softDeleteByCourseId).toHaveBeenCalledTimes(1)
-      expect(moduleRepositoryMock.softDeleteByCourseId).toHaveBeenCalledWith(course.id)
+      expect(moduleRepositoryMock.softDeleteAllByCourseIds).toHaveBeenCalledTimes(1)
+      expect(moduleRepositoryMock.softDeleteAllByCourseIds).toHaveBeenCalledWith([course.id])
 
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledWith(
@@ -356,7 +358,7 @@ describe("course service tests", () => {
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
 
 
-      expect(moduleRepositoryMock.softDeleteByCourseId).not.toHaveBeenCalled();
+      expect(moduleRepositoryMock.softDeleteAllByCourseIds).not.toHaveBeenCalled();
 
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
     });
@@ -371,7 +373,7 @@ describe("course service tests", () => {
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith("1");
 
-      expect(moduleRepositoryMock.softDeleteByCourseId).not.toHaveBeenCalled();
+      expect(moduleRepositoryMock.softDeleteAllByCourseIds).not.toHaveBeenCalled();
 
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
     });
@@ -389,11 +391,11 @@ describe("course service tests", () => {
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
 
-      expect(moduleRepositoryMock.softDeleteByCourseId).toHaveBeenCalledTimes(
+      expect(moduleRepositoryMock.softDeleteAllByCourseIds).toHaveBeenCalledTimes(
         1,
       );
-      expect(moduleRepositoryMock.softDeleteByCourseId).toHaveBeenCalledWith(
-        course.id,
+      expect(moduleRepositoryMock.softDeleteAllByCourseIds).toHaveBeenCalledWith(
+        [course.id]
       );
 
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
@@ -415,7 +417,7 @@ describe("course service tests", () => {
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith("3");
 
-      expect(moduleRepositoryMock.softDeleteByCourseId).not.toHaveBeenCalled();
+      expect(moduleRepositoryMock.softDeleteAllByCourseIds).not.toHaveBeenCalled();
 
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
     });

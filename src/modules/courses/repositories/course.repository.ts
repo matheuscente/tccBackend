@@ -78,7 +78,7 @@ export class CourseRepository implements ICourseRepository {
 
         const coursesId = courses.map(course => course.id)
 
-        await this.moduleRepository.softDeleteAllByCourseId(coursesId)
+        await this.moduleRepository.softDeleteAllByCourseIds(coursesId)
 
         await this.orm.course.updateMany({
             where: {
