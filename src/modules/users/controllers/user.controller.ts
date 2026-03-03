@@ -34,7 +34,10 @@ export class UserController implements IUserController {
 
         const user = await this.service.findById(id)
 
-        if(!user) throw new NotFoundError("Usuário não encontrado")
+        if(!user) {
+            res.status(204).send()
+            return
+        }
 
         res.status(200).json({data: user})
 
@@ -53,7 +56,10 @@ export class UserController implements IUserController {
 
         const user = await this.service.findByUsername(username)
 
-        if(!user) throw new NotFoundError("Usuário não encontrado")
+        if(!user) {
+            res.status(204).send()
+            return
+        }
 
         res.status(200).json({data: user})
 

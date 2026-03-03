@@ -84,7 +84,6 @@ export class AuthController implements IAuthController {
 
             this.setRefreshCookie(res, result.refreshToken.token, result.refreshToken.expiresAt)
 
-
             res.status(200).json({
                 data: {
                     accessToken: result.accessToken,

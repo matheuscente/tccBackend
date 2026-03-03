@@ -36,7 +36,10 @@ export class CourseController implements ICourseController {
 
             const course = await this.service.findById(authUser, id)
 
-            if(!course) throw new NotFoundError("Não há cursos com esse id")
+            if(!course) {
+                res.status(204).send()
+                return
+            }
 
             res.status(200).json({data: course})
 
@@ -53,6 +56,11 @@ export class CourseController implements ICourseController {
             if(!authUser) throw new AuthorizationError("Usuário não autenticado")
 
             const courses = await this.service.findAllByUserId(authUser, userId)
+
+            if(courses.length === 0) {
+                res.status(204).send()
+                return
+            }
 
             res.status(200).json({data: courses})
 
