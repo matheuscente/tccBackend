@@ -78,4 +78,26 @@ describe("module repository tests", () => {
         })
     
     })
+
+    describe("findAllByUserId tests", () => {
+        it("should look for all the modules of a user", async () => {
+
+            await prismaTests.module.create({data: makeModule({courseId: course.id})})
+
+            const findedModules = await moduleRepository.findAllByUserId(user.id)
+
+            expect(findedModules).toHaveLength(2)
+            expect(findedModules[0]?.courseId).toBe(course.id)
+            expect(findedModules[1]?.courseId).toBe(course.id)
+
+        })
+
+        it("should return an empty array because there is no module of the user with the given ID", async () => {
+            const user2 = await userRepository.create(makeUser())
+
+            const findedModules = await moduleRepository.findAllByUserId(user2.id)
+
+            expect(findedModules).toHaveLength(0)
+        })
+    })
 })
