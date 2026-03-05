@@ -34,18 +34,59 @@ describe("courses repository tests", () => {
 
   describe("create tests", () => {
     it("should create a course successfully", async () => {
-      const data = makeCourse({userId: user.id});
+      const data = makeCourse({ userId: user.id });
       const course = await repository.create(data);
 
       expect(course).not.toBeNull();
       expect(course).toMatchObject(data);
     });
+
+    it("This should throw an error because a course with the given title already exists.", async () => {
+      await repository.create(makeCourse({ userId: user.id, title: "test" }));
+
+      await expect(
+        repository.create(makeCourse({ userId: user.id, title: "test" })),
+      ).rejects.toThrow();
+    });
+
+    it("It should create a course and not return a title constraint error.", async () => {
+      const course = await repository.create(
+        makeCourse({ userId: user.id, title: "test" }),
+      );
+
+      await prismaTests.course.update({
+        where: { id: course.id },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+
+      const data = makeCourse({ userId: user.id, title: "test" });
+
+      const course2 = await repository.create(makeCourse(data));
+
+      expect(course2).not.toBe(null);
+      expect(course2).toMatchObject(data);
+    });
+
+    it("It should update a course and not return a title constraint error beacuse is another user course.", async () => {
+      const course = await repository.create(
+        makeCourse({ userId: user.id, title: "test" }),
+      );
+
+      const user2 = await userRepository.create(makeUser());
+      const course2 = await repository.create(
+        makeCourse({ userId: user2.id, title: "test" }),
+      );
+
+      expect(course2).not.toBe(null);
+      expect(course2.title).toBe(course.title);
+    });
   });
 
   describe("findById tests", () => {
     it("should search for a course using your ID", async () => {
-      const data = makeCourse({userId: user.id});
-      await repository.create(data);
+      const data = await repository.create(makeCourse({ userId: user.id }));
       const course = await repository.findById(data.id);
 
       expect(course).not.toBeNull();
@@ -59,7 +100,7 @@ describe("courses repository tests", () => {
     });
 
     it("should not return a soft deleted course", async () => {
-      const course = await repository.create(makeCourse({userId: user.id}));
+      const course = await repository.create(makeCourse({ userId: user.id }));
 
       await repository.softDelete(course.id, course.userId);
 
@@ -71,11 +112,9 @@ describe("courses repository tests", () => {
 
   describe("findByUserId tests", () => {
     it("should search for courses using the provided user ID.", async () => {
-      const course1 = makeCourse({userId: user.id});
-      const course2 = makeCourse({ userId: user.id });
 
-      await repository.create(course1);
-      await repository.create(course2);
+      const course1 = await repository.create(makeCourse({ userId: user.id }));
+      const course2 = await repository.create(makeCourse({ userId: user.id }));
 
       const courses = await repository.findAllByUserId(user.id);
 
@@ -147,6 +186,70 @@ describe("courses repository tests", () => {
   });
 
   describe("update tests", () => {
+    it("This should throw an error because a course with the given title already exists.", async () => {
+      const course = await repository.create(
+        makeCourse({ userId: user.id, title: "test" }),
+      );
+      const course2 = await repository.create(
+        makeCourse({ userId: user.id, title: "test 2" }),
+      );
+
+      await expect(
+        repository.update(course2.id, {
+          description: course.description,
+          title: "test",
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("It should update a course and not return a title constraint error.", async () => {
+      const course = await repository.create(
+        makeCourse({ userId: user.id, title: "test" }),
+      );
+      const course2 = await repository.create(
+        makeCourse({ userId: user.id, title: "test 2" }),
+      );
+
+      await prismaTests.course.update({
+        where: { id: course.id },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+
+      const updatedCourse = await repository.update(course2.id, {
+        description: course2.description,
+        title: "test",
+      });
+      expect(updatedCourse).not.toBe(null);
+      expect(updatedCourse.title).toBe(course.title);
+    });
+
+    it("It should update a course and not return a title constraint error beacuse is another user course.", async () => {
+      const course = await repository.create(
+        makeCourse({ userId: user.id, title: "test" }),
+      );
+
+      const user2 = await userRepository.create(makeUser());
+      const course2 = await repository.create(
+        makeCourse({ userId: user2.id, title: "test 2" }),
+      );
+
+      await prismaTests.course.update({
+        where: { id: course.id },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+
+      const updatedCourse = await repository.update(course2.id, {
+        description: course2.description,
+        title: "test",
+      });
+
+      expect(updatedCourse).not.toBe(null);
+      expect(updatedCourse.title).toBe(course.title);
+    });
     it("should update a course successfully", async () => {
       const newTitle = "updated course";
       const description = "this course was updated";
@@ -183,7 +286,7 @@ describe("courses repository tests", () => {
   });
 
   describe("softDeleteAllByUserId tests", () => {
-    it("should delete a course based on the provided ID.", async () => {
+    it("should soft delete all courses of a user", async () => {
       const id = "1";
 
       await repository.create(makeCourse({ id: "1", userId: user.id }));

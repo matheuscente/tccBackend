@@ -49,10 +49,10 @@ describe("module repository tests", () => {
         data: makeModule({ courseId: course.id }),
       });
 
-      const findedModules = await moduleRepository.findAllByCourseId(course.id);
+      const foundModules = await moduleRepository.findAllByCourseId(course.id);
 
-      expect(findedModules).toHaveLength(2);
-      expect(findedModules.every((m) => m.courseId === course.id)).toBe(true);
+      expect(foundModules).toHaveLength(2);
+      expect(foundModules.every((m) => m.courseId === course.id)).toBe(true);
     });
 
     it("should return an empty array because there is no module in the course with the given ID", async () => {
@@ -60,11 +60,9 @@ describe("module repository tests", () => {
         makeCourse({ userId: user.id }),
       );
 
-      const findedModules = await moduleRepository.findAllByCourseId(
-        course2.id,
-      );
+      const foundModules = await moduleRepository.findAllByCourseId(course2.id);
 
-      expect(findedModules).toHaveLength(0);
+      expect(foundModules).toHaveLength(0);
     });
 
     it("should not return soft deleted modules", async () => {
@@ -111,17 +109,17 @@ describe("module repository tests", () => {
         data: makeModule({ courseId: course.id }),
       });
 
-      const findedModules = await moduleRepository.findAllByUserId(user.id);
-      expect(findedModules).toHaveLength(2);
-      expect(findedModules.every((m) => m.courseId === course.id)).toBe(true);
+      const foundModules = await moduleRepository.findAllByUserId(user.id);
+      expect(foundModules).toHaveLength(2);
+      expect(foundModules.every((m) => m.courseId === course.id)).toBe(true);
     });
 
     it("should return an empty array because there is no module of the user with the given ID", async () => {
       const user2 = await userRepository.create(makeUser());
 
-      const findedModules = await moduleRepository.findAllByUserId(user2.id);
+      const foundModules = await moduleRepository.findAllByUserId(user2.id);
 
-      expect(findedModules).toHaveLength(0);
+      expect(foundModules).toHaveLength(0);
     });
 
     it("should not return modules from another user", async () => {
@@ -134,9 +132,9 @@ describe("module repository tests", () => {
         data: makeModule({ courseId: course2.id }),
       });
 
-      const findedModules = await moduleRepository.findAllByUserId(user.id);
+      const foundModules = await moduleRepository.findAllByUserId(user.id);
 
-      expect(findedModules.every((m) => m.courseId === course.id)).toBe(true);
+      expect(foundModules.every((m) => m.courseId === course.id)).toBe(true);
     });
   });
 
@@ -205,12 +203,12 @@ describe("module repository tests", () => {
         data: makeModule({ courseId: course.id }),
       });
 
-      const findedModules = await moduleRepository.findAllByCourseIdWithOwner(
+      const foundModules = await moduleRepository.findAllByCourseIdWithOwner(
         course.id,
         user.id,
       );
-      expect(findedModules).toHaveLength(2);
-      expect(findedModules.every((m) => m.courseId === course.id)).toBe(true);
+      expect(foundModules).toHaveLength(2);
+      expect(foundModules.every((m) => m.courseId === course.id)).toBe(true);
     });
 
     it("should return an empty array because there is no module in the course with the given ID", async () => {
@@ -218,12 +216,12 @@ describe("module repository tests", () => {
         makeCourse({ userId: user.id }),
       );
 
-      const findedModules = await moduleRepository.findAllByCourseIdWithOwner(
+      const foundModules = await moduleRepository.findAllByCourseIdWithOwner(
         course2.id,
         user.id,
       );
 
-      expect(findedModules).toHaveLength(0);
+      expect(foundModules).toHaveLength(0);
     });
   });
 
@@ -340,6 +338,22 @@ describe("module repository tests", () => {
         ),
       ).resolves.not.toThrow();
     });
+
+    it("should allow duplicate title if of another course", async () => {
+      const course2 = await courseRepository.create(
+        makeCourse({ userId: user.id }),
+      );
+
+      const data = makeModule({ courseId: course.id, title: "Intro" });
+
+      await moduleRepository.create(data);
+
+      await expect(
+        moduleRepository.create(
+          makeModule({ title: "Intro", courseId: course2.id }),
+        ),
+      ).resolves.not.toThrow();
+    });
   });
 
   describe("update tests", () => {
@@ -364,29 +378,46 @@ describe("module repository tests", () => {
     });
 
     it("should not allow duplicate active title in same course", async () => {
-  // 1️⃣ garante que o módulo base tem outro título
-  await moduleRepository.update(module.id, {
-    title: "Base title",
-  });
+      await moduleRepository.update(module.id, {
+        title: "Base title",
+      });
 
-  // 2️⃣ cria um segundo módulo com o título conflitante
-  const other = await moduleRepository.create(
-    makeModule({
-      courseId: course.id,
-      title: "Existing title",
-    })
-  );
+      const other = await moduleRepository.create(
+        makeModule({
+          courseId: course.id,
+          title: "Existing title",
+        }),
+      );
 
-  // 3️⃣ agora tenta fazer o primeiro virar igual ao segundo
-  await expect(
-    moduleRepository.update(module.id, {
-      title: "Existing title",
-    })
-  ).rejects.toThrow();
-});
+      await expect(
+        moduleRepository.update(module.id, {
+          title: "Existing title",
+        }),
+      ).rejects.toThrow();
+    });
+    it("should allow duplicate title if of another course", async () => {
+      const course2 = await courseRepository.create(
+        makeCourse({ userId: user.id }),
+      );
+
+      const module = await moduleRepository.create(
+        makeModule({ courseId: course.id, title: "Intro" }),
+      );
+
+      const updatedModule = await moduleRepository.create({
+        courseId: course2.id,
+        title: "test",
+      });
+
+      await expect(
+        moduleRepository.update(updatedModule.id, {
+          description: updatedModule.description,
+          title: module.title,
+        }),
+      ).resolves.not.toThrow();
+    });
 
     it("should allow updating title to one that belongs to soft deleted module", async () => {
-
       const other = await moduleRepository.create(
         makeModule({
           courseId: course.id,
@@ -395,6 +426,13 @@ describe("module repository tests", () => {
       );
 
       await moduleRepository.softDelete(other.id);
+
+
+      const deletedModule = await prismaTests.module.findUnique({
+        where: { id: other.id },
+      });
+
+      expect(deletedModule?.deletedAt).not.toBeNull();
 
       await expect(
         moduleRepository.update(module.id, {
