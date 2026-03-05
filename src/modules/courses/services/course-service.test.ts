@@ -1,8 +1,9 @@
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
+import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
+import { OwnershipService } from "../../../shared/ownership/ownership.service";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import { makeCourse } from "../../../tests/factories/make-course";
-import { makeUser } from "../../../tests/factories/make-user";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 import type { IUserRepository } from "../../users/interfaces/user-repository.interface";
@@ -22,15 +23,6 @@ describe("course service tests", () => {
     softDeleteAllByUserId: jest.fn()
   };
 
-  const userRepositoryMock: jest.Mocked<IUserRepository> = {
-    create: jest.fn(),
-    findById: jest.fn(),
-    findByUsername: jest.fn(),
-    update: jest.fn(),
-    updatePassword: jest.fn(),
-    softDelete: jest.fn(),
-  };
-
   const sanitizeMock: jest.Mocked<Isanitize> = {
     removeAccents: jest.fn(),
     sanitizeName: jest.fn(),
@@ -44,6 +36,8 @@ describe("course service tests", () => {
 
     findAllByCourseIdWithOwner: jest.fn(),
 
+    findAllByUserId: jest.fn(),
+
     findByIdWithOwner: jest.fn(),
 
     create: jest.fn(),
@@ -54,6 +48,14 @@ describe("course service tests", () => {
 
     softDeleteAllByCourseIds: jest.fn(),
   };
+
+  const ownerMock: jest.Mocked<IOwnershipService> = {
+    resolveOwnerId: jest.fn(),
+
+    validateOwnership: jest.fn(),
+
+    validateStrictOwnership: jest.fn()
+  }
 
   const transactionMock: jest.Mocked<ITransaction> = {
     execute: jest.fn().mockImplementation(async (callback) => {
@@ -76,9 +78,9 @@ describe("course service tests", () => {
 
   const service = new CourseService(
     courseRepositoryMock,
-    userRepositoryMock,
     sanitizeMock,
     transactionMock,
+    ownerMock
   );
 
   beforeEach(() => {
@@ -98,9 +100,9 @@ describe("course service tests", () => {
 
       courseRepositoryMock.findById.mockResolvedValue(course);
 
-      const findedCourse = await service.findById(adminAuthUser, course.id);
+      const foundCourse = await service.findById(adminAuthUser, course.id);
 
-      expect(findedCourse).toEqual({
+      expect(foundCourse).toEqual({
         id: course.id,
         title: course.title,
         createdAt: course.createdAt.toISOString(),
@@ -108,8 +110,8 @@ describe("course service tests", () => {
         description: course.description,
       });
 
-      expect(findedCourse).not.toHaveProperty("deletedAt");
-      expect(findedCourse).not.toHaveProperty("userid");
+      expect(foundCourse).not.toHaveProperty("deletedAt");
+      expect(foundCourse).not.toHaveProperty("userId");
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
       expect(courseRepositoryMock.findOwnedById).not.toHaveBeenCalled();
@@ -120,17 +122,17 @@ describe("course service tests", () => {
 
       courseRepositoryMock.findOwnedById.mockResolvedValue(course);
 
-      const findedCourse = await service.findById(userAuthUser, course.id);
+      const foundCourse = await service.findById(userAuthUser, course.id);
 
-      expect(findedCourse).toEqual({
+      expect(foundCourse).toEqual({
         id: course.id,
         title: course.title,
         createdAt: course.createdAt.toISOString(),
         updatedAt: course.updatedAt.toISOString(),
         description: course.description,
       });
-      expect(findedCourse).not.toHaveProperty("deletedAt");
-      expect(findedCourse).not.toHaveProperty("userid");
+      expect(foundCourse).not.toHaveProperty("deletedAt");
+      expect(foundCourse).not.toHaveProperty("userId");
       expect(courseRepositoryMock.findById).not.toHaveBeenCalled();
 
       expect(courseRepositoryMock.findOwnedById).toHaveBeenCalled();
@@ -143,9 +145,9 @@ describe("course service tests", () => {
     it("should return null because admin does not have a course with the given ID.", async () => {
       courseRepositoryMock.findById.mockResolvedValue(null);
 
-      const findedCourse = await service.findById(adminAuthUser, "fakeId");
+      const foundCourse = await service.findById(adminAuthUser, "fakeId");
 
-      expect(findedCourse).toBe(null);
+      expect(foundCourse).toBe(null);
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith("fakeId");
       expect(courseRepositoryMock.findOwnedById).not.toHaveBeenCalled();
@@ -154,9 +156,9 @@ describe("course service tests", () => {
     it("should return null because user does not have a course with the given ID.", async () => {
       courseRepositoryMock.findOwnedById.mockResolvedValue(null);
 
-      const findedCourse = await service.findById(userAuthUser, "fakeId");
+      const foundCourse = await service.findById(userAuthUser, "fakeId");
 
-      expect(findedCourse).toBe(null);
+      expect(foundCourse).toBe(null);
       expect(courseRepositoryMock.findById).not.toHaveBeenCalled();
 
       expect(courseRepositoryMock.findOwnedById).toHaveBeenCalled();
@@ -175,9 +177,9 @@ describe("course service tests", () => {
 
       courseRepositoryMock.findById.mockRejectedValue(new Error());
 
-      const findedCourse = service.findById(authUser, course.id);
+      const foundCourse = service.findById(authUser, course.id);
 
-      await expect(findedCourse).rejects.toBeInstanceOf(Error);
+      await expect(foundCourse).rejects.toBeInstanceOf(Error);
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
       expect(courseRepositoryMock.findOwnedById).not.toHaveBeenCalled();
@@ -188,9 +190,9 @@ describe("course service tests", () => {
 
       courseRepositoryMock.findOwnedById.mockRejectedValue(new Error());
 
-      const findedCourse = service.findById(userAuthUser, course.id);
+      const foundCourse = service.findById(userAuthUser, course.id);
 
-      await expect(findedCourse).rejects.toBeInstanceOf(Error);
+      await expect(foundCourse).rejects.toBeInstanceOf(Error);
       expect(courseRepositoryMock.findById).not.toHaveBeenCalled();
 
       expect(courseRepositoryMock.findOwnedById).toHaveBeenCalled();
@@ -203,8 +205,11 @@ describe("course service tests", () => {
 
   describe("findAllByUserId tests", () => {
     it("should return all courses for a specified user", async () => {
+
       const course1 = makeCourse({ userId: userAuthUser.id });
       const course2 = makeCourse({ userId: userAuthUser.id });
+
+      ownerMock.validateOwnership.mockReturnValue(undefined);
 
       courseRepositoryMock.findAllByUserId.mockResolvedValue([
         course1,
@@ -216,7 +221,7 @@ describe("course service tests", () => {
         userAuthUser.id,
       );
 
-      const expectedCourses = [course1, course2].map((course) => ({
+      const expectedCourses = [course1, course2].map(course => ({
         id: course.id,
         title: course.title,
         description: course.description,
@@ -224,14 +229,23 @@ describe("course service tests", () => {
         updatedAt: course.updatedAt.toISOString(),
       }));
 
-      expect(courses).toEqual(expectedCourses);
-      expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledTimes(1);
+      expect(ownerMock.validateOwnership).toHaveBeenCalledWith(
+        userAuthUser,
+        userAuthUser.id,
+      );
+
       expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(
         userAuthUser.id,
       );
+
+      expect(courses).toEqual(expectedCourses);
+
     });
 
     it("should return a courses empty array for a specified user", async () => {
+
+      ownerMock.validateOwnership.mockReturnValue(undefined);
+
       courseRepositoryMock.findAllByUserId.mockResolvedValue([]);
 
       const courses = await service.findAllByUserId(
@@ -240,38 +254,63 @@ describe("course service tests", () => {
       );
 
       expect(courses).toHaveLength(0);
-      expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledTimes(1);
+
+      expect(ownerMock.validateOwnership).toHaveBeenCalledWith(
+        userAuthUser,
+        userAuthUser.id,
+      );
+
       expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(
         userAuthUser.id,
       );
+
     });
 
     it("should throw an authorization error when the USER rule attempts to search for another user's course.", async () => {
+
+      ownerMock.validateOwnership.mockImplementation(() => {
+        throw new AuthorizationError("Ação não autorizada");
+      });
+
       const courses = service.findAllByUserId(userAuthUser, "3");
 
       await expect(courses).rejects.toThrow("Ação não autorizada");
       await expect(courses).rejects.toBeInstanceOf(AuthorizationError);
+
       expect(courseRepositoryMock.findAllByUserId).not.toHaveBeenCalled();
+
     });
 
     it("should propagate a findAllByUserId dependency error", async () => {
+
+      ownerMock.validateOwnership.mockReturnValue(undefined);
+
       courseRepositoryMock.findAllByUserId.mockRejectedValue(new Error());
 
       const courses = service.findAllByUserId(userAuthUser, userAuthUser.id);
 
       await expect(courses).rejects.toBeInstanceOf(Error);
-      expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledTimes(1);
+
       expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith(
         userAuthUser.id,
       );
+
     });
 
     it("should allow ADMIN to access another user's courses", async () => {
-      const course = makeCourse({ userId: adminAuthUser.id });
+
+      const course = makeCourse({ userId: "1" });
+
+      ownerMock.validateOwnership.mockReturnValue(undefined);
 
       courseRepositoryMock.findAllByUserId.mockResolvedValue([course]);
 
       const result = await service.findAllByUserId(adminAuthUser, "1");
+
+      expect(ownerMock.validateOwnership).toHaveBeenCalledWith(
+        adminAuthUser,
+        "1",
+      );
 
       expect(courseRepositoryMock.findAllByUserId).toHaveBeenCalledWith("1");
 
@@ -284,20 +323,28 @@ describe("course service tests", () => {
           updatedAt: course.updatedAt.toISOString(),
         },
       ]);
+
     });
+
   });
 
-  describe("softdelete tests", () => {
+  describe("softDelete tests", () => {
     it("should soft delete course and its modules inside a transaction", async () => {
       const course = makeCourse({ userId: userAuthUser.id });
 
       courseRepositoryMock.findById.mockResolvedValue(course);
+      ownerMock.validateOwnership.mockReturnValue(undefined)
 
       await service.softDelete(userAuthUser, course.id);
 
       expect(transactionMock.execute).toHaveBeenCalledTimes(1);
 
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
+
+      expect(ownerMock.validateOwnership).toHaveBeenCalledWith(
+        userAuthUser,
+        course.userId
+      );
 
       expect(moduleRepositoryMock.softDeleteAllByCourseIds).toHaveBeenCalledTimes(
         1,
@@ -317,6 +364,8 @@ describe("course service tests", () => {
 
       courseRepositoryMock.findById.mockResolvedValue(course);
       courseRepositoryMock.softDelete.mockResolvedValue(undefined);
+      ownerMock.validateOwnership.mockReturnValue(undefined)
+
 
       const softDeletedCourse = await service.softDelete(
         adminAuthUser,
@@ -329,6 +378,11 @@ describe("course service tests", () => {
 
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
+
+      expect(ownerMock.validateOwnership).toHaveBeenCalledWith(
+        adminAuthUser,
+        course.userId
+      );
 
       expect(moduleRepositoryMock.softDeleteAllByCourseIds).toHaveBeenCalledTimes(1)
       expect(moduleRepositoryMock.softDeleteAllByCourseIds).toHaveBeenCalledWith([course.id])
@@ -344,6 +398,9 @@ describe("course service tests", () => {
       const course = makeCourse({ userId: "3" });
 
       courseRepositoryMock.findById.mockResolvedValue(course);
+      ownerMock.validateOwnership.mockImplementation(() => {
+        throw new AuthorizationError("Ação não autorizada");
+      });
 
       const softDeletedCourse = service.softDelete(userAuthUser, course.id);
 
@@ -378,11 +435,12 @@ describe("course service tests", () => {
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
     });
 
-    it("should propagatse a softDelete dependency error.", async () => {
+    it("should propagate a softDelete dependency error.", async () => {
       const course = makeCourse({ userId: "3" });
 
       courseRepositoryMock.findById.mockResolvedValue(course);
       courseRepositoryMock.softDelete.mockRejectedValue(new Error());
+      ownerMock.validateOwnership.mockReturnValue(undefined);
 
       const softDeletedCourse = service.softDelete(adminAuthUser, course.id);
 
@@ -407,6 +465,8 @@ describe("course service tests", () => {
 
     it("Nothing should be returned because the course no longer exists.", async () => {
       courseRepositoryMock.findById.mockResolvedValue(null);
+      ownerMock.validateOwnership.mockReturnValue(undefined)
+
 
       const softDeletedCourse = await service.softDelete(userAuthUser, "3");
 
@@ -424,304 +484,165 @@ describe("course service tests", () => {
   });
 
   describe("create tests", () => {
-    it("The regular user should be able to create a course for themselves specifying the userid", async () => {
-      const course = makeCourse({ userId: userAuthUser.id });
-
-      const createCourseData: CreateCourseDTO = {
-        userId: userAuthUser.id,
-        title: "TEST",
-        description: "test",
-      };
-
-      courseRepositoryMock.create.mockResolvedValue(course);
-
-      const createdCourse = await service.create(userAuthUser, {
-        ...createCourseData,
-        title: "test    ",
-      });
-
-      expect(createdCourse).toMatchObject(
-        expect.objectContaining({
-          id: expect.any(String),
-          title: expect.any(String),
-          description: expect.any(String),
-          createdAt: expect.any(String),
-          updatedAt: expect.any(String),
-        }),
-      );
-
-      expect(createdCourse).not.toHaveProperty("deletedAt");
-      expect(createdCourse).not.toHaveProperty("userid");
-
-      expect(userRepositoryMock.findById).not.toHaveBeenCalled();
-
-      expect(courseRepositoryMock.create).toHaveBeenCalledTimes(1);
-      expect(courseRepositoryMock.create).toHaveBeenCalledWith(
-        createCourseData,
-      );
-
-      expect(sanitizeMock.sanitizeName).toHaveBeenCalledTimes(1);
-      expect(sanitizeMock.sanitizeName).toHaveBeenCalledWith("test    ");
-    });
-
-    it("The regular user should be able to create a course for themselves without specifying the userid", async () => {
-      const course = makeCourse({ userId: userAuthUser.id });
-
-      const createCourseData: CreateCourseDTO = {
-        title: "TEST",
-        description: "test",
-      };
-
-      courseRepositoryMock.create.mockResolvedValue(course);
-
-      const createdCourse = await service.create(userAuthUser, {
-        ...createCourseData,
-        title: "test    ",
-      });
-
-      expect(createdCourse).toMatchObject(
-        expect.objectContaining({
-          id: expect.any(String),
-          title: expect.any(String),
-          description: expect.any(String),
-          createdAt: expect.any(String),
-          updatedAt: expect.any(String),
-        }),
-      );
-
-      expect(createdCourse).not.toHaveProperty("deletedAt");
-      expect(createdCourse).not.toHaveProperty("userid");
-
-      expect(userRepositoryMock.findById).not.toHaveBeenCalled();
-
-      expect(courseRepositoryMock.create).toHaveBeenCalledTimes(1);
-      expect(courseRepositoryMock.create).toHaveBeenCalledWith({
-        ...createCourseData,
-        userId: userAuthUser.id,
-      });
-
-      expect(sanitizeMock.sanitizeName).toHaveBeenCalledTimes(1);
-      expect(sanitizeMock.sanitizeName).toHaveBeenCalledWith("test    ");
-    });
-
-    it("admin user should successfully create a course for another user.", async () => {
-      const course = makeCourse({ userId: adminAuthUser.id });
-
-      const createCourseData: CreateCourseDTO = {
-        userId: userAuthUser.id,
-        title: "TEST",
-        description: "test",
-      };
-
-      courseRepositoryMock.create.mockResolvedValue(course);
-      userRepositoryMock.findById.mockResolvedValue(
-        makeUser({ id: userAuthUser.id }),
-      );
-
-      const createdCourse = await service.create(adminAuthUser, {
-        ...createCourseData,
-        title: "test    ",
-      });
-
-      expect(createdCourse).toMatchObject(
-        expect.objectContaining({
-          id: expect.any(String),
-          title: expect.any(String),
-          description: expect.any(String),
-          createdAt: expect.any(String),
-          updatedAt: expect.any(String),
-        }),
-      );
-
-      expect(createdCourse).not.toHaveProperty("deletedAt");
-      expect(createdCourse).not.toHaveProperty("userid");
-
-      expect(userRepositoryMock.findById).toHaveBeenCalledTimes(1);
-      expect(userRepositoryMock.findById).toHaveBeenCalledWith(userAuthUser.id);
-
-      expect(courseRepositoryMock.create).toHaveBeenCalledTimes(1);
-      expect(courseRepositoryMock.create).toHaveBeenCalledWith({
-        ...createCourseData,
-        userId: userAuthUser.id,
-      });
-
-      expect(sanitizeMock.sanitizeName).toHaveBeenCalledTimes(1);
-      expect(sanitizeMock.sanitizeName).toHaveBeenCalledWith("test    ");
-    });
-
-    it("The administrator user should be able to create a course for themselves without specifying the userid.", async () => {
-      const course = makeCourse({ userId: adminAuthUser.id });
-
-      const createCourseData: CreateCourseDTO = {
-        title: "TEST",
-        description: "test",
-      };
-
-      courseRepositoryMock.create.mockResolvedValue(course);
-
-      const createdCourse = await service.create(adminAuthUser, {
-        ...createCourseData,
-        title: "test    ",
-      });
-
-      expect(createdCourse).toMatchObject(
-        expect.objectContaining({
-          id: expect.any(String),
-          title: expect.any(String),
-          description: expect.any(String),
-          createdAt: expect.any(String),
-          updatedAt: expect.any(String),
-        }),
-      );
-
-      expect(createdCourse).not.toHaveProperty("deletedAt");
-      expect(createdCourse).not.toHaveProperty("userid");
-
-      expect(userRepositoryMock.findById).not.toHaveBeenCalled();
-
-      expect(courseRepositoryMock.create).toHaveBeenCalledTimes(1);
-      expect(courseRepositoryMock.create).toHaveBeenCalledWith({
-        ...createCourseData,
-        userId: adminAuthUser.id,
-      });
-
-      expect(sanitizeMock.sanitizeName).toHaveBeenCalledTimes(1);
-      expect(sanitizeMock.sanitizeName).toHaveBeenCalledWith("test    ");
-    });
-
-    it("The administrator user should be able to create a course for themselves specifying the userid.", async () => {
-      const course = makeCourse({ userId: adminAuthUser.id });
-
-      const createCourseData: CreateCourseDTO = {
-        userId: adminAuthUser.id,
-        title: "TEST",
-        description: "test",
-      };
-
-      courseRepositoryMock.create.mockResolvedValue(course);
-
-      const createdCourse = await service.create(adminAuthUser, {
-        ...createCourseData,
-        title: "test    ",
-      });
-
-      expect(createdCourse).toMatchObject(
-        expect.objectContaining({
-          id: expect.any(String),
-          title: expect.any(String),
-          description: expect.any(String),
-          createdAt: expect.any(String),
-          updatedAt: expect.any(String),
-        }),
-      );
-
-      expect(createdCourse).not.toHaveProperty("deletedAt");
-      expect(createdCourse).not.toHaveProperty("userid");
-
-      expect(userRepositoryMock.findById).not.toHaveBeenCalled();
-
-      expect(courseRepositoryMock.create).toHaveBeenCalledTimes(1);
-      expect(courseRepositoryMock.create).toHaveBeenCalledWith(
-        createCourseData,
-      );
-
-      expect(sanitizeMock.sanitizeName).toHaveBeenCalledTimes(1);
-      expect(sanitizeMock.sanitizeName).toHaveBeenCalledWith("test    ");
-    });
-
-    it("When a regular user tries to create a course for another user, an authorization error is triggered.", async () => {
-      const createCourseData: CreateCourseDTO = {
-        userId: "fake-id",
-        title: "TEST",
-        description: "test",
-      };
-
-      const createdCourse = service.create(userAuthUser, {
-        ...createCourseData,
-        title: "test   ",
-      });
-
-      await expect(createdCourse).rejects.toThrow("Ação não autorizada");
-      await expect(createdCourse).rejects.toBeInstanceOf(AuthorizationError);
-
-      expect(userRepositoryMock.findById).not.toHaveBeenCalled();
-
-      expect(courseRepositoryMock.create).not.toHaveBeenCalled();
-    });
-
-    it("When the admin user tries to create a course for a user that does not exist, a notfounderror is thrown.", async () => {
-      const createCourseData: CreateCourseDTO = {
-        userId: "fake-id",
-        title: "TEST",
-        description: "test",
-      };
-
-      userRepositoryMock.findById.mockResolvedValue(null);
-
-      const createdCourse = service.create(adminAuthUser, {
-        ...createCourseData,
-        title: "test   ",
-      });
-      await expect(createdCourse).rejects.toThrow("Usuário não encontrado");
-      await expect(createdCourse).rejects.toBeInstanceOf(NotFoundError);
-
-      expect(userRepositoryMock.findById).toHaveBeenCalledTimes(1);
-      expect(userRepositoryMock.findById).toHaveBeenCalledWith(
-        createCourseData.userId,
-      );
-
-      expect(courseRepositoryMock.create).not.toHaveBeenCalled();
-    });
-
-    it("should propagate findbyid dependency error.", async () => {
-      const createCourseData: CreateCourseDTO = {
-        userId: "fake-id",
-        title: "TEST",
-        description: "test",
-      };
-
-      userRepositoryMock.findById.mockRejectedValue(new Error());
-
-      const createdCourse = service.create(adminAuthUser, {
-        ...createCourseData,
-        title: "test   ",
-      });
-
-      await expect(createdCourse).rejects.toBeInstanceOf(Error);
-
-      expect(userRepositoryMock.findById).toHaveBeenCalledTimes(1);
-      expect(userRepositoryMock.findById).toHaveBeenCalledWith(
-        createCourseData.userId,
-      );
-
-      expect(courseRepositoryMock.create).not.toHaveBeenCalled();
-    });
-
-    it("should propagate create dependency error.", async () => {
-      const createCourseData: CreateCourseDTO = {
-        title: "TEST",
-        description: "test",
-      };
+    it("should propagate create dependency error", async () => {
+      ownerMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
 
       courseRepositoryMock.create.mockRejectedValue(new Error());
 
-      const createdCourse = service.create(userAuthUser, {
+      const promise = service.create(userAuthUser, {
+        title: "test",
+        description: "test",
+      });
+
+      await expect(promise).rejects.toBeInstanceOf(Error);
+
+      expect(courseRepositoryMock.create).toHaveBeenCalledTimes(1);
+    });
+
+    it("The regular user should be able to create a course for themselves specifying the userId", async () => {
+
+      const course = makeCourse({ userId: userAuthUser.id });
+
+      const createCourseData: CreateCourseDTO = {
+        userId: userAuthUser.id,
+        title: "TEST",
+        description: "test",
+      };
+
+      ownerMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+      courseRepositoryMock.create.mockResolvedValue(course);
+
+      const createdCourse = await service.create(userAuthUser, {
         ...createCourseData,
         title: "test    ",
       });
 
-      await expect(createdCourse).rejects.toBeInstanceOf(Error);
+      expect(ownerMock.resolveOwnerId).toHaveBeenCalledTimes(1);
+      expect(ownerMock.resolveOwnerId).toHaveBeenCalledWith(
+        userAuthUser,
+        userAuthUser.id,
+      );
 
-      expect(userRepositoryMock.findById).not.toHaveBeenCalled();
+      expect(sanitizeMock.sanitizeName).toHaveBeenCalledTimes(1);
+      expect(sanitizeMock.sanitizeName).toHaveBeenCalledWith("test    ");
 
       expect(courseRepositoryMock.create).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.create).toHaveBeenCalledWith({
-        ...createCourseData,
         userId: userAuthUser.id,
+        title: expect.any(String),
+        description: "test",
       });
-      expect(sanitizeMock.sanitizeName).toHaveBeenCalledTimes(1);
-      expect(sanitizeMock.sanitizeName).toHaveBeenCalledWith("test    ");
+
+      expect(createdCourse).not.toHaveProperty("deletedAt");
+      expect(createdCourse).not.toHaveProperty("userId");
     });
+
+
+    it("The regular user should be able to create a course for themselves without specifying the userId", async () => {
+
+      const course = makeCourse({ userId: userAuthUser.id });
+
+      const createCourseData: CreateCourseDTO = {
+        title: "TEST",
+        description: "test",
+      };
+
+      ownerMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+      courseRepositoryMock.create.mockResolvedValue(course);
+
+      const createdCourse = await service.create(userAuthUser, createCourseData);
+
+      expect(ownerMock.resolveOwnerId).toHaveBeenCalledTimes(1);
+      expect(ownerMock.resolveOwnerId).toHaveBeenCalledWith(
+        userAuthUser,
+        undefined,
+      );
+
+      expect(sanitizeMock.sanitizeName).toHaveBeenCalledTimes(1);
+      expect(sanitizeMock.sanitizeName).toHaveBeenCalledWith("TEST");
+
+      expect(courseRepositoryMock.create).toHaveBeenCalledTimes(1);
+      expect(courseRepositoryMock.create).toHaveBeenCalledWith({
+        userId: userAuthUser.id,
+        title: expect.any(String),
+        description: "test",
+      });
+
+      expect(createdCourse).not.toHaveProperty("deletedAt");
+      expect(createdCourse).not.toHaveProperty("userId");
+    });
+
+
+    it("An admin user should be able to create a course for another user specifying the userId", async () => {
+
+      const course = makeCourse({ userId: userAuthUser.id });
+
+      const createCourseData: CreateCourseDTO = {
+        userId: userAuthUser.id,
+        title: "TEST",
+        description: "test",
+      };
+
+      ownerMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+      courseRepositoryMock.create.mockResolvedValue(course);
+
+      const createdCourse = await service.create(adminAuthUser, createCourseData);
+
+      expect(ownerMock.resolveOwnerId).toHaveBeenCalledTimes(1);
+      expect(ownerMock.resolveOwnerId).toHaveBeenCalledWith(
+        adminAuthUser,
+        userAuthUser.id,
+      );
+
+      expect(courseRepositoryMock.create).toHaveBeenCalledTimes(1);
+      expect(courseRepositoryMock.create).toHaveBeenCalledWith({
+        userId: userAuthUser.id,
+        title: expect.any(String),
+        description: "test",
+      });
+
+      expect(createdCourse).not.toHaveProperty("deletedAt");
+      expect(createdCourse).not.toHaveProperty("userId");
+    });
+
+
+    it("Should not be possible to create a course for another user if not admin", async () => {
+
+      ownerMock.resolveOwnerId.mockRejectedValue(
+        new AuthorizationError("Ação não autorizada"),
+      );
+
+      const promise = service.create(userAuthUser, {
+        userId: adminAuthUser.id,
+        title: "test",
+        description: "test",
+      });
+
+      await expect(promise).rejects.toThrow(AuthorizationError);
+
+      expect(ownerMock.resolveOwnerId).toHaveBeenCalledTimes(1);
+      expect(courseRepositoryMock.create).not.toHaveBeenCalled();
+    });
+
+
+    it("Should throw NotFoundError when ownership cannot find user", async () => {
+
+      ownerMock.resolveOwnerId.mockRejectedValue(
+        new NotFoundError("Usuário não encontrado"),
+      );
+
+      const promise = service.create(adminAuthUser, {
+        userId: "non-existing-id",
+        title: "test",
+        description: "test",
+      });
+
+      await expect(promise).rejects.toThrow(NotFoundError);
+
+      expect(ownerMock.resolveOwnerId).toHaveBeenCalledTimes(1);
+      expect(courseRepositoryMock.create).not.toHaveBeenCalled();
+    });
+
   });
 
   describe("update tests", () => {
@@ -737,6 +658,8 @@ describe("course service tests", () => {
         ...course,
         title: data.title!,
       });
+
+      ownerMock.validateOwnership.mockReturnValue(undefined)
 
       const updatedCourse = await service.update(userAuthUser, course.id, data);
 
@@ -754,6 +677,11 @@ describe("course service tests", () => {
       expect(updatedCourse).not.toHaveProperty("deletedAt");
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
+
+      expect(ownerMock.validateOwnership).toHaveBeenCalledWith(
+        userAuthUser,
+        course.userId,
+      );
 
       expect(courseRepositoryMock.update).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.update).toHaveBeenCalledWith(course.id, {
@@ -773,6 +701,7 @@ describe("course service tests", () => {
         ...course,
         title: data.title!,
       });
+      ownerMock.validateOwnership.mockReturnValue(undefined);
 
       const updatedCourse = await service.update(
         adminAuthUser,
@@ -795,6 +724,11 @@ describe("course service tests", () => {
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
 
+      expect(ownerMock.validateOwnership).toHaveBeenCalledWith(
+        adminAuthUser,
+        course.userId,
+      );
+
       expect(courseRepositoryMock.update).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.update).toHaveBeenCalledWith(course.id, {
         title: "TEST UPDATED",
@@ -808,6 +742,9 @@ describe("course service tests", () => {
       const course = makeCourse({ userId: "FAKE-ID" });
 
       courseRepositoryMock.findById.mockResolvedValue(course);
+      ownerMock.validateOwnership.mockImplementation(() => {
+        throw new AuthorizationError("Ação não autorizada");
+      });
 
       const updatedCourse = service.update(userAuthUser, course.id, data);
 
@@ -817,12 +754,19 @@ describe("course service tests", () => {
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
 
+      expect(ownerMock.validateOwnership).toHaveBeenCalledWith(
+        userAuthUser,
+        course.userId,
+      );
+
+
       expect(courseRepositoryMock.update).not.toHaveBeenCalled();
       expect(sanitizeMock.sanitizeName).not.toHaveBeenCalled();
     });
 
     it("should throw a NotFoundError because there is no course with the given ID.", async () => {
       courseRepositoryMock.findById.mockResolvedValue(null);
+      ownerMock.validateOwnership.mockReturnValue(undefined);
 
       const updatedCourse = service.update(userAuthUser, "fake-id", data);
 
@@ -846,12 +790,15 @@ describe("course service tests", () => {
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith("fake-id");
 
+      expect(ownerMock.validateOwnership).not.toHaveBeenCalled();
+
       expect(courseRepositoryMock.update).not.toHaveBeenCalled();
       expect(sanitizeMock.sanitizeName).not.toHaveBeenCalled();
     });
 
     it("should propagate a update dependence error", async () => {
       const course = makeCourse({ userId: userAuthUser.id });
+      ownerMock.validateOwnership.mockReturnValue(undefined);
 
       courseRepositoryMock.findById.mockResolvedValue(course);
       courseRepositoryMock.update.mockRejectedValue(new Error());
@@ -884,6 +831,7 @@ describe("course service tests", () => {
         ...course,
         description: data.description,
       });
+      ownerMock.validateOwnership.mockReturnValue(undefined);
 
       const updatedCourse = await service.update(userAuthUser, course.id, data);
 
@@ -901,6 +849,11 @@ describe("course service tests", () => {
       expect(updatedCourse).not.toHaveProperty("deletedAt");
       expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
+
+      expect(ownerMock.validateOwnership).toHaveBeenCalledWith(
+        userAuthUser,
+        course.userId,
+      );
 
       expect(courseRepositoryMock.update).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.update).toHaveBeenCalledWith(course.id, {

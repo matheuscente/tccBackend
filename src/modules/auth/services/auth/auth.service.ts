@@ -1,3 +1,4 @@
+import type { User } from "@prisma/client"
 import type { IDateConvert } from "../../../../shared/convert/interfaces/date-convert.interface"
 import { AuthorizationError } from "../../../../shared/errors/authorization.error"
 import { NotFoundError } from "../../../../shared/errors/not-found-error"

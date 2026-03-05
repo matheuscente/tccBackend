@@ -17,6 +17,7 @@ import { SanitizeUtils } from "../shared/sanitize/utils/sanitize.utils"
 import { Trasanction } from "../modules/transaction/services/transaction.service"
 import { PrismaClient } from "@prisma/client/extension"
 import { ModuleRepository } from "../modules/modules/repositories/module.repository"
+import { OwnershipService } from "../shared/ownership/ownership.service"
 
 class AppContainer {
      // shared singletons
@@ -32,19 +33,15 @@ class AppContainer {
   moduleRepository = new ModuleRepository(prisma)
   courseRpository = new CourseRepository(prisma, this.moduleRepository)
 
+
   // services
-    sessionService = new SessionService(
+  ownership = new OwnershipService(this.userRepository)
+
+  sessionService = new SessionService(
     this.sessionRepository,
     this.hashProvider
   )
-  
-  userService = new UserService(
-    this.userRepository,
-    this.hashProvider,
-    this.sanitizeUtils,
-    this.sessionRepository,
-    this.transaction
-  )
+
   authService = new AuthService(
     this.userRepository,
     this.sessionService,
@@ -52,12 +49,19 @@ class AppContainer {
     this.dateConvert,
     this.accessTokenService
   )
+  userService = new UserService(
+    this.userRepository,
+    this.hashProvider,
+    this.sanitizeUtils,
+    this.transaction,
+    this.ownership
+  )
 
   courseService = new CourseService(
     this.courseRpository,
-    this.userRepository,
     this.sanitizeUtils,
-    this.transaction
+    this.transaction,
+    this.ownership
   )
 
   //middlewares

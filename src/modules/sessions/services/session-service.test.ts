@@ -1,4 +1,3 @@
-import type { Session } from "@prisma/client";
 import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provider.interface";
 import type { ISessionRepository } from "../interfaces/repositories/session-repository.interface";
 import { SessionService } from "./session.service";

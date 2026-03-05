@@ -1,3 +1,4 @@
+import type { User } from "@prisma/client";
 import type { AuthResponseDTO } from "../../DTOs/auth-response.dto";
 import type { LoginDTO } from "../../DTOs/login.dto";
 

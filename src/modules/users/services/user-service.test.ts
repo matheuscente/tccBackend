@@ -1,4 +1,3 @@
-import type { User } from "@prisma/client";
 import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provider.interface";
 import type { IUserRepository } from "../interfaces/user-repository.interface";
 import { UserService } from "./user.service";
@@ -11,6 +10,9 @@ import type { ISessionRepository } from "../../sessions/interfaces/repositories/
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
 import type { ICourseRepository } from "../../courses/interfaces/repository/course-repository.interface";
+import { OwnershipService } from "../../../shared/ownership/ownership.service";
+import type { AuthUserDTO } from "../../courses/DTOs/auth-user.DTO";
+import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
 
 
 describe("user service tests", () => {
@@ -21,8 +23,8 @@ describe("user service tests", () => {
     removeAccents: jest.fn()
   }
 
-  sanitizeMock.sanitizeName.mockImplementation( ((value) => value.toUpperCase().trim()))
-  sanitizeMock.sanitizeUsername.mockImplementation( ((value) => value.toLowerCase().trim()))
+  sanitizeMock.sanitizeName.mockImplementation(((value) => value.toUpperCase().trim()))
+  sanitizeMock.sanitizeUsername.mockImplementation(((value) => value.toLowerCase().trim()))
 
 
   const repositoryMock: jest.Mocked<IUserRepository> = {
@@ -40,68 +42,78 @@ describe("user service tests", () => {
   };
 
   const sessionRepositoryMock: jest.Mocked<ISessionRepository> = {
-        create: jest.fn(),
-    
-        findByUserId: jest.fn(),
-    
-        findById: jest.fn(),
-    
-        findByIdWithUser: jest.fn(),
-    
-        invalidate: jest.fn(),
-    
-        update: jest.fn(),
-    
-        invalidateAllByUserId: jest.fn()
+    create: jest.fn(),
+
+    findByUserId: jest.fn(),
+
+    findById: jest.fn(),
+
+    findByIdWithUser: jest.fn(),
+
+    invalidate: jest.fn(),
+
+    update: jest.fn(),
+
+    invalidateAllByUserId: jest.fn()
   }
 
   const moduleRepositoryMock: jest.Mocked<IModuleRepository> = {
     findById: jest.fn(),
-    
+
     findAllByCourseId: jest.fn(),
 
     findAllByCourseIdWithOwner: jest.fn(),
 
     findByIdWithOwner: jest.fn(),
-        
+
+    findAllByUserId: jest.fn(),
+
     create: jest.fn(),
-    
+
     update: jest.fn(),
-    
+
     softDelete: jest.fn(),
-    
+
     softDeleteAllByCourseIds: jest.fn()
   }
 
-    const courseRepositoryMock: jest.Mocked<ICourseRepository> = {
-          create: jest.fn(),
-      
-          findById: jest.fn(),
-      
-          findOwnedById: jest.fn(),
-      
-          findAllByUserId: jest.fn(),
-      
-          update: jest.fn(),
-      
-          softDelete: jest.fn(),
-          
-          softDeleteAllByUserId: jest.fn()
+  const courseRepositoryMock: jest.Mocked<ICourseRepository> = {
+    create: jest.fn(),
+
+    findById: jest.fn(),
+
+    findOwnedById: jest.fn(),
+
+    findAllByUserId: jest.fn(),
+
+    update: jest.fn(),
+
+    softDelete: jest.fn(),
+
+    softDeleteAllByUserId: jest.fn()
   }
 
-    const transactionMock: jest.Mocked<ITransaction> = {
-      execute: jest.fn().mockImplementation(async (callback) => {
-        return callback({
-          moduleRepository: moduleRepositoryMock,
-          courseRepository: courseRepositoryMock,
-          userRepository: repositoryMock,
-          sessionRepository: sessionRepositoryMock
-        });
-      }),
-    };
-  
+  const ownerMock: jest.Mocked<IOwnershipService> = {
+    resolveOwnerId: jest.fn(),
 
-  const service = new UserService(repositoryMock, hashMock, sanitizeMock, transactionMock);
+    validateOwnership: jest.fn(),
+
+    validateStrictOwnership: jest.fn()
+  }
+
+  const transactionMock: jest.Mocked<ITransaction> = {
+    execute: jest.fn().mockImplementation(async (callback) => {
+      return callback({
+        moduleRepository: moduleRepositoryMock,
+        courseRepository: courseRepositoryMock,
+        userRepository: repositoryMock,
+        sessionRepository: sessionRepositoryMock
+      });
+    }),
+  };
+
+
+  const service = new UserService(repositoryMock, hashMock, sanitizeMock, transactionMock, ownerMock);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -196,16 +208,23 @@ describe("user service tests", () => {
   describe("findById tests", () => {
     it("should find a user sucessfully", async () => {
       const user = makeUser();
+      const authUser: AuthUserDTO = {
+        id: user.id,
+        role: user.role
+      }
       repositoryMock.findById.mockResolvedValue(user);
+      ownerMock.validateOwnership.mockReturnValueOnce(undefined)
 
-      const userTest = await service.findById(user.id);
+      const userTest = await service.findById(authUser, user.id);
 
       expect(userTest).not.toBeNull();
       expect(userTest).not.toHaveProperty("password");
       expect(userTest).not.toHaveProperty("deletedAt");
       expect(userTest).toHaveProperty("createdAt");
       expect(userTest).toHaveProperty("updatedAt");
-      expect(repositoryMock.findById).toHaveBeenCalledWith(user.id);
+      expect(ownerMock.validateOwnership).toHaveBeenCalledTimes(1)
+      expect(ownerMock.validateOwnership).toHaveBeenCalledWith(authUser, user.id)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(authUser, user.id);
       expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(userTest).toMatchObject({
         id: user.id,
@@ -218,46 +237,21 @@ describe("user service tests", () => {
 
     it("should return null because it cannot find a user with the given ID", async () => {
       repositoryMock.findById.mockResolvedValue(null);
+      ownerMock.validateOwnership.mockReturnValue(undefined)
 
-      const userTest = await service.findById("123");
+      const userTest = await service.findById({
+        id: "test",
+        role: "ADMIN"
+      }, "123");
 
       expect(userTest).toBeNull();
+      expect(ownerMock.validateOwnership).toHaveBeenCalledTimes(1)
+      expect(ownerMock.validateOwnership).toHaveBeenCalledWith({
+        id: "test",
+        role: "ADMIN"
+      }, "123")
       expect(repositoryMock.findById).toHaveBeenCalledWith("123");
       expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
-    });
-  });
-
-    describe("findWithPassword tests", () => {
-    it("should find a user sucessfully", async () => {
-      const user = makeUser();
-      repositoryMock.findByUsername.mockResolvedValue(user);
-
-      const userTest = await service.findWithPassword(user.id);
-
-      expect(userTest).not.toBeNull();
-      expect(userTest).not.toHaveProperty("deletedAt");
-      expect(userTest).not.toHaveProperty("createdAt");
-      expect(userTest).not.toHaveProperty("updatedAt");
-      expect(userTest).not.toHaveProperty("birthDate");
-      expect(userTest).not.toHaveProperty("name");
-      expect(userTest).not.toHaveProperty("role");
-      expect(repositoryMock.findByUsername).toHaveBeenCalledWith(user.id);
-      expect(repositoryMock.findByUsername).toHaveBeenCalledTimes(1);
-      expect(userTest).toMatchObject({
-        id: user.id,
-        username: user.username,
-        password: user.password
-      });
-    });
-
-    it("should return null because it cannot find a user with the given ID", async () => {
-      repositoryMock.findByUsername.mockResolvedValue(null);
-
-      const userTest = await service.findWithPassword("test");
-
-      expect(userTest).toBeNull();
-      expect(repositoryMock.findByUsername).toHaveBeenCalledWith("test");
-      expect(repositoryMock.findByUsername).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -265,9 +259,13 @@ describe("user service tests", () => {
   describe("findByUsername tests", () => {
     it("should find a user sucessfully", async () => {
       const user = makeUser();
+      const authUser: AuthUserDTO = {
+        id: user.id,
+        role: user.role
+      }
       repositoryMock.findByUsername.mockResolvedValue(user);
 
-      const userTest = await service.findByUsername(user.username);
+      const userTest = await service.findByUsername(authUser, user.username);
 
       expect(repositoryMock.findByUsername).toHaveBeenCalledTimes(1);
       expect(repositoryMock.findByUsername).toHaveBeenCalledWith(user.username);
@@ -288,7 +286,10 @@ describe("user service tests", () => {
     it("should return null because it cannot find a user with the given username", async () => {
       repositoryMock.findByUsername.mockResolvedValue(null);
 
-      const userTest = await service.findByUsername("username");
+      const userTest = await service.findByUsername({
+        id: "test",
+        role: "ADMIN"
+      }, "username");
 
       expect(repositoryMock.findByUsername).toHaveBeenCalledTimes(1);
       expect(repositoryMock.findByUsername).toHaveBeenCalledWith("username");
@@ -300,15 +301,22 @@ describe("user service tests", () => {
 
     it('should delete a user sucessfully', async () => {
       const user = makeUser()
+            const authUser: AuthUserDTO = {
+        id: user.id,
+        role: user.role
+      }
       repositoryMock.findById.mockResolvedValue(user)
       sessionRepositoryMock.invalidateAllByUserId.mockResolvedValue(undefined)
+      ownerMock.validateOwnership.mockReturnValue(undefined)
 
-      await service.softDelete(user.id)
+      await service.softDelete(authUser, user.id)
 
       expect(transactionMock.execute).toHaveBeenCalledTimes(1);
 
       expect(courseRepositoryMock.softDeleteAllByUserId).toHaveBeenCalledTimes(1)
       expect(courseRepositoryMock.softDeleteAllByUserId).toHaveBeenCalledWith(user.id)
+      expect(ownerMock.validateOwnership).toHaveBeenCalledTimes(1)
+      expect(ownerMock.validateOwnership).toHaveBeenCalledWith(authUser, user.id)
       expect(repositoryMock.softDelete).toHaveBeenCalledWith(user.id)
       expect(repositoryMock.softDelete).toHaveBeenCalledTimes(1)
       expect(sessionRepositoryMock.invalidateAllByUserId).toHaveBeenCalledTimes(1)
@@ -401,7 +409,7 @@ describe("user service tests", () => {
       expect(repositoryMock.findById).toHaveBeenCalledWith('1')
       expect(repositoryMock.findByUsername).not.toHaveBeenCalled()
       expect(repositoryMock.update).toHaveBeenCalledTimes(1)
-      expect(repositoryMock.update).toHaveBeenCalledWith('1', {...dataUpdate, name: "NAME UPDATED"})
+      expect(repositoryMock.update).toHaveBeenCalledWith('1', { ...dataUpdate, name: "NAME UPDATED" })
       expect(test).toHaveProperty('role')
       expect(test).not.toHaveProperty('password')
       expect(test).not.toHaveProperty('deletedAt')

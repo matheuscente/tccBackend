@@ -1,4 +1,4 @@
-import type { Course, User } from "@prisma/client";
+import type { Course } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
@@ -9,13 +9,15 @@ import type { ICourseService } from "../interfaces/services/courses-service-inte
 import type { AuthUserDTO } from "../DTOs/auth-user.DTO";
 import type { IUserRepository } from "../../users/interfaces/user-repository.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
+import type { IAuthService } from "../../auth/interfaces/auth/auth-service.interface";
+import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
 
 export class CourseService implements ICourseService {
   constructor(
     private readonly courseRepository: ICourseRepository,
-    private readonly userRepository: IUserRepository,
     private readonly sanitize: Isanitize,
-    private readonly transaction: ITransaction
+    private readonly transaction: ITransaction,
+    private readonly ownership: IOwnershipService
   ) {}
 
   async create(
@@ -23,7 +25,7 @@ export class CourseService implements ICourseService {
     data: CreateCourseDTO,
   ): Promise<CourseResponseDTO> {
 
-    const ownerId = await this.resolveOwnerId(authUser, data.userId)
+    const ownerId = await this.ownership.resolveOwnerId(authUser, data.userId)
 
     const course = await this.courseRepository.create({
       userId: ownerId,
@@ -53,7 +55,7 @@ export class CourseService implements ICourseService {
     targetUserId: string,
   ): Promise<CourseResponseDTO[]> {
     // Se não for admin, só pode buscar o próprio usuário
-    this.validateOwnership(authUser, targetUserId);
+    this.ownership.validateOwnership(authUser, targetUserId);
 
     const courses = await this.courseRepository.findAllByUserId(targetUserId);
 
@@ -67,12 +69,13 @@ export class CourseService implements ICourseService {
     courseId: string,
     data: Partial<Omit<CreateCourseDTO, "userId">>,
   ): Promise<CourseResponseDTO> {
+
     const course = await this.courseRepository.findById(courseId);
 
     if (!course) {
       throw new NotFoundError("Curso não encontrado");
     }
-    this.validateOwnership(authUser, course.userId);
+    this.ownership.validateOwnership(authUser, course.userId);
 
     const updatedCourse = await this.courseRepository.update(courseId, {
       title: data.title ? this.sanitize.sanitizeName(data.title) : course.title,
@@ -89,21 +92,12 @@ export class CourseService implements ICourseService {
 
     if (!course) return;
 
-    this.validateOwnership(authUser, course.userId);
+    this.ownership.validateOwnership(authUser, course.userId);
 
     await repositories.moduleRepository.softDeleteAllByCourseIds([courseId])
 
     await repositories.courseRepository.softDelete(courseId, course.userId);
     })
-  }
-
-  private validateOwnership(
-    user: Pick<User, "id" | "role">,
-    ownerId: string,
-  ): void {
-    if (user.role !== "ADMIN" && user.id !== ownerId) {
-      throw new AuthorizationError("Ação não autorizada");
-    }
   }
 
   private mapResponse(course: Course): CourseResponseDTO {
@@ -116,25 +110,5 @@ export class CourseService implements ICourseService {
     };
   }
 
-  private async resolveOwnerId(
-  authUser: AuthUserDTO,
-  userId?: string
-): Promise<string> {
-  if (authUser.role === "ADMIN") {
-    if (userId && userId !== authUser.id) {
-      const userExists = await this.userRepository.findById(userId);
-      if (!userExists) {
-        throw new NotFoundError("Usuário não encontrado");
-      }
-      return userId;
-    }
-    return authUser.id;
-  }
 
-  if (userId && userId !== authUser.id) {
-    throw new AuthorizationError("Ação não autorizada");
-  }
-
-  return authUser.id;
-}
 }

@@ -10,18 +10,25 @@ import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provide
 import { InternalServerError } from "../../../shared/errors/internal-server-error";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
+import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
+import type { AuthUserDTO } from "../../courses/DTOs/auth-user.DTO";
 
 export class UserService implements IUserService {
   constructor(
     private repository: IUserRepository,
     private hasher: IHashProvider,
     private sanitize: Isanitize,
-    private transaction: ITransaction
+    private transaction: ITransaction,
+    private readonly ownership: IOwnershipService
   ) { }
-  async updatePassword(id: string, oldPassword: string, newPassword: string): Promise<void> {
+
+
+  async updatePassword(authUser: AuthUserDTO, id: string, oldPassword: string, newPassword: string): Promise<void> {
     const user = await this.repository.findById(id)
 
     if (!user) throw new NotFoundError('usuário não encontrado')
+
+    this.ownership.validateOwnership(authUser, user.id)
 
     const isPasswordOk = await this.hasher.compare(oldPassword, user.password)
 
@@ -67,54 +74,37 @@ export class UserService implements IUserService {
 
   }
 
-  async findById(id: string): Promise<UserResponseDTO | null> {
+  async findById(authUser: AuthUserDTO, id: string): Promise<UserResponseDTO | null> {
+    this.ownership.validateOwnership(authUser, id)
+
     const user: User | null = await this.repository.findById(id);
-    if (!user) return user;
+    if (!user) return null;
 
-    const returnUser: UserResponseDTO = {
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      birthDate: user.birthDate,
-      role: user.role,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
-    return returnUser;
+    return this.mapResponse(user)
   }
 
-  async findWithPassword(username: string): Promise<Pick<User, "password" | "username" | "id"> | null> {
-    const user = await this.repository.findByUsername(username);
-    if(!user) return user
-    return {
-      id: user.id,
-      username: user.name,
-      password: user.password
-    }
-    
+async findByUsername(authUser: AuthUserDTO, username: string): Promise<UserResponseDTO | null> {
+
+  const user = await this.repository.findByUsername(username);
+  if (!user) return null;
+
+
+  //não uso ownership.validateOwnership aqui para evitar falha de segurança
+  if (authUser.role !== "ADMIN" && authUser.id !== user.id) {
+    return null;
   }
 
-  async findByUsername(username: string): Promise<UserResponseDTO | null> {
-    const user: User | null = await this.repository.findByUsername(username);
-    if (!user) return user;
+  return this.mapResponse(user);
+}
 
-    const returnUser: UserResponseDTO = {
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      role: user.role,
-      birthDate: user.birthDate,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
-    return returnUser;
-  }
-
-  async update(id: string, data: UpdateUserDTO): Promise<UserResponseDTO> {
-    const user: UserResponseDTO | null = await this.findById(id);
+  async update(authUser: AuthUserDTO, id: string, data: UpdateUserDTO): Promise<UserResponseDTO> {
+    const user: UserResponseDTO | null = await this.findById(authUser, id);
 
     //validações
     if (!user) throw new NotFoundError("Usuário não encontrado");
+
+    //não válido owner aqui pois findById já faz isso
+  
 
     if (data.username) {
 
@@ -138,23 +128,16 @@ export class UserService implements IUserService {
 
     const upadatedUser = await this.repository.update(id, updateUser);
 
-    return {
-      id: upadatedUser.id,
-      birthDate: upadatedUser.birthDate,
-      name: upadatedUser.name,
-      username: upadatedUser.username,
-      createdAt: upadatedUser.createdAt,
-      updatedAt: upadatedUser.updatedAt,
-      role: upadatedUser.role
-    }
-
+    return this.mapResponse(upadatedUser)
   }
 
-  async softDelete(id: string): Promise<void> {
+  async softDelete(authUser: AuthUserDTO, id: string): Promise<void> {
     return this.transaction.execute(async (repositories) => {
       const user = await repositories.userRepository.findById(id);
 
     if (!user) throw new NotFoundError("usuario não encontrado");
+
+    this.ownership.validateOwnership(authUser, user.id)
 
     await repositories.courseRepository.softDeleteAllByUserId(user.id)
     await repositories.userRepository.softDelete(id);
@@ -211,4 +194,16 @@ export class UserService implements IUserService {
   private isValidBirthDate(date: Date): boolean {
     return date.getTime() <= this.getCurrentDate().getTime();
   }
+
+  private mapResponse(user: User): UserResponseDTO {
+    return {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      role: user.role,
+      birthDate: user.birthDate,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+};
+    }
 }
