@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
   export const makeModule = (overrides?: Partial<CreateModuleDTO>): Module => ({
     id: randomUUID(),
     courseId: "1",
-    title: "test",
+    title: `Module ${randomUUID()}`,
     description: "test",
     createdAt: new Date(),
     updatedAt: new Date(),

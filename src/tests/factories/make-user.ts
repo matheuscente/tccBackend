@@ -1,7 +1,8 @@
 import type { User } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 
   export const makeUser = (overrides?: Partial<User>): User => ({
-    id: "1",
+    id: randomUUID(),
     name: "test",
     username: "test",
     role: "USER",

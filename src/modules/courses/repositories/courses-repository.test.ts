@@ -34,7 +34,7 @@ describe("courses repository tests", () => {
 
   describe("create tests", () => {
     it("should create a course successfully", async () => {
-      const data = makeCourse();
+      const data = makeCourse({userId: user.id});
       const course = await repository.create(data);
 
       expect(course).not.toBeNull();
@@ -44,7 +44,7 @@ describe("courses repository tests", () => {
 
   describe("findById tests", () => {
     it("should search for a course using your ID", async () => {
-      const data = makeCourse();
+      const data = makeCourse({userId: user.id});
       await repository.create(data);
       const course = await repository.findById(data.id);
 
@@ -59,7 +59,7 @@ describe("courses repository tests", () => {
     });
 
     it("should not return a soft deleted course", async () => {
-      const course = await repository.create(makeCourse());
+      const course = await repository.create(makeCourse({userId: user.id}));
 
       await repository.softDelete(course.id, course.userId);
 
@@ -71,8 +71,8 @@ describe("courses repository tests", () => {
 
   describe("findByUserId tests", () => {
     it("should search for courses using the provided user ID.", async () => {
-      const course1 = makeCourse();
-      const course2 = makeCourse({ id: "2" });
+      const course1 = makeCourse({userId: user.id});
+      const course2 = makeCourse({ userId: user.id });
 
       await repository.create(course1);
       await repository.create(course2);
@@ -91,7 +91,7 @@ describe("courses repository tests", () => {
     });
 
     it("should not return courses from another user", async () => {
-      const otherUser = await userRepository.create(makeUser({ id: "other" }));
+      const otherUser = await userRepository.create(makeUser());
 
       await repository.create(makeCourse({ userId: otherUser.id }));
 
@@ -112,7 +112,7 @@ describe("courses repository tests", () => {
     });
 
     it("should return null if course belongs to another user", async () => {
-      const otherUser = await userRepository.create(makeUser({ id: "other" }));
+      const otherUser = await userRepository.create(makeUser());
 
       const course = await repository.create(
         makeCourse({ userId: otherUser.id }),
@@ -128,7 +128,7 @@ describe("courses repository tests", () => {
     it("should delete a course based on the provided ID.", async () => {
       const id = "1";
 
-      await repository.create(makeCourse({ id }));
+      await repository.create(makeCourse({ id, userId: user.id }));
 
       await repository.softDelete(id, user.id);
 
@@ -186,8 +186,8 @@ describe("courses repository tests", () => {
     it("should delete a course based on the provided ID.", async () => {
       const id = "1";
 
-      await repository.create(makeCourse({ id: "1" }));
-      await repository.create(makeCourse({ id: "2" }));
+      await repository.create(makeCourse({ id: "1", userId: user.id }));
+      await repository.create(makeCourse({ id: "2", userId: user.id }));
 
       await prismaTests.module.create({ data: makeModule({ courseId: id }) });
 
