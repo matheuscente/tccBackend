@@ -2,6 +2,10 @@ import type { User } from "@prisma/client";
 import type { CreateUserDTO } from "../DTOs/create-user.dto";
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 import type { UserResponseDTO } from "../DTOs/user-response.dto";
+<<<<<<< Updated upstream
+=======
+import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
+>>>>>>> Stashed changes
 
 export interface IUserService {
     create(data: CreateUserDTO): Promise<UserResponseDTO> 

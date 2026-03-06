@@ -3,7 +3,6 @@ import type { CreateCourseDTO } from "../DTOs/create-course.DTO";
 import type { ICourseController } from "../interfaces/controllers/course-controller.interface";
 import type { ICourseService } from "../interfaces/services/courses-service-interface";
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
-import { NotFoundError } from "../../../shared/errors/not-found-error";
 
 export class CourseController implements ICourseController {
 

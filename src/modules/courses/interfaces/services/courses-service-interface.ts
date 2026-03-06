@@ -1,4 +1,4 @@
-import type { AuthUserDTO } from "../../DTOs/auth-user.DTO";
+import type { AuthUserDTO } from "../../../../shared/DTOs/auth-user.DTO";
 import type { CourseResponseDTO } from "../../DTOs/course-response.DTO";
 import type { CreateCourseDTO } from "../../DTOs/create-course.DTO";
 

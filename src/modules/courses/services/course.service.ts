@@ -1,14 +1,16 @@
 import type { Course, User } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
-import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { CourseResponseDTO } from "../DTOs/course-response.DTO";
 import type { CreateCourseDTO } from "../DTOs/create-course.DTO";
 import type { ICourseRepository } from "../interfaces/repository/course-repository.interface";
 import type { ICourseService } from "../interfaces/services/courses-service-interface";
-import type { AuthUserDTO } from "../DTOs/auth-user.DTO";
-import type { IUserRepository } from "../../users/interfaces/user-repository.interface";
+import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
+<<<<<<< Updated upstream
+=======
+import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
+>>>>>>> Stashed changes
 
 export class CourseService implements ICourseService {
   constructor(

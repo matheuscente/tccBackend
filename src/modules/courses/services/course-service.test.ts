@@ -1,12 +1,15 @@
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
+<<<<<<< Updated upstream
+=======
+import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
+>>>>>>> Stashed changes
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import { makeCourse } from "../../../tests/factories/make-course";
 import { makeUser } from "../../../tests/factories/make-user";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
-import type { IUserRepository } from "../../users/interfaces/user-repository.interface";
-import type { AuthUserDTO } from "../DTOs/auth-user.DTO";
+import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { CreateCourseDTO } from "../DTOs/create-course.DTO";
 import type { ICourseRepository } from "../interfaces/repository/course-repository.interface";
 import { CourseService } from "./course.service";

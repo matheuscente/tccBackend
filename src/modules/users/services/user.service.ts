@@ -10,6 +10,11 @@ import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provide
 import { InternalServerError } from "../../../shared/errors/internal-server-error";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
+<<<<<<< Updated upstream
+=======
+import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
+import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
+>>>>>>> Stashed changes
 
 export class UserService implements IUserService {
   constructor(
