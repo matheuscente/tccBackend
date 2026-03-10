@@ -30,7 +30,7 @@ export const authenticationMiddleware = (
             try {
                payload = accessTokenService.extractPayload(accessToken)
             }catch {
-                new ValidationError("token inválido")
+                throw new ValidationError("token inválido")
             }
 
             if(!payload) throw new ValidationError("token inválido")

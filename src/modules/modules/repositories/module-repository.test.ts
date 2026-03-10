@@ -1,6 +1,6 @@
 import type { Course, Module, User } from "@prisma/client";
 import { prismaTests } from "../../../lib/prisma-tests";
-import { makeModule } from "../../../shared/make-module";
+import { makeModule } from "../../../tests/factories/make-module";
 import { makeCourse } from "../../../tests/factories/make-course";
 import { makeUser } from "../../../tests/factories/make-user";
 import { CourseRepository } from "../../courses/repositories/course.repository";

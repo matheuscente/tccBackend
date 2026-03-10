@@ -7,6 +7,7 @@ import type { ISessionService } from "../interfaces/services/session-service.int
 import { ValidationError } from "../../../shared/errors/validation-error";
 import type { Session } from "@prisma/client";
 import type { ValidateSessionResponseDTO } from "../DTOs/validate-session-response.DTO";
+import type { SessionWithUserDTO } from "../DTOs/session-with-user.DTO";
 
 export class SessionService implements ISessionService {
   constructor(
@@ -48,10 +49,11 @@ export class SessionService implements ISessionService {
     if (!sessionId || !secret)
       throw new ValidationError("Refresh token inválido");
 
-    const session: Session | null = await this.repository.findById(sessionId);
-
+    const session: SessionWithUserDTO | null = await this.repository.findByIdWithUser(sessionId);
     if (!session || !session.isValid)
       throw new ValidationError("Sessão inválida");
+
+    if (session.user.deletedAt) throw new ValidationError("Usuário desativado")
 
     //If the session expiration date is earlier than the current date, the session will be invalidated.
     if (session.expiresAt < new Date()) {

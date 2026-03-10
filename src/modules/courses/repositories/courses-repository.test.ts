@@ -6,7 +6,7 @@ import { makeUser } from "../../../tests/factories/make-user";
 import { UserRepository } from "../../users/repositories/user.repository";
 import { CourseRepository } from "./course.repository";
 import { ModuleRepository } from "../../modules/repositories/module.repository";
-import { makeModule } from "../../../shared/make-module";
+import { makeModule } from "../../../tests/factories/make-module";
 
 describe("courses repository tests", () => {
   const userRepository = new UserRepository(prismaTests);

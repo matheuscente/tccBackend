@@ -1,5 +1,5 @@
 import type { Module } from "@prisma/client";
-import type { CreateModuleDTO } from "../modules/modules/DTOs/create-module.dto";
+import type { CreateModuleDTO } from "../../modules/modules/DTOs/create-module.dto";
 import { randomUUID } from "node:crypto";
 
   export const makeModule = (overrides?: Partial<CreateModuleDTO>): Module => ({

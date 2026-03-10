@@ -1,7 +1,6 @@
 import type { IDateConvert } from "../../../../shared/convert/interfaces/date-convert.interface"
 import { AuthorizationError } from "../../../../shared/errors/authorization.error"
 import { NotFoundError } from "../../../../shared/errors/not-found-error"
-import { ValidationError } from "../../../../shared/errors/validation-error"
 import type { IHashProvider } from "../../../../shared/hash/interfaces/hash-provider.interface"
 import type { ISessionService } from "../../../sessions/interfaces/services/session-service.interface"
 import type { IUserRepository } from "../../../users/interfaces/user-repository.interface"
