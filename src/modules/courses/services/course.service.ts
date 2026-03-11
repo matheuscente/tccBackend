@@ -56,8 +56,6 @@ export class CourseService implements ICourseService {
 
     const courses = await this.courseRepository.findAllByUserId(targetUserId);
 
-    if (courses.length === 0) return [];
-
     return courses.map((course) => this.mapResponse(course));
   }
 

@@ -58,24 +58,19 @@ export class ModuleService implements IModuleService {
     }
 
     async findAllByCourseId(authUser: AuthUserDTO, courseId: string): Promise<ResponseModuleDTO[]> {
-        const course = await this.courseRepository.findById(courseId);
-
-        //não utilizo validateOwnership aqui para evitar falha de segurança 
-        if (!course || (authUser.role !== "ADMIN" && authUser.id !== course.userId)) return []
-
-        const modules = await this.moduleRepository.findAllByCourseId(courseId);
-
-        if (modules.length === 0) return [];
+        const modules = authUser.role === "ADMIN" ? await this.moduleRepository.findAllByCourseId(courseId) : await this.moduleRepository.findAllByCourseIdWithOwner(courseId, authUser.id)
 
         return modules.map((module) => this.mapResponse(module));
     }
 
-    async update(authUser: AuthUserDTO, moduleId: string, data: UpdateModuleDTO): Promise<ResponseModuleDTO> {
-        const module = await this.moduleRepository.findByIdWithOwner(moduleId);
-
+    async update(authUser: AuthUserDTO, moduleId: string, data: Partial<CreateModuleDTO>): Promise<ResponseModuleDTO> {
+        const module = await this.moduleRepository.findById(moduleId);
         if (!module) throw new NotFoundError("Módulo não encontrado");
 
-        this.ownership.validateOwnership(authUser, module.course.userId);
+        const course = await this.courseRepository.findById(module.courseId);
+        if (!course) throw new NotFoundError("Curso não encontrado");
+
+        this.ownership.validateOwnership(authUser, course.userId);
 
         const updatedModule = await this.moduleRepository.update(moduleId, {
             title: data.title ? this.sanitize.sanitizeName(data.title) : module.title,
@@ -88,8 +83,8 @@ export class ModuleService implements IModuleService {
     async softDelete(authUser: AuthUserDTO, moduleId: string): Promise<void> {
         return this.transaction.execute(async (repositories) => {
             const module = authUser.role === "ADMIN"
-                ? await this.moduleRepository.findById(moduleId)
-                : await this.moduleRepository.findByIdWithOwner(moduleId, authUser.id)
+                ? await repositories.moduleRepository.findById(moduleId)
+                : await repositories.moduleRepository.findByIdWithOwner(moduleId, authUser.id)
 
             //método Idempotente. Se module já não existe, retorna null
             if (!module) return;

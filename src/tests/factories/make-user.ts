@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
   export const makeUser = (overrides?: Partial<User>): User => ({
     id: randomUUID(),
     name: "test",
-    username: "test",
+    username: `test ${randomUUID()}`,
     role: "USER",
     birthDate: new Date("2000-01-01"),
     createdAt: new Date(),
