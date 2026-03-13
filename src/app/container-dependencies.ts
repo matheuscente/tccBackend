@@ -17,6 +17,9 @@ import { SanitizeUtils } from "../shared/sanitize/utils/sanitize.utils"
 import { Trasanction } from "../modules/transaction/services/transaction.service"
 import { PrismaClient } from "@prisma/client/extension"
 import { ModuleRepository } from "../modules/modules/repositories/module.repository"
+import { ModuleController } from "../modules/modules/controllers/module.controller"
+import { ModuleService } from "../modules/modules/services/module.service"
+import { OwnershipService } from "../shared/ownership/ownership.service"
 
 class AppContainer {
      // shared singletons
@@ -25,7 +28,6 @@ class AppContainer {
   dateConvert = new DateConvert()
   accessTokenService = new AccessTokenService("test")
   transaction = new Trasanction(PrismaClient)
-
   // repositories
   userRepository = new UserRepository(prisma)
   sessionRepository = new SessionRepository(prisma)
@@ -33,6 +35,8 @@ class AppContainer {
   courseRpository = new CourseRepository(prisma, this.moduleRepository)
 
   // services
+    ownerService = new OwnershipService(this.userRepository)
+
     sessionService = new SessionService(
     this.sessionRepository,
     this.hashProvider
@@ -42,8 +46,8 @@ class AppContainer {
     this.userRepository,
     this.hashProvider,
     this.sanitizeUtils,
-    this.sessionRepository,
-    this.transaction
+    this.transaction,
+    this.ownerService
   )
   authService = new AuthService(
     this.userRepository,
@@ -55,9 +59,17 @@ class AppContainer {
 
   courseService = new CourseService(
     this.courseRpository,
-    this.userRepository,
     this.sanitizeUtils,
-    this.transaction
+    this.transaction,
+    this.ownerService
+  )
+
+  moduleService = new ModuleService(
+    this.moduleRepository,
+    this.courseRpository,
+    this.sanitizeUtils,
+    this.ownerService,
+    this.transaction,
   )
 
   //middlewares
@@ -70,6 +82,7 @@ class AppContainer {
   userController = new UserController(this.userService)
   authController = new AuthController(this.authService)
   courseController = new CourseController(this.courseService)
+  moduleController = new ModuleController(this.moduleService)
 } 
 
 export const container = new AppContainer()

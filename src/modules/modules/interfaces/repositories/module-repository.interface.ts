@@ -1,4 +1,4 @@
-import type { Module, Prisma } from "@prisma/client"
+import type { Module } from "@prisma/client"
 import type { CreateModuleDTO } from "../../DTOs/create-module.dto"
 
 export interface IModuleRepository {

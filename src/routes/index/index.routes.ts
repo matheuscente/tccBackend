@@ -3,6 +3,7 @@ import heathCheckRoute from "../health-check.route/health-check.route"
 import { userRoutes } from "../../modules/users/routes/user.routes"
 import { authRoutes } from "../../modules/auth/routes/auth.routes"
 import { courseRoutes } from "../../modules/courses/routes/courses.routes"
+import { moduleRoutes } from "../../modules/modules/routes/module.routes"
 
 
 // função responsável por organizar e contralizar as rotas.
@@ -25,5 +26,7 @@ export const routes = (app: express.Express) => {
     api.use('/auth', authRoutes)
 
     api.use('/courses', courseRoutes)
+
+    api.use('/modules', moduleRoutes)
 
 }
