@@ -6,6 +6,7 @@ import { makeUser } from "../../../tests/factories/make-user";
 import { CourseRepository } from "../../courses/repositories/course.repository";
 import { UserRepository } from "../../users/repositories/user.repository";
 import { ModuleRepository } from "./module.repository";
+import { makeDiscipline } from "../../../tests/factories/make-discipline";
 
 describe("module repository tests", () => {
   const moduleRepository = new ModuleRepository(prismaTests);
@@ -290,6 +291,20 @@ describe("module repository tests", () => {
         moduleRepository.softDeleteAllByCourseIds([]),
       ).resolves.not.toThrow();
     });
+
+    it("should soft delete all disciplines from modules in given course ids", async () => {
+  const discipline = await prismaTests.discipline.create({
+    data: makeDiscipline({ moduleId: module.id })
+  })
+
+  await moduleRepository.softDeleteAllByCourseIds([course.id])
+
+  const deletedDiscipline = await prismaTests.discipline.findUnique({
+    where: { id: discipline.id }
+  })
+
+  expect(deletedDiscipline?.deletedAt).not.toBeNull()
+})
   });
 
   describe("create tests", () => {

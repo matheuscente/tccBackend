@@ -9,6 +9,7 @@ import type { ITransaction } from "../../transaction/interfaces/transaction.inte
 import { ModuleService } from "./module.service";
 import { makeModule } from "../../../tests/factories/make-module";
 import { makeCourse } from "../../../tests/factories/make-course";
+import type { IDisciplineRepository } from "../../disciplines/interfaces/repositories/discipline-repository.interface";
 
 describe("ModuleService", () => {
 
@@ -46,11 +47,34 @@ describe("ModuleService", () => {
     validateStrictOwnership: jest.fn(),
   };
 
+  const disciplineRepositoryMock: jest.Mocked<IDisciplineRepository> = {
+        findById: jest.fn(),
+        
+        findAllByModuleId: jest.fn(),
+        
+        findAllByModuleIdWithOwner: jest.fn(),
+        
+        findByIdWithOwner: jest.fn(),
+        
+        findAllByUserId: jest.fn(),
+    
+        findByIdWithCourse: jest.fn(),
+        
+        create: jest.fn(),
+        
+        update: jest.fn(),
+        
+        softDelete: jest.fn(),
+        
+        softDeleteAllByModuleIds: jest.fn(),
+  }
+
   const transactionMock: jest.Mocked<ITransaction> = {
     execute: jest.fn().mockImplementation(async (callback) => {
       return callback({
         moduleRepository: moduleRepositoryMock,
         courseRepository: courseRepositoryMock,
+        disciplineRepository: disciplineRepositoryMock
       });
     }),
   };
@@ -560,6 +584,8 @@ describe("ModuleService", () => {
       expect(transactionMock.execute).toHaveBeenCalledTimes(1);
       expect(moduleRepositoryMock.findByIdWithOwner).toHaveBeenCalledTimes(1);
       expect(moduleRepositoryMock.findByIdWithOwner).toHaveBeenCalledWith(module.id, userAuthUser.id);
+      expect(disciplineRepositoryMock.softDeleteAllByModuleIds).toHaveBeenCalledTimes(1);
+      expect(disciplineRepositoryMock.softDeleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
       expect(moduleRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
       expect(moduleRepositoryMock.softDelete).toHaveBeenCalledWith(module.id);
     });
@@ -575,6 +601,8 @@ describe("ModuleService", () => {
       expect(moduleRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(moduleRepositoryMock.findById).toHaveBeenCalledWith(module.id);
       expect(moduleRepositoryMock.findByIdWithOwner).not.toHaveBeenCalled();
+      expect(disciplineRepositoryMock.softDeleteAllByModuleIds).toHaveBeenCalledTimes(1);
+expect(disciplineRepositoryMock.softDeleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
       expect(moduleRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
       expect(moduleRepositoryMock.softDelete).toHaveBeenCalledWith(module.id);
     });
@@ -586,6 +614,8 @@ describe("ModuleService", () => {
 
       expect(result).toBeUndefined();
       expect(transactionMock.execute).toHaveBeenCalledTimes(1);
+      expect(disciplineRepositoryMock.softDeleteAllByModuleIds).not.toHaveBeenCalled();
+    
       expect(moduleRepositoryMock.softDelete).not.toHaveBeenCalled();
     });
 
@@ -596,6 +626,7 @@ describe("ModuleService", () => {
 
       expect(result).toBeUndefined();
       expect(transactionMock.execute).toHaveBeenCalledTimes(1);
+       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).not.toHaveBeenCalled();
       expect(moduleRepositoryMock.softDelete).not.toHaveBeenCalled();
     });
 
@@ -605,6 +636,7 @@ describe("ModuleService", () => {
       const promise = service.softDelete(userAuthUser, "any-id");
 
       await expect(promise).rejects.toThrow("db error");
+       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).not.toHaveBeenCalled();
       expect(moduleRepositoryMock.softDelete).not.toHaveBeenCalled();
     });
 
@@ -614,6 +646,7 @@ describe("ModuleService", () => {
       const promise = service.softDelete(adminAuthUser, "any-id");
 
       await expect(promise).rejects.toThrow("db error");
+       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).not.toHaveBeenCalled();
       expect(moduleRepositoryMock.softDelete).not.toHaveBeenCalled();
     });
 
@@ -626,7 +659,24 @@ describe("ModuleService", () => {
       const promise = service.softDelete(userAuthUser, module.id);
 
       await expect(promise).rejects.toThrow("db error");
+       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).toHaveBeenCalledTimes(1);
+       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
+
       expect(moduleRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
+    });
+
+        it("should propagate softDeleteAllByModuleIds discipline repository error", async () => {
+      const module = makeModule();
+
+      moduleRepositoryMock.findByIdWithOwner.mockResolvedValue(module);
+      disciplineRepositoryMock.softDeleteAllByModuleIds.mockRejectedValue(new Error("softDeleteAllByModuleIds error"));
+
+      const promise = service.softDelete(userAuthUser, module.id);
+
+      await expect(promise).rejects.toThrow("softDeleteAllByModuleIds error");
+       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).toHaveBeenCalledTimes(1);
+expect(disciplineRepositoryMock.softDeleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
+      expect(moduleRepositoryMock.softDelete).not.toHaveBeenCalled()
     });
 
   });

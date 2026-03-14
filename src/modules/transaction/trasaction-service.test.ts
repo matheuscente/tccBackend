@@ -5,12 +5,14 @@ import { CourseRepository } from "../courses/repositories/course.repository";
 import { UserRepository } from "../users/repositories/user.repository";
 import { SessionRepository } from "../sessions/repositories/session.repository";
 import type { IRepositories } from "./interfaces/repositories.interface";
+import { DisciplineRepository } from "../disciplines/repositories/discipline.repository";
 
 // mock de todos os repositórios para isolar a Transaction
 jest.mock("../modules/repositories/module.repository");
 jest.mock("../courses/repositories/course.repository");
 jest.mock("../users/repositories/user.repository");
 jest.mock("../sessions/repositories/session.repository");
+jest.mock("../disciplines/repositories/discipline.repository")
 
 describe("Transaction", () => {
 
@@ -58,6 +60,9 @@ describe("Transaction", () => {
 
       expect(SessionRepository).toHaveBeenCalledTimes(1);
       expect(SessionRepository).toHaveBeenCalledWith(txMock);
+
+      expect(DisciplineRepository).toHaveBeenCalledTimes(1);
+      expect(DisciplineRepository).toHaveBeenCalledWith(txMock);
     });
 
     it("should call the work callback with the correct repository shape", async () => {
@@ -72,6 +77,7 @@ describe("Transaction", () => {
           courseRepository: expect.any(CourseRepository),
           userRepository: expect.any(UserRepository),
           sessionRepository: expect.any(SessionRepository),
+          disciplineRepository: expect.any(DisciplineRepository)
         } satisfies Record<keyof IRepositories, unknown>)
       );
     });

@@ -89,7 +89,7 @@ export class ModuleService implements IModuleService {
             //método Idempotente. Se module já não existe, retorna null
             if (!module) return;
 
-            //await repositories.discipline.softDeleteAllByModuleIds([moduleId])
+            await repositories.disciplineRepository.softDeleteAllByModuleIds([moduleId])
             await repositories.moduleRepository.softDelete(moduleId);
         })
     }

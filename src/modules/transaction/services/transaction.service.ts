@@ -5,6 +5,7 @@ import { ModuleRepository } from "../../modules/repositories/module.repository"
 import { CourseRepository } from "../../courses/repositories/course.repository"
 import { UserRepository } from "../../users/repositories/user.repository"
 import { SessionRepository } from "../../sessions/repositories/session.repository"
+import { DisciplineRepository } from "../../disciplines/repositories/discipline.repository"
 
 export class Trasanction implements ITransaction {
   constructor(private readonly prisma: PrismaClient) {}
@@ -16,12 +17,14 @@ export class Trasanction implements ITransaction {
       const courseRepository = new CourseRepository(tx, moduleRepository)
       const userRepository = new UserRepository(tx)
       const sessionRepository = new SessionRepository(tx)
+      const disciplineRepository = new DisciplineRepository(tx)
 
       const repositories: IRepositories = {
         moduleRepository,
         courseRepository,
         userRepository,
-        sessionRepository
+        sessionRepository,
+        disciplineRepository
       }
 
       return work(repositories)
