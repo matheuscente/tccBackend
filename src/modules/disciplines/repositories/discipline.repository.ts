@@ -35,7 +35,6 @@ export class DisciplineRepository implements IDisciplineRepository{
         })
     }
 
-    //buscar todos os modulos de um curso - usuario comum
     async findAllByModuleIdWithOwner(moduleId: string, userId: string): Promise<Discipline[]> {
         return this.orm.discipline.findMany({
             where: {moduleId,
@@ -49,7 +48,6 @@ export class DisciplineRepository implements IDisciplineRepository{
         })
     }
 
-    //buscar uma disciplina especifico - usuario comum
     async findByIdWithOwner(disciplineId: string, userId: string): Promise<Discipline | null> {
          return this.orm.discipline.findFirst({
             where: {id: disciplineId,
