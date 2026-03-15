@@ -10,7 +10,7 @@ import { makeUser } from "../../../tests/factories/make-user";
 import type { ISessionRepository } from "../../sessions/interfaces/repositories/session-repository.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
-import type { ICourseRepository } from "../../courses/interfaces/repository/course-repository.interface";
+import type { ICourseRepository } from "../../courses/interfaces/repositories/course-repository.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
 

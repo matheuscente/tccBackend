@@ -6,7 +6,7 @@ import { makeCourse } from "../../../tests/factories/make-course";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
-import type { ICourseRepository } from "../interfaces/repository/course-repository.interface";
+import type { ICourseRepository } from "../interfaces/repositories/course-repository.interface";
 import { CourseService } from "./course.service";
 
 describe("CourseService", () => {

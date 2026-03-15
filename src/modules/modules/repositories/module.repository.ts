@@ -2,6 +2,7 @@ import type { Module, Prisma, PrismaClient } from "@prisma/client";
 import type { IModuleRepository } from "../interfaces/repositories/module-repository.interface";
 import type { CreateModuleDTO } from "../DTOs/create-module.dto";
 import type { IDisciplineRepository } from "../../disciplines/interfaces/repositories/discipline-repository.interface";
+import type { ModuleWithCourseDTO } from "../DTOs/module-with-course.DTO";
 
 export class ModuleRepository implements IModuleRepository {
   constructor(private readonly orm: PrismaClient | Prisma.TransactionClient) {}
@@ -10,10 +11,26 @@ export class ModuleRepository implements IModuleRepository {
       where: { id: moduleId, deletedAt: null },
     });
   }
-  findAllByCourseId(courseId: string): Promise<Module[]> {
+
+
+  async findAllByCourseId(courseId: string): Promise<Module[]> {
     return this.orm.module.findMany({
       where: { courseId, deletedAt: null },
     });
+  }
+
+  async findByIdWithCourse(moduleId: string): Promise<ModuleWithCourseDTO | null> {
+    return this.orm.module.findFirst({
+      where: {
+        deletedAt: null,
+        id: moduleId
+      },
+      include:{
+        course: {
+          select: {userId: true}
+        }
+      }
+    })
   }
 
   findAllByUserId(userId: string): Promise<Module[]> {

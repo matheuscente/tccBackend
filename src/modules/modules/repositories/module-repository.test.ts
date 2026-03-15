@@ -293,18 +293,57 @@ describe("module repository tests", () => {
     });
 
     it("should soft delete all disciplines from modules in given course ids", async () => {
-  const discipline = await prismaTests.discipline.create({
-    data: makeDiscipline({ moduleId: module.id })
-  })
+      const discipline = await prismaTests.discipline.create({
+        data: makeDiscipline({ moduleId: module.id }),
+      });
 
-  await moduleRepository.softDeleteAllByCourseIds([course.id])
+      await moduleRepository.softDeleteAllByCourseIds([course.id]);
 
-  const deletedDiscipline = await prismaTests.discipline.findUnique({
-    where: { id: discipline.id }
-  })
+      const deletedDiscipline = await prismaTests.discipline.findUnique({
+        where: { id: discipline.id },
+      });
 
-  expect(deletedDiscipline?.deletedAt).not.toBeNull()
-})
+      expect(deletedDiscipline?.deletedAt).not.toBeNull();
+    });
+  });
+
+  describe("findByIdWithCourse tests", () => {
+    it("should return module with nested course.userId", async () => {
+      const found = await moduleRepository.findByIdWithCourse(module.id);
+
+      expect(found).not.toBeNull();
+      expect(found?.id).toBe(module.id);
+      expect(found?.course.userId).toBe(user.id);
+    });
+
+    it("should return null because there is no module with the given ID", async () => {
+      const found = await moduleRepository.findByIdWithCourse("fake-id");
+
+      expect(found).toBeNull();
+    });
+
+    it("should not return soft deleted modules", async () => {
+      await moduleRepository.softDelete(module.id);
+
+      const found = await moduleRepository.findByIdWithCourse(module.id);
+
+      expect(found).toBeNull();
+    });
+
+    it("should return the correct userId when module belongs to another user", async () => {
+      const user2 = await userRepository.create(makeUser());
+      const course2 = await courseRepository.create(
+        makeCourse({ userId: user2.id }),
+      );
+      const module2 = await prismaTests.module.create({
+        data: makeModule({ courseId: course2.id }),
+      });
+
+      const found = await moduleRepository.findByIdWithCourse(module2.id);
+
+      expect(found).not.toBeNull();
+      expect(found?.course.userId).toBe(user2.id);
+    });
   });
 
   describe("create tests", () => {
@@ -441,7 +480,6 @@ describe("module repository tests", () => {
       );
 
       await moduleRepository.softDelete(other.id);
-
 
       const deletedModule = await prismaTests.module.findUnique({
         where: { id: other.id },

@@ -7,7 +7,7 @@ import type { CreateModuleDTO } from "../DTOs/create-module.dto";
 import type { ResponseModuleDTO } from "../DTOs/response-module.dto";
 import type { IModuleRepository } from "../interfaces/repositories/module-repository.interface";
 import type { IModuleService } from "../interfaces/services/module-service.interface";
-import type { ICourseRepository } from "../../courses/interfaces/repository/course-repository.interface";
+import type { ICourseRepository } from "../../courses/interfaces/repositories/course-repository.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 
 export class ModuleService implements IModuleService {
@@ -64,13 +64,10 @@ export class ModuleService implements IModuleService {
     }
 
     async update(authUser: AuthUserDTO, moduleId: string, data: Partial<CreateModuleDTO>): Promise<ResponseModuleDTO> {
-        const module = await this.moduleRepository.findById(moduleId);
+        const module = await this.moduleRepository.findByIdWithCourse(moduleId);
         if (!module) throw new NotFoundError("Módulo não encontrado");
 
-        const course = await this.courseRepository.findById(module.courseId);
-        if (!course) throw new NotFoundError("Curso não encontrado");
-
-        this.ownership.validateOwnership(authUser, course.userId);
+        this.ownership.validateOwnership(authUser, module.course.userId);
 
         const updatedModule = await this.moduleRepository.update(moduleId, {
             title: data.title ? this.sanitize.sanitizeName(data.title) : module.title,

@@ -1,6 +1,6 @@
 import express from "express"
 import { RequestValidator } from "../../../middlewares/data-validator.middleware"
-import { FindByIdSchema } from "../../../shared/schemas/find-by-id.schema.ts"
+import { FindByIdSchema } from "../../../shared/schemas/find-by-id.schema"
 import { container } from "../../../app/container-dependencies"
 import { FindUserByUsernameSchema } from "../validators/find-by-username.schema"
 import { CreateUserSchema } from "../validators/create-user.schema"

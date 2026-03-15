@@ -3,7 +3,7 @@ import { RequestValidator } from "../../../middlewares/data-validator.middleware
 import { container } from "../../../app/container-dependencies"
 import { createCourseSchema } from "../validators/create-course.schema"
 import { updateCourseSchema } from "../validators/update-course.schema"
-import { FindByIdSchema } from "../../../shared/schemas/find-by-id.schema.ts"
+import { FindByIdSchema } from "../../../shared/schemas/find-by-id.schema"
 import { findAllByUserIdSchema } from "../validators/findAllByUserId.schema"
 
 

@@ -3,7 +3,7 @@ import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { CourseResponseDTO } from "../DTOs/course-response.DTO";
 import type { CreateCourseDTO } from "../DTOs/create-course.DTO";
-import type { ICourseRepository } from "../interfaces/repository/course-repository.interface";
+import type { ICourseRepository } from "../interfaces/repositories/course-repository.interface";
 import type { ICourseService } from "../interfaces/services/courses-service-interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO"
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";

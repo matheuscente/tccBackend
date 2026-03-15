@@ -3,13 +3,14 @@ import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
 import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
-import type { ICourseRepository } from "../../courses/interfaces/repository/course-repository.interface";
+import type { ICourseRepository } from "../../courses/interfaces/repositories/course-repository.interface";
 import type { IModuleRepository } from "../interfaces/repositories/module-repository.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 import { ModuleService } from "./module.service";
 import { makeModule } from "../../../tests/factories/make-module";
 import { makeCourse } from "../../../tests/factories/make-course";
 import type { IDisciplineRepository } from "../../disciplines/interfaces/repositories/discipline-repository.interface";
+import type { ModuleWithCourseDTO } from "../DTOs/module-with-course.DTO";
 
 describe("ModuleService", () => {
 
@@ -23,6 +24,7 @@ describe("ModuleService", () => {
     update: jest.fn(),
     softDelete: jest.fn(),
     softDeleteAllByCourseIds: jest.fn(),
+    findByIdWithCourse: jest.fn()
   };
 
   const courseRepositoryMock: jest.Mocked<ICourseRepository> = {
@@ -409,20 +411,22 @@ describe("ModuleService", () => {
 
     it("should update a module title successfully as the course owner", async () => {
       const course = makeCourse({ userId: userAuthUser.id });
-      const module = makeModule({ courseId: course.id });
+      const module: ModuleWithCourseDTO = {
+        ...makeModule({ courseId: course.id }),
+        course: {
+          userId: course.userId
+        }
+      };
       const updatedModule = { ...module, title: "UPDATED TITLE" };
 
-      moduleRepositoryMock.findById.mockResolvedValue(module);
-      courseRepositoryMock.findById.mockResolvedValue(course);
+      moduleRepositoryMock.findByIdWithCourse.mockResolvedValue(module);
       ownershipMock.validateOwnership.mockReturnValue(undefined);
       moduleRepositoryMock.update.mockResolvedValue(updatedModule);
 
       const result = await service.update(userAuthUser, module.id, { title: "updated title  " });
 
-      expect(moduleRepositoryMock.findById).toHaveBeenCalledTimes(1);
-      expect(moduleRepositoryMock.findById).toHaveBeenCalledWith(module.id);
-      expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
-      expect(courseRepositoryMock.findById).toHaveBeenCalledWith(module.courseId);
+      expect(moduleRepositoryMock.findByIdWithCourse).toHaveBeenCalledTimes(1);
+      expect(moduleRepositoryMock.findByIdWithCourse).toHaveBeenCalledWith(module.id);
       expect(ownershipMock.validateOwnership).toHaveBeenCalledTimes(1);
       expect(ownershipMock.validateOwnership).toHaveBeenCalledWith(userAuthUser, course.userId);
       expect(sanitizeMock.sanitizeName).toHaveBeenCalledTimes(1);
@@ -437,11 +441,15 @@ describe("ModuleService", () => {
 
     it("should update a module description successfully", async () => {
       const course = makeCourse({ userId: userAuthUser.id });
-      const module = makeModule({ courseId: course.id });
+            const module: ModuleWithCourseDTO = {
+        ...makeModule({ courseId: course.id }),
+        course: {
+          userId: course.userId
+        }
+      };
       const updatedModule = { ...module, description: "new description" };
 
-      moduleRepositoryMock.findById.mockResolvedValue(module);
-      courseRepositoryMock.findById.mockResolvedValue(course);
+      moduleRepositoryMock.findByIdWithCourse.mockResolvedValue(module);
       ownershipMock.validateOwnership.mockReturnValue(undefined);
       moduleRepositoryMock.update.mockResolvedValue(updatedModule);
 
@@ -456,11 +464,15 @@ describe("ModuleService", () => {
 
     it("should set description to null when explicitly passed as null", async () => {
       const course = makeCourse({ userId: userAuthUser.id });
-      const module = makeModule({ courseId: course.id, description: "old desc" });
+            const module: ModuleWithCourseDTO = {
+        ...makeModule({ courseId: course.id }),
+        course: {
+          userId: course.userId
+        }
+      };
       const updatedModule = { ...module, description: null };
 
-      moduleRepositoryMock.findById.mockResolvedValue(module);
-      courseRepositoryMock.findById.mockResolvedValue(course);
+      moduleRepositoryMock.findByIdWithCourse.mockResolvedValue(module);
       ownershipMock.validateOwnership.mockReturnValue(undefined);
       moduleRepositoryMock.update.mockResolvedValue(updatedModule);
 
@@ -474,10 +486,13 @@ describe("ModuleService", () => {
 
     it("should allow ADMIN to update another user's module", async () => {
       const course = makeCourse({ userId: userAuthUser.id });
-      const module = makeModule({ courseId: course.id });
-
-      moduleRepositoryMock.findById.mockResolvedValue(module);
-      courseRepositoryMock.findById.mockResolvedValue(course);
+      const module: ModuleWithCourseDTO = {
+        ...makeModule({ courseId: course.id }),
+        course: {
+          userId: course.userId
+        }
+      };
+      moduleRepositoryMock.findByIdWithCourse.mockResolvedValue(module);
       ownershipMock.validateOwnership.mockReturnValue(undefined);
       moduleRepositoryMock.update.mockResolvedValue(module);
 
@@ -488,37 +503,26 @@ describe("ModuleService", () => {
     });
 
     it("should throw NotFoundError when module does not exist", async () => {
-      moduleRepositoryMock.findById.mockResolvedValue(null);
+      moduleRepositoryMock.findByIdWithCourse.mockResolvedValue(null);
 
       const promise = service.update(userAuthUser, "fake-id", { title: "title" });
 
       await expect(promise).rejects.toBeInstanceOf(NotFoundError);
       await expect(promise).rejects.toThrow("Módulo não encontrado");
-      expect(courseRepositoryMock.findById).not.toHaveBeenCalled();
-      expect(ownershipMock.validateOwnership).not.toHaveBeenCalled();
-      expect(moduleRepositoryMock.update).not.toHaveBeenCalled();
-    });
-
-    it("should throw NotFoundError when course does not exist", async () => {
-      const module = makeModule();
-
-      moduleRepositoryMock.findById.mockResolvedValue(module);
-      courseRepositoryMock.findById.mockResolvedValue(null);
-
-      const promise = service.update(userAuthUser, module.id, { title: "title" });
-
-      await expect(promise).rejects.toBeInstanceOf(NotFoundError);
-      await expect(promise).rejects.toThrow("Curso não encontrado");
       expect(ownershipMock.validateOwnership).not.toHaveBeenCalled();
       expect(moduleRepositoryMock.update).not.toHaveBeenCalled();
     });
 
     it("should throw AuthorizationError when USER tries to update another user's module", async () => {
       const course = makeCourse({ userId: "other-id" });
-      const module = makeModule({ courseId: course.id });
+      const module: ModuleWithCourseDTO = {
+        ...makeModule({ courseId: course.id }),
+        course: {
+          userId: course.userId
+        }
+      }
 
-      moduleRepositoryMock.findById.mockResolvedValue(module);
-      courseRepositoryMock.findById.mockResolvedValue(course);
+      moduleRepositoryMock.findByIdWithCourse.mockResolvedValue(module);
       ownershipMock.validateOwnership.mockImplementation(() => {
         throw new AuthorizationError("Ação não autorizada");
       });
@@ -531,35 +535,25 @@ describe("ModuleService", () => {
       expect(sanitizeMock.sanitizeName).not.toHaveBeenCalled();
     });
 
-    it("should propagate moduleRepository findById error", async () => {
-      moduleRepositoryMock.findById.mockRejectedValue(new Error("db error"));
+    it("should propagate moduleRepository findByIdWithCourse error", async () => {
+      moduleRepositoryMock.findByIdWithCourse.mockRejectedValue(new Error("db error"));
 
       const promise = service.update(userAuthUser, "any-id", { title: "title" });
 
       await expect(promise).rejects.toThrow("db error");
-      expect(courseRepositoryMock.findById).not.toHaveBeenCalled();
       expect(moduleRepositoryMock.update).not.toHaveBeenCalled();
     });
 
-    it("should propagate courseRepository findById error", async () => {
-      const module = makeModule();
-
-      moduleRepositoryMock.findById.mockResolvedValue(module);
-      courseRepositoryMock.findById.mockRejectedValue(new Error("db error"));
-
-      const promise = service.update(userAuthUser, module.id, { title: "title" });
-
-      await expect(promise).rejects.toThrow("db error");
-      expect(ownershipMock.validateOwnership).not.toHaveBeenCalled();
-      expect(moduleRepositoryMock.update).not.toHaveBeenCalled();
-    });
 
     it("should propagate moduleRepository update error", async () => {
       const course = makeCourse({ userId: userAuthUser.id });
-      const module = makeModule({ courseId: course.id });
-
-      moduleRepositoryMock.findById.mockResolvedValue(module);
-      courseRepositoryMock.findById.mockResolvedValue(course);
+      const module: ModuleWithCourseDTO = {
+        ...makeModule({ courseId: course.id }),
+        course: {
+          userId: course.userId
+        }
+      };
+      moduleRepositoryMock.findByIdWithCourse.mockResolvedValue(module);
       ownershipMock.validateOwnership.mockReturnValue(undefined);
       moduleRepositoryMock.update.mockRejectedValue(new Error("db error"));
 

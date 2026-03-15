@@ -20,6 +20,9 @@ import { ModuleRepository } from "../modules/modules/repositories/module.reposit
 import { ModuleController } from "../modules/modules/controllers/module.controller"
 import { ModuleService } from "../modules/modules/services/module.service"
 import { OwnershipService } from "../shared/ownership/ownership.service"
+import { DisciplineRepository } from "../modules/disciplines/repositories/discipline.repository"
+import { DisciplineService } from "../modules/disciplines/services/discipline.service"
+import { DisciplineController } from "../modules/disciplines/controllers/discipline.controller"
 
 class AppContainer {
      // shared singletons
@@ -33,6 +36,7 @@ class AppContainer {
   sessionRepository = new SessionRepository(prisma)
   moduleRepository = new ModuleRepository(prisma)
   courseRpository = new CourseRepository(prisma, this.moduleRepository)
+  disciplineRepository = new DisciplineRepository(prisma)
 
   // services
     ownerService = new OwnershipService(this.userRepository)
@@ -72,6 +76,14 @@ class AppContainer {
     this.transaction,
   )
 
+  disciplineService = new DisciplineService(
+    this.disciplineRepository,
+    this.moduleRepository,
+    this.sanitizeUtils,
+    this.ownerService,
+    this.transaction
+  )
+
   //middlewares
   authenticationMiddleware = authenticationMiddleware(
     this.accessTokenService,
@@ -83,6 +95,7 @@ class AppContainer {
   authController = new AuthController(this.authService)
   courseController = new CourseController(this.courseService)
   moduleController = new ModuleController(this.moduleService)
+  disciplineController = new DisciplineController(this.disciplineService) 
 } 
 
 export const container = new AppContainer()

@@ -1,5 +1,5 @@
 import type { Course, Prisma, PrismaClient } from "@prisma/client";
-import type { ICourseRepository } from "../interfaces/repository/course-repository.interface";
+import type { ICourseRepository } from "../interfaces/repositories/course-repository.interface";
 import type { CreateCourseRepositoryDTO } from "../DTOs/create-course-repository.DTO";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
 
