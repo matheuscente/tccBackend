@@ -9,7 +9,7 @@ export class GoalRepository implements IGoalRepository {
     ) { }
 
     async findById(goalId: string): Promise<Goal | null> {
-        return this.orm.goal.findFirst({
+        return this.orm.goal.findUnique({
             where: { id: goalId }
         })
     }
