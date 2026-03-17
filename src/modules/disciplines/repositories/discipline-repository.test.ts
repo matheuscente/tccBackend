@@ -8,6 +8,7 @@ import { CourseRepository } from "../../courses/repositories/course.repository";
 import { UserRepository } from "../../users/repositories/user.repository";
 import { ModuleRepository } from "../../modules/repositories/module.repository";
 import { DisciplineRepository } from "./discipline.repository";
+import { makeGoal } from "../../../tests/factories/make-goal";
 
 describe("discipline repository tests", () => {
   const moduleRepository = new ModuleRepository(prismaTests);
@@ -322,6 +323,20 @@ describe("discipline repository tests", () => {
         disciplineRepository.softDeleteAllByModuleIds([]),
       ).resolves.not.toThrow();
     });
+
+    it("should delete all goals from disciplines in given module ids", async () => {
+    const goal = await prismaTests.goal.create({
+        data: makeGoal({ userId: user.id, disciplineId: discipline.id })
+    })
+
+    await disciplineRepository.softDeleteAllByModuleIds([module.id])
+
+    const deletedGoal = await prismaTests.goal.findUnique({
+        where: { id: goal.id }
+    })
+
+    expect(deletedGoal).toBeNull()
+})
   });
 
   describe("create tests", () => {

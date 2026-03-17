@@ -37,6 +37,7 @@ describe("CourseService", () => {
     update: jest.fn(),
     softDelete: jest.fn(),
     softDeleteAllByCourseIds: jest.fn(),
+    findByIdWithCourse: jest.fn()
   };
 
   const ownershipMock: jest.Mocked<IOwnershipService> = {
@@ -45,11 +46,18 @@ describe("CourseService", () => {
     validateStrictOwnership: jest.fn(),
   };
 
+  const goalRepositoryMock = {
+    deleteAllByCourseIds: jest.fn()
+
+  }
+
+
   const transactionMock: jest.Mocked<ITransaction> = {
     execute: jest.fn().mockImplementation(async (callback) => {
       return callback({
         moduleRepository: moduleRepositoryMock,
         courseRepository: courseRepositoryMock,
+        goalRepository: goalRepositoryMock
       });
     }),
   };
@@ -310,7 +318,7 @@ describe("CourseService", () => {
 
   });
 
-  
+
   describe("update", () => {
 
     it("should update a course title successfully as the owner", async () => {
@@ -429,6 +437,8 @@ describe("CourseService", () => {
       expect(ownershipMock.validateOwnership).toHaveBeenCalledWith(userAuthUser, course.userId);
       expect(moduleRepositoryMock.softDeleteAllByCourseIds).toHaveBeenCalledWith([course.id]);
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledWith(course.id, course.userId);
+      expect(goalRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledTimes(1);
+      expect(goalRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledWith([course.id]);
     });
 
     it("should allow ADMIN to soft delete another user's course", async () => {
@@ -441,6 +451,8 @@ describe("CourseService", () => {
 
       expect(ownershipMock.validateOwnership).toHaveBeenCalledWith(adminAuthUser, course.userId);
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledWith(course.id, course.userId);
+      expect(goalRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledTimes(1);
+      expect(goalRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledWith([course.id]);
     });
 
     it("should return undefined idempotently when course does not exist", async () => {
@@ -453,6 +465,8 @@ describe("CourseService", () => {
       expect(ownershipMock.validateOwnership).not.toHaveBeenCalled();
       expect(moduleRepositoryMock.softDeleteAllByCourseIds).not.toHaveBeenCalled();
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
+      expect(goalRepositoryMock.deleteAllByCourseIds).not.toHaveBeenCalled();
+
     });
 
     it("should throw AuthorizationError when USER tries to delete another user's course", async () => {
@@ -469,6 +483,8 @@ describe("CourseService", () => {
       await expect(promise).rejects.toThrow("Ação não autorizada");
       expect(moduleRepositoryMock.softDeleteAllByCourseIds).not.toHaveBeenCalled();
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
+      expect(goalRepositoryMock.deleteAllByCourseIds).not.toHaveBeenCalled();
+
     });
 
     it("should propagate findById repository error", async () => {
@@ -479,6 +495,8 @@ describe("CourseService", () => {
       await expect(promise).rejects.toBeInstanceOf(Error);
       expect(moduleRepositoryMock.softDeleteAllByCourseIds).not.toHaveBeenCalled();
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
+      expect(goalRepositoryMock.deleteAllByCourseIds).not.toHaveBeenCalled();
+
     });
 
     it("should propagate softDelete repository error", async () => {
@@ -493,6 +511,9 @@ describe("CourseService", () => {
       await expect(promise).rejects.toBeInstanceOf(Error);
       expect(moduleRepositoryMock.softDeleteAllByCourseIds).toHaveBeenCalledTimes(1);
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
+      expect(goalRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledTimes(1);
+      expect(goalRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledWith([course.id]);
+
     });
 
   });

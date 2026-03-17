@@ -94,27 +94,40 @@ export class ModuleRepository implements IModuleRepository {
       data: { deletedAt: new Date() },
     });
   }
-  async softDeleteAllByCourseIds(courseIds: string[]): Promise<void> {
+
+
+async softDeleteAllByCourseIds(courseIds: string[]): Promise<void> {
     const modules = await this.orm.module.findMany({
-      where: { courseId: { in: courseIds }, deletedAt: null },
+        where: { courseId: { in: courseIds }, deletedAt: null },
     });
 
     const moduleIds = modules.map((m) => m.id);
 
     if (moduleIds.length > 0) {
-      await this.orm.discipline.updateMany({
-        where: { moduleId: { in: moduleIds }, deletedAt: null },
-        data: { deletedAt: new Date() },
-      });
+        const disciplines = await this.orm.discipline.findMany({
+            where: { moduleId: { in: moduleIds }, deletedAt: null }
+        })
+        const disciplineIds = disciplines.map(d => d.id)
+
+        if (disciplineIds.length > 0) {
+            await this.orm.goal.deleteMany({
+                where: { disciplineId: { in: disciplineIds } }
+            })
+        }
+
+        await this.orm.goal.deleteMany({
+            where: { moduleId: { in: moduleIds } }
+        })
+
+        await this.orm.discipline.updateMany({
+            where: { moduleId: { in: moduleIds }, deletedAt: null },
+            data: { deletedAt: new Date() },
+        });
     }
+
     await this.orm.module.updateMany({
-      where: {
-        courseId: { in: courseIds },
-        deletedAt: null,
-      },
-      data: {
-        deletedAt: new Date(),
-      },
+        where: { courseId: { in: courseIds }, deletedAt: null },
+        data: { deletedAt: new Date() },
     });
-  }
+}
 }

@@ -7,6 +7,7 @@ import { CourseRepository } from "../../courses/repositories/course.repository";
 import { UserRepository } from "../../users/repositories/user.repository";
 import { ModuleRepository } from "./module.repository";
 import { makeDiscipline } from "../../../tests/factories/make-discipline";
+import { makeGoal } from "../../../tests/factories/make-goal";
 
 describe("module repository tests", () => {
   const moduleRepository = new ModuleRepository(prismaTests);
@@ -32,6 +33,7 @@ describe("module repository tests", () => {
   });
 
   afterEach(async () => {
+    await prismaTests.goal.deleteMany()
     await prismaTests.module.deleteMany();
     await prismaTests.course.deleteMany();
     await prismaTests.user.deleteMany();
@@ -305,6 +307,38 @@ describe("module repository tests", () => {
 
       expect(deletedDiscipline?.deletedAt).not.toBeNull();
     });
+
+    it("should soft delete all goals from modules in given course ids", async () => {
+    const goal = await prismaTests.goal.create({
+        data: makeGoal({ userId: user.id, moduleId: module.id })
+    })
+
+    await moduleRepository.softDeleteAllByCourseIds([course.id])
+
+    const deletedGoal = await prismaTests.goal.findUnique({
+        where: { id: goal.id }
+    })
+
+    expect(deletedGoal).toBeNull()
+})
+
+it("should delete all goals from disciplines in given course ids", async () => {
+    const discipline = await prismaTests.discipline.create({
+        data: makeDiscipline({ moduleId: module.id })
+    })
+
+    const goal = await prismaTests.goal.create({
+        data: makeGoal({ userId: user.id, disciplineId: discipline.id })
+    })
+
+    await moduleRepository.softDeleteAllByCourseIds([course.id])
+
+    const deletedGoal = await prismaTests.goal.findUnique({
+        where: { id: goal.id }
+    })
+
+    expect(deletedGoal).toBeNull()
+})
   });
 
   describe("findByIdWithCourse tests", () => {

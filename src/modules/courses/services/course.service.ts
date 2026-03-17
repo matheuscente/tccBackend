@@ -15,7 +15,7 @@ export class CourseService implements ICourseService {
     private readonly sanitize: Isanitize,
     private readonly transaction: ITransaction,
     private readonly ownership: IOwnershipService
-  ) {}
+  ) { }
 
   async create(
     authUser: AuthUserDTO,
@@ -83,15 +83,15 @@ export class CourseService implements ICourseService {
 
   async softDelete(authUser: AuthUserDTO, courseId: string): Promise<void> {
     return this.transaction.execute(async (repositories) => {
-    const course = await repositories.courseRepository.findById(courseId);
+      const course = await repositories.courseRepository.findById(courseId);
 
-    if (!course) return;
+      if (!course) return;
 
-    this.ownership.validateOwnership(authUser, course.userId);
+      this.ownership.validateOwnership(authUser, course.userId);
 
-    await repositories.moduleRepository.softDeleteAllByCourseIds([courseId])
-
-    await repositories.courseRepository.softDelete(courseId, course.userId);
+      await repositories.moduleRepository.softDeleteAllByCourseIds([courseId])
+      await repositories.goalRepository.deleteAllByCourseIds([courseId])
+      await repositories.courseRepository.softDelete(courseId, course.userId);
     })
   }
 

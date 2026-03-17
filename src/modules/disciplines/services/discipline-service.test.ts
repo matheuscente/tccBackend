@@ -52,11 +52,16 @@ describe("DisciplineService", () => {
     validateStrictOwnership: jest.fn(),
   };
 
+  const goalRepositoryMock = {
+    deleteAllByDisciplineIds: jest.fn()
+  }
+
   const transactionMock: jest.Mocked<ITransaction> = {
     execute: jest.fn().mockImplementation(async (callback) => {
       return callback({
         disciplineRepository: disciplineRepositoryMock,
         moduleRepository: moduleRepositoryMock,
+        goalRepository: goalRepositoryMock
       });
     }),
   };
@@ -555,6 +560,8 @@ describe("DisciplineService", () => {
       expect(disciplineRepositoryMock.findByIdWithOwner).toHaveBeenCalledWith(discipline.id, userAuthUser.id);
       expect(disciplineRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
       expect(disciplineRepositoryMock.softDelete).toHaveBeenCalledWith(discipline.id);
+      expect(goalRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledTimes(1);
+      expect(goalRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledWith([discipline.id]);
     });
 
     it("should soft delete a discipline as ADMIN using findById", async () => {
@@ -570,6 +577,8 @@ describe("DisciplineService", () => {
       expect(disciplineRepositoryMock.findByIdWithOwner).not.toHaveBeenCalled();
       expect(disciplineRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
       expect(disciplineRepositoryMock.softDelete).toHaveBeenCalledWith(discipline.id);
+      expect(goalRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledTimes(1);
+      expect(goalRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledWith([discipline.id]);
     });
 
     it("should return undefined idempotently when discipline does not exist as USER", async () => {
@@ -580,6 +589,7 @@ describe("DisciplineService", () => {
       expect(result).toBeUndefined();
       expect(transactionMock.execute).toHaveBeenCalledTimes(1);
       expect(disciplineRepositoryMock.softDelete).not.toHaveBeenCalled();
+
     });
 
     it("should return undefined idempotently when discipline does not exist as ADMIN", async () => {
