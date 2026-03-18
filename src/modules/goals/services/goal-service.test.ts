@@ -584,6 +584,23 @@ describe("GoalService", () => {
       expect(goalRepositoryMock.update).toHaveBeenCalledTimes(1);
     });
 
+    it("should not change other fields when updating only title", async () => {
+      const goal = makeGoal({ userId: userAuthUser.id });
+
+      goalRepositoryMock.findByIdWithOwner.mockResolvedValue(goal);
+      goalRepositoryMock.update.mockResolvedValue(goal);
+
+      await service.update(userAuthUser, goal.id, { title: "new" });
+
+      expect(goalRepositoryMock.update).toHaveBeenCalledWith(
+        goal.id,
+        expect.objectContaining({
+          targetMinutes: goal.targetMinutes,
+          endDate: goal.endDate,
+        })
+      );
+    });
+
   });
 
 

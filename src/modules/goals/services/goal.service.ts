@@ -12,6 +12,7 @@ import type { ICourseRepository } from "../../courses/interfaces/repositories/co
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
 import type { IDisciplineRepository } from "../../disciplines/interfaces/repositories/discipline-repository.interface";
 import { ValidationError } from "../../../shared/errors/validation-error";
+import { AuthorizationError } from "../../../shared/errors/authorization.error";
 
 export class GoalService implements IGoalService {
     constructor(
@@ -26,25 +27,37 @@ export class GoalService implements IGoalService {
 
     async create(authUser: AuthUserDTO, data: CreateGoalDTO): Promise<ResponseGoalDTO> {
 
+        //verifica se a data inicial é válida
+        const startDate = new Date(data.startDate)
+        if (isNaN(startDate.getTime())) throw new ValidationError("Data inicial inválida")
+
+        //verifica se a data final é válida e se é maior que a data inicial
+        const endDate = data.endDate ? new Date(data.endDate) : null
+
+        this.validateEndDate(endDate, startDate)
+
+        if (data.targetMinutes <= 0) {
+            throw new ValidationError("targetMinutes deve ser maior que zero");
+        }
+
         const scopes = [data.courseId, data.moduleId, data.disciplineId].filter(Boolean)
         if (scopes.length > 1) throw new ValidationError("Meta pode ter apenas um escopo")
 
         const ownerId = await this.ownership.resolveOwnerId(authUser, data.userId);
 
         if (data.courseId) {
-            const parent = await this.courseRepository.findById(data.courseId)
-
+            const parent = await this.courseRepository.findOwnedById(data.courseId, ownerId)
             if (!parent) throw new NotFoundError("Curso não encontrado")
 
         } else if (data.moduleId) {
             const parent = await this.moduleRepository.findByIdWithCourse(data.moduleId)
-
             if (!parent) throw new NotFoundError("Módulo não encontrado")
+            if (parent.course.userId !== ownerId) throw new AuthorizationError("Ação não autorizada")
 
         } else if (data.disciplineId) {
             const parent = await this.disciplineRepository.findByIdWithCourse(data.disciplineId)
-
             if (!parent) throw new NotFoundError("Disciplina não encontrada")
+            if (parent.module.course.userId !== ownerId) throw new AuthorizationError("Ação não autorizada")
         }
 
         const goal = await this.goalRepository.create({
@@ -55,8 +68,8 @@ export class GoalService implements IGoalService {
             userId: ownerId,
             type: data.type,
             targetMinutes: data.targetMinutes,
-            startDate: new Date(data.startDate),
-            endDate: data.endDate ? new Date(data.endDate) : null
+            startDate,
+            endDate
         });
 
         return this.mapResponse(goal);
@@ -78,7 +91,7 @@ export class GoalService implements IGoalService {
 
         const goals = await this.goalRepository.findAllByUserId(targetUserId);
 
-        return goals.map((goals) => this.mapResponse(goals));
+        return goals.map((goal) => this.mapResponse(goal));
     }
 
     async update(authUser: AuthUserDTO, goalId: string, data: UpdateGoalDTO): Promise<ResponseGoalDTO> {
@@ -89,35 +102,53 @@ export class GoalService implements IGoalService {
 
         if (!goal) throw new NotFoundError("Meta não encontrada");
 
+        //verifica se a data final é válida e se é maior que a data inicial
+        //se undefined, manter valor do banco
+        let endDate = goal.endDate;
+
+        if (data.endDate !== undefined) {
+            if (data.endDate === null) {
+                endDate = null;
+            } else {
+                const parsed = new Date(data.endDate);
+
+                this.validateEndDate(parsed, goal.startDate);
+
+                endDate = parsed;
+            }
+        }
+
+        if (data.targetMinutes !== undefined && data.targetMinutes <= 0 ) {
+            throw new ValidationError("targetMinutes deve ser maior que zero");
+        }
 
         const updatedGoal = await this.goalRepository.update(goalId, {
             title: data.title ? this.sanitize.sanitizeName(data.title) : goal.title,
             targetMinutes: data.targetMinutes ?? goal.targetMinutes,
-
-            /*
-            se endDate undefined (não informado) mantem a endDate do banco,
-             senão
-             verifica se endDate é possui valor, se sim atribui data a endDate
-             senão
-             atribui null
-            */
-            endDate: data.endDate !== undefined
-                ? (data.endDate ? new Date(data.endDate) : null)
-                : goal.endDate
+            endDate
         });
 
         return this.mapResponse(updatedGoal);
     }
 
     async delete(authUser: AuthUserDTO, goalId: string): Promise<void> {
-            const goal = authUser.role === "ADMIN"
-                ? await this.goalRepository.findById(goalId)
-                : await this.goalRepository.findByIdWithOwner(goalId, authUser.id)
+        const goal = authUser.role === "ADMIN"
+            ? await this.goalRepository.findById(goalId)
+            : await this.goalRepository.findByIdWithOwner(goalId, authUser.id)
 
-            //método Idempotente. Se goal já não existe, retorna null
-            if (!goal) return;
+        //método Idempotente. Se goal já não existe, retorna null
+        if (!goal) return;
 
-            await this.goalRepository.delete(goalId);
+        await this.goalRepository.delete(goalId);
+    }
+
+    private validateEndDate(endDate: Date | null, startDate: Date) {
+        if (endDate && isNaN(endDate.getTime())) {
+            throw new ValidationError("Data final inválida");
+        }
+        if (endDate && endDate < startDate) {
+            throw new ValidationError("Data final não pode ser menor que a data inicial");
+        }
     }
 
     private mapResponse(goal: Goal): ResponseGoalDTO {
