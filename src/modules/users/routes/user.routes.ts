@@ -11,9 +11,9 @@ export const userRoutes = express.Router()
 
 const userController = container.userController
 const authentication = container.authenticationMiddleware
-userRoutes.get('/id', RequestValidator.queryValidator(FindByIdSchema), authentication, userController.findById)
+userRoutes.get('/id/:id', RequestValidator.paramsValidator(FindByIdSchema), authentication, userController.findById)
 
-userRoutes.get('/username', RequestValidator.queryValidator(FindUserByUsernameSchema), authentication, userController.findByUsername)
+userRoutes.get('/username/:username', RequestValidator.paramsValidator(FindUserByUsernameSchema), authentication, userController.findByUsername)
 
 userRoutes.post('/', RequestValidator.bodyValidator(CreateUserSchema), userController.create)
 

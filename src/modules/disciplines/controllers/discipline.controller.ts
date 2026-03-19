@@ -47,10 +47,10 @@ export class DisciplineController implements IDisciplineController {
         }
     }
 
-    findAllByModuleId = async (req: Request<any, any, any, { moduleId: string }>, res: Response, next: NextFunction): Promise<void> => {
+    findAllByModuleId = async (req: Request<{ moduleId: string }>, res: Response, next: NextFunction): Promise<void> => {
         try {
             const authUser = req.user
-            const { moduleId } = req.query
+            const { moduleId } = req.params
 
             if (!authUser) throw new AuthorizationError("Usuário não autenticado")
 
@@ -68,10 +68,10 @@ export class DisciplineController implements IDisciplineController {
         }
     }
 
-    findAllByUserId = async (req: Request<any, any, any, { userId: string }>, res: Response, next: NextFunction): Promise<void> => {
+    findAllByUserId = async (req: Request<{ userId: string }>, res: Response, next: NextFunction): Promise<void> => {
         try {
             const authUser = req.user
-            const { userId } = req.query
+            const { userId } = req.params
 
             if (!authUser) throw new AuthorizationError("Usuário não autenticado")
 

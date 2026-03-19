@@ -131,7 +131,7 @@ describe("GoalService", () => {
       const goal = makeGoal({ userId: userAuthUser.id, courseId: course.id });
 
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
-      courseRepositoryMock.findById.mockResolvedValue(course);
+      courseRepositoryMock.findOwnedById.mockResolvedValue(course);
       goalRepositoryMock.create.mockResolvedValue(goal);
 
       await service.create(userAuthUser, {
@@ -142,8 +142,8 @@ describe("GoalService", () => {
         courseId: course.id,
       });
 
-      expect(courseRepositoryMock.findById).toHaveBeenCalledTimes(1);
-      expect(courseRepositoryMock.findById).toHaveBeenCalledWith(course.id);
+      expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledTimes(1);
+      expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledWith(course.id, course.userId);
       expect(goalRepositoryMock.create).toHaveBeenCalledWith(
         expect.objectContaining({ courseId: course.id })
       );
@@ -235,7 +235,7 @@ describe("GoalService", () => {
 
     it("should throw NotFoundError when courseId does not exist", async () => {
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
-      courseRepositoryMock.findById.mockResolvedValue(null);
+      courseRepositoryMock.findOwnedById.mockResolvedValue(null);
 
       const promise = service.create(userAuthUser, {
         title: "goal",

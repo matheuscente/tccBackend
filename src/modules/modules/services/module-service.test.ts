@@ -686,7 +686,8 @@ describe("ModuleService", () => {
       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).toHaveBeenCalledTimes(1);
       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
       expect(moduleRepositoryMock.softDelete).not.toHaveBeenCalled()
-      expect(goalRepositoryMock.deleteAllByModuleIds).not.toHaveBeenCalled();
+      expect(goalRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledTimes(1)
+      expect(goalRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
     });
 
   });

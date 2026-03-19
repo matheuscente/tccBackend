@@ -47,10 +47,10 @@ export class ModuleController implements IModuleController {
         }
     }
 
-    findAllByCourseId = async (req: Request<any, any, any, { courseId: string }>, res: Response, next: NextFunction): Promise<void> => {
+    findAllByCourseId = async (req: Request<{ courseId: string }>, res: Response, next: NextFunction): Promise<void> => {
         try {
             const authUser = req.user
-            const { courseId } = req.query
+            const { courseId } = req.params
 
             if (!authUser) throw new AuthorizationError("Usuário não autenticado")
 
@@ -68,10 +68,10 @@ export class ModuleController implements IModuleController {
         }
     }
 
-    findAllByUserId = async (req: Request<any, any, any, { userId: string }>, res: Response, next: NextFunction): Promise<void> => {
+    findAllByUserId = async (req: Request<{ userId: string }>, res: Response, next: NextFunction): Promise<void> => {
         try {
             const authUser = req.user
-            const { userId } = req.query
+            const { userId } = req.params
 
             if (!authUser) throw new AuthorizationError("Usuário não autenticado")
 

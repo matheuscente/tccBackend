@@ -23,6 +23,9 @@ import { OwnershipService } from "../shared/ownership/ownership.service"
 import { DisciplineRepository } from "../modules/disciplines/repositories/discipline.repository"
 import { DisciplineService } from "../modules/disciplines/services/discipline.service"
 import { DisciplineController } from "../modules/disciplines/controllers/discipline.controller"
+import { GoalRepository } from "../modules/goals/repositories/goal.repository"
+import { GoalService } from "../modules/goals/services/goal.service"
+import { GoalController } from "../modules/goals/controllers/goal.controller"
 
 class AppContainer {
      // shared singletons
@@ -37,6 +40,7 @@ class AppContainer {
   moduleRepository = new ModuleRepository(prisma)
   courseRpository = new CourseRepository(prisma, this.moduleRepository)
   disciplineRepository = new DisciplineRepository(prisma)
+  goalRepository = new GoalRepository(prisma)
 
   // services
     ownerService = new OwnershipService(this.userRepository)
@@ -84,6 +88,15 @@ class AppContainer {
     this.transaction
   )
 
+  goalService = new GoalService(
+    this.goalRepository,
+    this.sanitizeUtils,
+    this.ownerService,
+    this.courseRpository,
+    this.disciplineRepository,
+    this.moduleRepository
+  )
+
   //middlewares
   authenticationMiddleware = authenticationMiddleware(
     this.accessTokenService,
@@ -95,7 +108,8 @@ class AppContainer {
   authController = new AuthController(this.authService)
   courseController = new CourseController(this.courseService)
   moduleController = new ModuleController(this.moduleService)
-  disciplineController = new DisciplineController(this.disciplineService) 
+  disciplineController = new DisciplineController(this.disciplineService)
+  goalController = new GoalController(this.goalService)
 } 
 
 export const container = new AppContainer()
