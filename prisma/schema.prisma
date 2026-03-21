@@ -140,7 +140,7 @@ model StudySession {
   courseId     String?
   moduleId     String?
   disciplineId String?
-  studiedAt    DateTime @default(now())
+  studiedAt    DateTime
   createdAt    DateTime @default(now())
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)

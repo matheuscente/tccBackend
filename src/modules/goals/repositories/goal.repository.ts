@@ -62,4 +62,10 @@ export class GoalRepository implements IGoalRepository {
         })
     }
 
+    async deleteAllByUserId(userId: string): Promise<void> {
+    await this.orm.goal.deleteMany({
+        where: { userId }
+    })
+}
+
 }

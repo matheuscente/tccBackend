@@ -11,4 +11,5 @@ export interface IGoalRepository {
     deleteAllByCourseIds(courseIds: string[]): Promise<void>
     deleteAllByModuleIds(moduleIds: string[]): Promise<void>
     deleteAllByDisciplineIds(disciplineIds: string[]): Promise<void>
+    deleteAllByUserId(userId: string): Promise<void> 
 }

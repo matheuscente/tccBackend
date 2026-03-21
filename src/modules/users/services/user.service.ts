@@ -139,6 +139,7 @@ async findByUsername(authUser: AuthUserDTO, username: string): Promise<UserRespo
 
     this.ownership.validateOwnership(authUser, user.id)
 
+    await repositories.goalRepository.deleteAllByUserId(user.id)
     await repositories.courseRepository.softDeleteAllByUserId(user.id)
     await repositories.userRepository.softDelete(id);
     await repositories.sessionRepository.invalidateAllByUserId(user.id)
