@@ -15,7 +15,6 @@ describe("goal repository tests", () => {
     const moduleRepository = new ModuleRepository(prismaTests);
     const userRepository = new UserRepository(prismaTests);
     const courseRepository = new CourseRepository(prismaTests, moduleRepository);
-    const disciplineRepository = new DisciplineRepository(prismaTests);
     const goalRepository = new GoalRepository(prismaTests);
 
     let user: User, goal: Goal;
@@ -274,6 +273,43 @@ describe("goal repository tests", () => {
             await expect(goalRepository.delete("fake-id")).resolves.not.toThrow();
         });
     });
+
+    describe("deleteAllByUserId tests", () => {
+    it("should delete all goals of a user", async () => {
+        await prismaTests.goal.create({
+            data: makeGoal({ userId: user.id }),
+        });
+
+        await goalRepository.deleteAllByUserId(user.id);
+
+        const goals = await prismaTests.goal.findMany({
+            where: { userId: user.id },
+        });
+
+        expect(goals).toHaveLength(0);
+    });
+
+    it("should not delete goals from another user", async () => {
+        const user2 = await userRepository.create(makeUser());
+        await prismaTests.goal.create({
+            data: makeGoal({ userId: user2.id }),
+        });
+
+        await goalRepository.deleteAllByUserId(user.id);
+
+        const goals = await prismaTests.goal.findMany({
+            where: { userId: user2.id },
+        });
+
+        expect(goals).toHaveLength(1);
+    });
+
+    it("should not throw if user has no goals", async () => {
+        await expect(
+            goalRepository.deleteAllByUserId("fake-id")
+        ).resolves.not.toThrow();
+    });
+});
 
     describe("deleteAllByCourseIds tests", () => {
         it("should delete all goals linked to given course ids", async () => {
