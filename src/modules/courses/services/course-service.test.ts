@@ -51,13 +51,19 @@ describe("CourseService", () => {
 
   }
 
+  const studySessionRepositoryMock = {
+    deleteAllByCourseIds: jest.fn()
+
+  }
+
 
   const transactionMock: jest.Mocked<ITransaction> = {
     execute: jest.fn().mockImplementation(async (callback) => {
       return callback({
         moduleRepository: moduleRepositoryMock,
         courseRepository: courseRepositoryMock,
-        goalRepository: goalRepositoryMock
+        goalRepository: goalRepositoryMock,
+        studySessionRepository: studySessionRepositoryMock
       });
     }),
   };
@@ -69,7 +75,7 @@ describe("CourseService", () => {
     courseRepositoryMock,
     sanitizeMock,
     transactionMock,
-    ownershipMock,
+    ownershipMock
   );
 
   beforeEach(() => {
@@ -439,6 +445,8 @@ describe("CourseService", () => {
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledWith(course.id, course.userId);
       expect(goalRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledTimes(1);
       expect(goalRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledWith([course.id]);
+      expect(studySessionRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledWith([course.id]);
     });
 
     it("should allow ADMIN to soft delete another user's course", async () => {
@@ -453,6 +461,8 @@ describe("CourseService", () => {
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledWith(course.id, course.userId);
       expect(goalRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledTimes(1);
       expect(goalRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledWith([course.id]);
+      expect(studySessionRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledWith([course.id]);
     });
 
     it("should return undefined idempotently when course does not exist", async () => {
@@ -466,6 +476,8 @@ describe("CourseService", () => {
       expect(moduleRepositoryMock.softDeleteAllByCourseIds).not.toHaveBeenCalled();
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
       expect(goalRepositoryMock.deleteAllByCourseIds).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.deleteAllByCourseIds).not.toHaveBeenCalled();
+
 
     });
 
@@ -484,6 +496,8 @@ describe("CourseService", () => {
       expect(moduleRepositoryMock.softDeleteAllByCourseIds).not.toHaveBeenCalled();
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
       expect(goalRepositoryMock.deleteAllByCourseIds).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.deleteAllByCourseIds).not.toHaveBeenCalled();
+
 
     });
 
@@ -496,6 +510,8 @@ describe("CourseService", () => {
       expect(moduleRepositoryMock.softDeleteAllByCourseIds).not.toHaveBeenCalled();
       expect(courseRepositoryMock.softDelete).not.toHaveBeenCalled();
       expect(goalRepositoryMock.deleteAllByCourseIds).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.deleteAllByCourseIds).not.toHaveBeenCalled();
+
 
     });
 
@@ -513,6 +529,8 @@ describe("CourseService", () => {
       expect(courseRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
       expect(goalRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledTimes(1);
       expect(goalRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledWith([course.id]);
+      expect(studySessionRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.deleteAllByCourseIds).toHaveBeenCalledWith([course.id]);
 
     });
 

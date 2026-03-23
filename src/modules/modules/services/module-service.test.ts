@@ -77,6 +77,10 @@ describe("ModuleService", () => {
     deleteAllByDisciplineIds: jest.fn(),
   }
 
+    const studySessionRepositoryMock = {
+    deleteAllByModuleIds: jest.fn(),
+  }
+
 
   const transactionMock: jest.Mocked<ITransaction> = {
     execute: jest.fn().mockImplementation(async (callback) => {
@@ -84,7 +88,8 @@ describe("ModuleService", () => {
         moduleRepository: moduleRepositoryMock,
         courseRepository: courseRepositoryMock,
         disciplineRepository: disciplineRepositoryMock,
-        goalRepository: goalRepositoryMock
+        goalRepository: goalRepositoryMock,
+        studySessionRepository: studySessionRepositoryMock
       });
     }),
   };
@@ -592,6 +597,8 @@ describe("ModuleService", () => {
       expect(moduleRepositoryMock.softDelete).toHaveBeenCalledWith(module.id);
       expect(goalRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledTimes(1);
       expect(goalRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
+      expect(studySessionRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
     });
 
     it("should soft delete a module as ADMIN using findById", async () => {
@@ -611,6 +618,8 @@ describe("ModuleService", () => {
       expect(moduleRepositoryMock.softDelete).toHaveBeenCalledWith(module.id);
       expect(goalRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledTimes(1);
       expect(goalRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
+      expect(studySessionRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
     });
 
     it("should return undefined idempotently when module does not exist as USER", async () => {
@@ -622,6 +631,7 @@ describe("ModuleService", () => {
       expect(transactionMock.execute).toHaveBeenCalledTimes(1);
       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).not.toHaveBeenCalled();
       expect(goalRepositoryMock.deleteAllByModuleIds).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.deleteAllByModuleIds).not.toHaveBeenCalled();
       expect(moduleRepositoryMock.softDelete).not.toHaveBeenCalled();
     });
 
@@ -635,6 +645,7 @@ describe("ModuleService", () => {
       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).not.toHaveBeenCalled();
       expect(goalRepositoryMock.deleteAllByModuleIds).not.toHaveBeenCalled();
       expect(moduleRepositoryMock.softDelete).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.deleteAllByModuleIds).not.toHaveBeenCalled();
     });
 
     it("should propagate findByIdWithOwner error for USER", async () => {
@@ -646,6 +657,7 @@ describe("ModuleService", () => {
       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).not.toHaveBeenCalled();
       expect(moduleRepositoryMock.softDelete).not.toHaveBeenCalled();
       expect(goalRepositoryMock.deleteAllByModuleIds).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.deleteAllByModuleIds).not.toHaveBeenCalled();
     });
 
     it("should propagate findById error for ADMIN", async () => {
@@ -657,6 +669,7 @@ describe("ModuleService", () => {
       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).not.toHaveBeenCalled();
       expect(moduleRepositoryMock.softDelete).not.toHaveBeenCalled();
       expect(goalRepositoryMock.deleteAllByModuleIds).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.deleteAllByModuleIds).not.toHaveBeenCalled();
     });
 
     it("should propagate softDelete repository error", async () => {
@@ -672,6 +685,8 @@ describe("ModuleService", () => {
       expect(disciplineRepositoryMock.softDeleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
       expect(goalRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledTimes(1);
       expect(goalRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledWith([module.id]); expect(moduleRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledWith([module.id]); expect(moduleRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
     });
 
     it("should propagate softDeleteAllByModuleIds discipline repository error", async () => {
@@ -688,6 +703,8 @@ describe("ModuleService", () => {
       expect(moduleRepositoryMock.softDelete).not.toHaveBeenCalled()
       expect(goalRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledTimes(1)
       expect(goalRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
+      expect(studySessionRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledTimes(1)
+      expect(studySessionRepositoryMock.deleteAllByModuleIds).toHaveBeenCalledWith([module.id]);
     });
 
   });

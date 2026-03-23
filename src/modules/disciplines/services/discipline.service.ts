@@ -84,6 +84,7 @@ export class DisciplineService implements IDisciplineService {
             //método Idempotente. Se discipline já não existe, retorna null
             if (!discipline) return;
 
+            await repositories.studySessionRepository.deleteAllByDisciplineIds([disciplineId])
             await repositories.goalRepository.deleteAllByDisciplineIds([disciplineId])
             await repositories.disciplineRepository.softDelete(disciplineId);
         })

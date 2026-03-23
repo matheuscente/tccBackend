@@ -10,5 +10,7 @@ export interface IStudySessionRepository {
     delete(studySessionId: string): Promise<void>
     deleteAllByCourseIds(courseIds: string[]): Promise<void>
     deleteAllByModuleIds(moduleIds: string[]): Promise<void>
-    deleteAllByDisciplineIds(disciplineIds: string[]): Promise<void>
+    deleteAllByDisciplineIds(disciplineIds: string[]): Promise<void>,
+    deleteAllByUserId(userId: string): Promise<void>
+
 }

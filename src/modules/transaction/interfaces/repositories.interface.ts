@@ -3,6 +3,7 @@ import type { IDisciplineRepository } from "../../disciplines/interfaces/reposit
 import type { IGoalRepository } from "../../goals/interfaces/repositories/goal-respository.interface"
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface"
 import type { ISessionRepository } from "../../sessions/interfaces/repositories/session-repository.interface"
+import type { IStudySessionRepository } from "../../study-sessions/interfaces/repositories/study-session-repository.interface"
 import type { IUserRepository } from "../../users/interfaces/user-repository.interface"
 
 export interface IRepositories {
@@ -11,5 +12,6 @@ export interface IRepositories {
   userRepository: IUserRepository,
   sessionRepository: ISessionRepository,
   disciplineRepository: IDisciplineRepository,
-  goalRepository: IGoalRepository
+  goalRepository: IGoalRepository,
+  studySessionRepository: IStudySessionRepository
 }

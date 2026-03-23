@@ -56,12 +56,17 @@ describe("DisciplineService", () => {
     deleteAllByDisciplineIds: jest.fn()
   }
 
+    const studySessionRepositoryMock = {
+    deleteAllByDisciplineIds: jest.fn()
+  }
+
   const transactionMock: jest.Mocked<ITransaction> = {
     execute: jest.fn().mockImplementation(async (callback) => {
       return callback({
         disciplineRepository: disciplineRepositoryMock,
         moduleRepository: moduleRepositoryMock,
-        goalRepository: goalRepositoryMock
+        goalRepository: goalRepositoryMock,
+        studySessionRepository: studySessionRepositoryMock
       });
     }),
   };
@@ -562,6 +567,8 @@ describe("DisciplineService", () => {
       expect(disciplineRepositoryMock.softDelete).toHaveBeenCalledWith(discipline.id);
       expect(goalRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledTimes(1);
       expect(goalRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledWith([discipline.id]);
+      expect(studySessionRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledWith([discipline.id]);
     });
 
     it("should soft delete a discipline as ADMIN using findById", async () => {
@@ -579,6 +586,8 @@ describe("DisciplineService", () => {
       expect(disciplineRepositoryMock.softDelete).toHaveBeenCalledWith(discipline.id);
       expect(goalRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledTimes(1);
       expect(goalRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledWith([discipline.id]);
+      expect(studySessionRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledWith([discipline.id]);
     });
 
     it("should return undefined idempotently when discipline does not exist as USER", async () => {
@@ -589,6 +598,9 @@ describe("DisciplineService", () => {
       expect(result).toBeUndefined();
       expect(transactionMock.execute).toHaveBeenCalledTimes(1);
       expect(disciplineRepositoryMock.softDelete).not.toHaveBeenCalled();
+      expect(goalRepositoryMock.deleteAllByDisciplineIds).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.deleteAllByDisciplineIds).not.toHaveBeenCalled();
+
 
     });
 
@@ -600,6 +612,8 @@ describe("DisciplineService", () => {
       expect(result).toBeUndefined();
       expect(transactionMock.execute).toHaveBeenCalledTimes(1);
       expect(disciplineRepositoryMock.softDelete).not.toHaveBeenCalled();
+      expect(goalRepositoryMock.deleteAllByDisciplineIds).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.deleteAllByDisciplineIds).not.toHaveBeenCalled();
     });
 
     it("should propagate findByIdWithOwner error for USER", async () => {
@@ -609,6 +623,8 @@ describe("DisciplineService", () => {
 
       await expect(promise).rejects.toThrow("db error");
       expect(disciplineRepositoryMock.softDelete).not.toHaveBeenCalled();
+      expect(goalRepositoryMock.deleteAllByDisciplineIds).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.deleteAllByDisciplineIds).not.toHaveBeenCalled();
     });
 
     it("should propagate findById error for ADMIN", async () => {
@@ -618,6 +634,8 @@ describe("DisciplineService", () => {
 
       await expect(promise).rejects.toThrow("db error");
       expect(disciplineRepositoryMock.softDelete).not.toHaveBeenCalled();
+      expect(goalRepositoryMock.deleteAllByDisciplineIds).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.deleteAllByDisciplineIds).not.toHaveBeenCalled();
     });
 
     it("should propagate softDelete repository error", async () => {
@@ -629,6 +647,10 @@ describe("DisciplineService", () => {
       const promise = service.softDelete(userAuthUser, discipline.id);
 
       await expect(promise).rejects.toThrow("db error");
+      expect(goalRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledTimes(1);
+      expect(goalRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledWith([discipline.id]);
+      expect(studySessionRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.deleteAllByDisciplineIds).toHaveBeenCalledWith([discipline.id]);
       expect(disciplineRepositoryMock.softDelete).toHaveBeenCalledTimes(1);
     });
 

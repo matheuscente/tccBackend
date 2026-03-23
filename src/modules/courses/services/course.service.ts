@@ -89,6 +89,7 @@ export class CourseService implements ICourseService {
 
       this.ownership.validateOwnership(authUser, course.userId);
 
+      await repositories.studySessionRepository.deleteAllByCourseIds([courseId])
       await repositories.moduleRepository.softDeleteAllByCourseIds([courseId])
       await repositories.goalRepository.deleteAllByCourseIds([courseId])
       await repositories.courseRepository.softDelete(courseId, course.userId);

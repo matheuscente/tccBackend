@@ -1,4 +1,4 @@
 export interface UpdateStudySessionDTO {
-  minutes: number,
-  studiedAt: Date
+  minutes?: number,
+  studiedAt?: Date
 }

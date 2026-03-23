@@ -113,9 +113,19 @@ async softDeleteAllByCourseIds(courseIds: string[]): Promise<void> {
             await this.orm.goal.deleteMany({
                 where: { disciplineId: { in: disciplineIds } }
             })
+
+            await this.orm.studySession.deleteMany({
+            where: { disciplineId: { in: disciplineIds } }
+        })
+
         }
 
         await this.orm.goal.deleteMany({
+            where: { moduleId: { in: moduleIds } }
+        })
+
+
+        await this.orm.studySession.deleteMany({
             where: { moduleId: { in: moduleIds } }
         })
 

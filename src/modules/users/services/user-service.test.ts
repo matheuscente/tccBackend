@@ -14,6 +14,7 @@ import type { ICourseRepository } from "../../courses/interfaces/repositories/co
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
 import type { IGoalRepository } from "../../goals/interfaces/repositories/goal-respository.interface";
+import type { IStudySessionRepository } from "../../study-sessions/interfaces/repositories/study-session-repository.interface";
 
 describe("user service tests", () => {
   const sanitizeMock: jest.Mocked<Isanitize> = {
@@ -95,6 +96,19 @@ describe("user service tests", () => {
     deleteAllByUserId: jest.fn(),
   };
 
+    const studySessionRepositoryMock: jest.Mocked<IStudySessionRepository> = {
+    findById: jest.fn(),
+    findByIdWithOwner: jest.fn(),
+    findAllByUserId: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    deleteAllByCourseIds: jest.fn(),
+    deleteAllByModuleIds: jest.fn(),
+    deleteAllByDisciplineIds: jest.fn(),
+    deleteAllByUserId: jest.fn(),
+  };
+
   const transactionMock: jest.Mocked<ITransaction> = {
     execute: jest.fn().mockImplementation(async (callback) => {
       return callback({
@@ -103,6 +117,7 @@ describe("user service tests", () => {
         userRepository: repositoryMock,
         sessionRepository: sessionRepositoryMock,
         goalRepository: goalRepositoryMock,
+        studySessionRepository: studySessionRepositoryMock
       });
     }),
   };
@@ -541,6 +556,11 @@ describe("user service tests", () => {
       expect(goalRepositoryMock.deleteAllByUserId).toHaveBeenCalledWith(
         user.id,
       );
+
+      expect(studySessionRepositoryMock.deleteAllByUserId).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.deleteAllByUserId).toHaveBeenCalledWith(
+        user.id,
+      );
     });
 
     it("should throw AuthorizationError when authUser is not the owner", async () => {
@@ -569,6 +589,8 @@ describe("user service tests", () => {
         sessionRepositoryMock.invalidateAllByUserId,
       ).not.toHaveBeenCalled();
       expect(goalRepositoryMock.deleteAllByUserId).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.deleteAllByUserId).not.toHaveBeenCalled();
+
     });
 
     it("should throw NotFoundError when user does not exist", async () => {
@@ -593,6 +615,8 @@ describe("user service tests", () => {
       ).not.toHaveBeenCalled();
       expect(goalRepositoryMock.deleteAllByUserId).not.toHaveBeenCalled();
     });
+     expect(studySessionRepositoryMock.deleteAllByUserId).not.toHaveBeenCalled();
+
 
     it("should allow ADMIN to delete any user", async () => {
       const user = makeUser();
@@ -615,6 +639,10 @@ describe("user service tests", () => {
       expect(repositoryMock.softDelete).toHaveBeenCalledWith(user.id);
       expect(goalRepositoryMock.deleteAllByUserId).toHaveBeenCalledTimes(1);
       expect(goalRepositoryMock.deleteAllByUserId).toHaveBeenCalledWith(
+        user.id,
+      );
+      expect(studySessionRepositoryMock.deleteAllByUserId).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.deleteAllByUserId).toHaveBeenCalledWith(
         user.id,
       );
     });

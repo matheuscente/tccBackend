@@ -117,6 +117,10 @@ export class DisciplineRepository implements IDisciplineRepository {
             await this.orm.goal.deleteMany({
                 where: { disciplineId: { in: disciplineIds } }
             })
+
+             await this.orm.studySession.deleteMany({
+                where: { disciplineId: { in: disciplineIds } }
+            })
         }
 
         await this.orm.discipline.updateMany({

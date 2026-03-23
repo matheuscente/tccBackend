@@ -7,6 +7,7 @@ import { SessionRepository } from "../sessions/repositories/session.repository";
 import type { IRepositories } from "./interfaces/repositories.interface";
 import { DisciplineRepository } from "../disciplines/repositories/discipline.repository";
 import { GoalRepository } from "../goals/repositories/goal.repository";
+import { StudySessionRepository } from "../study-sessions/repositories/study-session.repository";
 
 
 // mock de todos os repositórios para isolar a Transaction
@@ -16,6 +17,8 @@ jest.mock("../users/repositories/user.repository");
 jest.mock("../sessions/repositories/session.repository");
 jest.mock("../disciplines/repositories/discipline.repository")
 jest.mock("../goals/repositories/goal.repository");
+jest.mock("../study-sessions/repositories/study-session.repository");
+
 
 describe("Transaction", () => {
 
@@ -69,6 +72,9 @@ describe("Transaction", () => {
 
       expect(GoalRepository).toHaveBeenCalledTimes(1);
       expect(GoalRepository).toHaveBeenCalledWith(txMock);
+
+      expect(StudySessionRepository).toHaveBeenCalledTimes(1);
+      expect(StudySessionRepository).toHaveBeenCalledWith(txMock);
     });
 
     it("should call the work callback with the correct repository shape", async () => {
@@ -84,7 +90,8 @@ describe("Transaction", () => {
           userRepository: expect.any(UserRepository),
           sessionRepository: expect.any(SessionRepository),
           disciplineRepository: expect.any(DisciplineRepository),
-          goalRepository: expect.any(GoalRepository)
+          goalRepository: expect.any(GoalRepository),
+          studySessionRepository:expect.any(StudySessionRepository)
         } satisfies Record<keyof IRepositories, unknown>)
       );
     });

@@ -8,15 +8,15 @@ export class StudySessionRepository implements IStudySessionRepository {
         private readonly orm: PrismaClient | Prisma.TransactionClient,
     ) { }
 
-    async findById(StudySessionId: string): Promise<StudySession | null> {
+    async findById(studySessionId: string): Promise<StudySession | null> {
         return this.orm.studySession.findUnique({
-            where: { id: StudySessionId }
+            where: { id: studySessionId }
         })
     }
 
-    async findByIdWithOwner(StudySessionId: string, userId: string): Promise<StudySession | null> {
+    async findByIdWithOwner(studySessionId: string, userId: string): Promise<StudySession | null> {
         return this.orm.studySession.findFirst({
-            where: { id: StudySessionId, userId }
+            where: { id: studySessionId, userId }
         })
     }
 
@@ -31,16 +31,16 @@ export class StudySessionRepository implements IStudySessionRepository {
         return this.orm.studySession.create({ data })
     }
 
-    async update(StudySessionId: string, data: UpdateStudySessionDTO): Promise<StudySession> {
+    async update(studySessionId: string, data: UpdateStudySessionDTO): Promise<StudySession> {
         return this.orm.studySession.update({
-            where: { id: StudySessionId },
+            where: { id: studySessionId },
             data
         })
     }
 
-    async delete(StudySessionId: string): Promise<void> {
+    async delete(studySessionId: string): Promise<void> {
         await this.orm.studySession.deleteMany({
-            where: { id: StudySessionId }
+            where: { id: studySessionId }
         })
     }
 
