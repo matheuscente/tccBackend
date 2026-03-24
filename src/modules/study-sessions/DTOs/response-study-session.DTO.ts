@@ -1,9 +1,9 @@
-export interface CreateStuSession {
-  userId?: string,
+export interface ResponseStudySessionDTO {
+  id: string,
   minutes: number,
-  courseId?: string,
-  moduleId?: string,
-  disciplineId?: string,
+  courseId: string | null,
+  moduleId: string | null,
+  disciplineId: string | null,
   studiedAt: Date
   createdAt: Date
 }

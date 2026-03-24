@@ -12,6 +12,7 @@ import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.int
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
+import type { IDateConvert } from "../../../shared/convert/interfaces/date-convert.interface";
 
 export class UserService implements IUserService {
   constructor(
@@ -19,7 +20,8 @@ export class UserService implements IUserService {
     private hasher: IHashProvider,
     private sanitize: Isanitize,
     private transaction: ITransaction,
-    private readonly ownership: IOwnershipService
+    private readonly ownership: IOwnershipService,
+    private readonly dateUtils: IDateConvert
   ) { }
 
 
@@ -52,7 +54,10 @@ export class UserService implements IUserService {
 
     if (hashedPassoword === data.password) throw new InternalServerError("Ocorreu um erro interno, favor contatar o suporte")
 
-    const formatedDate = this.dateFormat(data.birthDate)
+    const formatedDate = this.dateUtils.dateFormat(data.birthDate)
+
+    if(!this.isValidBirthDate(formatedDate)) throw new ValidationError("Data de nascimento maior que a data atual") 
+
 
     const user = await this.repository.create({
       name: this.sanitize.sanitizeName(data.name),
@@ -83,19 +88,19 @@ export class UserService implements IUserService {
     return this.mapResponse(user)
   }
 
-async findByUsername(authUser: AuthUserDTO, username: string): Promise<UserResponseDTO | null> {
+  async findByUsername(authUser: AuthUserDTO, username: string): Promise<UserResponseDTO | null> {
 
-  const user = await this.repository.findByUsername(username);
-  if (!user) return null;
+    const user = await this.repository.findByUsername(username);
+    if (!user) return null;
 
 
-  //não uso ownership.validateOwnership aqui para evitar falha de segurança
-  if (authUser.role !== "ADMIN" && authUser.id !== user.id) {
-    return null;
+    //não uso ownership.validateOwnership aqui para evitar falha de segurança
+    if (authUser.role !== "ADMIN" && authUser.id !== user.id) {
+      return null;
+    }
+
+    return this.mapResponse(user);
   }
-
-  return this.mapResponse(user);
-}
 
   async update(authUser: AuthUserDTO, id: string, data: UpdateUserDTO): Promise<UserResponseDTO> {
     const user: UserResponseDTO | null = await this.findById(authUser, id);
@@ -104,7 +109,7 @@ async findByUsername(authUser: AuthUserDTO, username: string): Promise<UserRespo
     if (!user) throw new NotFoundError("Usuário não encontrado");
 
     //não válido owner aqui pois findById já faz isso
-  
+
 
     if (data.username) {
 
@@ -117,7 +122,9 @@ async findByUsername(authUser: AuthUserDTO, username: string): Promise<UserRespo
 
     if (data.birthDate) {
       //transforma o birthDate em date, sempre virá como string, pois é validado no middlware.
-      data.birthDate = this.dateFormat(data.birthDate);
+      data.birthDate = this.dateUtils.dateFormat(data.birthDate);
+
+      if(!this.isValidBirthDate(data.birthDate)) throw new ValidationError('Data de nascimento maior que a data atual')
     }
 
     const updateUser: UpdateUserDTO = {
@@ -135,67 +142,23 @@ async findByUsername(authUser: AuthUserDTO, username: string): Promise<UserRespo
     return this.transaction.execute(async (repositories) => {
       const user = await repositories.userRepository.findById(id);
 
-    if (!user) throw new NotFoundError("usuario não encontrado");
+      if (!user) throw new NotFoundError("usuario não encontrado");
 
-    this.ownership.validateOwnership(authUser, user.id)
+      this.ownership.validateOwnership(authUser, user.id)
 
-    await repositories.studySessionRepository.deleteAllByUserId(user.id)
-    await repositories.goalRepository.deleteAllByUserId(user.id)
-    await repositories.courseRepository.softDeleteAllByUserId(user.id)
-    await repositories.userRepository.softDelete(id);
-    await repositories.sessionRepository.invalidateAllByUserId(user.id)
-    return;
+      await repositories.studySessionRepository.deleteAllByUserId(user.id)
+      await repositories.goalRepository.deleteAllByUserId(user.id)
+      await repositories.courseRepository.softDeleteAllByUserId(user.id)
+      await repositories.userRepository.softDelete(id);
+      await repositories.sessionRepository.invalidateAllByUserId(user.id)
+      return;
     })
   }
 
-  private extractDate(date: string): [number, number, number] {
-    const parts = date.split("/");
-
-    if (parts.length !== 3) {
-      throw new ValidationError("Data inválida!");
-    }
-    const day = parseInt(parts[0]!, 10);
-    const month = parseInt(parts[1]!, 10) - 1;
-    const year = parseInt(parts[2]!, 10);
-
-    if ([day, month, year].some(Number.isNaN)) {
-      throw new ValidationError("Data inválida!");
+  private  isValidBirthDate(date: Date): boolean {
+        return date.getTime() <= this.dateUtils.getCurrentDate().getTime();
     }
 
-    return [day, month, year];
-  }
-
-  private dateFormat(date: string | Date): Date {
-    if (!(typeof date === "string")) throw new ValidationError(" data inválida")
-
-    const [day, month, year] = this.extractDate(date);
-
-    const formatedDate = new Date(Date.UTC(year, month, day, 0, 0, 0));
-
-    if (
-      formatedDate.getUTCFullYear() !== year ||
-      formatedDate.getUTCMonth() !== month ||
-      formatedDate.getUTCDate() !== day
-    ) {
-      throw new ValidationError("Data inválida!");
-    }
-
-    if (!this.isValidBirthDate(formatedDate))
-      throw new ValidationError("Data de nascimento maior que a data atual");
-
-    return formatedDate
-  }
-
-  private getCurrentDate(): Date {
-    const now = new Date();
-    return new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-    );
-  }
-
-  private isValidBirthDate(date: Date): boolean {
-    return date.getTime() <= this.getCurrentDate().getTime();
-  }
 
   private mapResponse(user: User): UserResponseDTO {
     return {
@@ -206,6 +169,6 @@ async findByUsername(authUser: AuthUserDTO, username: string): Promise<UserRespo
       birthDate: user.birthDate,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
-};
-    }
+    };
+  }
 }

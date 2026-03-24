@@ -13,6 +13,7 @@ import { makeGoal } from "../../../tests/factories/make-goal";
 import { makeCourse } from "../../../tests/factories/make-course";
 import { makeModule } from "../../../tests/factories/make-module";
 import { makeDiscipline } from "../../../tests/factories/make-discipline";
+import { DateConvert } from "../../../shared/convert/utils/date-convert.utils";
 
 describe("GoalService", () => {
 
@@ -26,6 +27,7 @@ describe("GoalService", () => {
     deleteAllByCourseIds: jest.fn(),
     deleteAllByModuleIds: jest.fn(),
     deleteAllByDisciplineIds: jest.fn(),
+    deleteAllByUserId: jest.fn()
   };
 
   const courseRepositoryMock: jest.Mocked<ICourseRepository> = {
@@ -79,6 +81,8 @@ describe("GoalService", () => {
   const adminAuthUser: AuthUserDTO = { id: "admin-id", role: "ADMIN", sessionId: "default" };
   const userAuthUser: AuthUserDTO = { id: "user-id", role: "USER", sessionId: "default" };
 
+  const dateUtils = new DateConvert()
+
   const service = new GoalService(
     goalRepositoryMock,
     sanitizeMock,
@@ -86,6 +90,7 @@ describe("GoalService", () => {
     courseRepositoryMock,
     disciplineRepositoryMock,
     moduleRepositoryMock,
+    dateUtils
   );
 
   beforeEach(() => {
@@ -95,18 +100,19 @@ describe("GoalService", () => {
 
 
   describe("create", () => {
-
     it("should create a general goal successfully", async () => {
       const goal = makeGoal({ userId: userAuthUser.id });
 
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
       goalRepositoryMock.create.mockResolvedValue(goal);
 
+      const expectedDate = new Date(Date.UTC(2026, 0, 1))
+
       const result = await service.create(userAuthUser, {
         title: "my goal  ",
         type: "DAILY_ONCE",
         targetMinutes: 60,
-        startDate: new Date().toISOString(),
+        startDate: "01/01/2026",
       });
 
       expect(ownershipMock.resolveOwnerId).toHaveBeenCalledTimes(1);
@@ -122,6 +128,7 @@ describe("GoalService", () => {
         moduleId: null,
         disciplineId: null,
         endDate: null,
+        startDate: expectedDate
       }));
       expect(result).not.toHaveProperty("userId");
     });
@@ -138,8 +145,8 @@ describe("GoalService", () => {
         title: "course goal",
         type: "TOTAL_IN_PERIOD",
         targetMinutes: 120,
-        startDate: new Date().toISOString(),
-        courseId: course.id,
+        startDate: "01/01/2026",
+        courseId: course.id
       });
 
       expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledTimes(1);
@@ -161,7 +168,7 @@ describe("GoalService", () => {
         title: "module goal",
         type: "DAILY_RECURRING",
         targetMinutes: 30,
-        startDate: new Date().toISOString(),
+        startDate: "01/01/2026",
         moduleId: module.id,
       });
 
@@ -184,7 +191,7 @@ describe("GoalService", () => {
         title: "discipline goal",
         type: "TOTAL_BY_DATE",
         targetMinutes: 45,
-        startDate: new Date().toISOString(),
+        startDate: "01/01/2026",
         disciplineId: discipline.id,
       });
 
@@ -205,7 +212,7 @@ describe("GoalService", () => {
         title: "goal",
         type: "DAILY_ONCE",
         targetMinutes: 60,
-        startDate: new Date().toISOString(),
+        startDate: "01/01/2026",
         userId: userAuthUser.id,
       });
 
@@ -223,7 +230,7 @@ describe("GoalService", () => {
         title: "goal",
         type: "DAILY_ONCE",
         targetMinutes: 60,
-        startDate: new Date().toISOString(),
+        startDate: "01/01/2026",
         courseId: course.id,
         moduleId: module.id,
       });
@@ -241,7 +248,7 @@ describe("GoalService", () => {
         title: "goal",
         type: "DAILY_ONCE",
         targetMinutes: 60,
-        startDate: new Date().toISOString(),
+        startDate: "01/01/2026",
         courseId: "fake-id",
       });
 
@@ -258,7 +265,7 @@ describe("GoalService", () => {
         title: "goal",
         type: "DAILY_ONCE",
         targetMinutes: 60,
-        startDate: new Date().toISOString(),
+        startDate: "01/01/2026",
         moduleId: "fake-id",
       });
 
@@ -275,7 +282,7 @@ describe("GoalService", () => {
         title: "goal",
         type: "DAILY_ONCE",
         targetMinutes: 60,
-        startDate: new Date().toISOString(),
+        startDate: "01/01/2026",
         disciplineId: "fake-id",
       });
 
@@ -291,7 +298,7 @@ describe("GoalService", () => {
         title: "goal",
         type: "DAILY_ONCE",
         targetMinutes: 60,
-        startDate: new Date().toISOString(),
+        startDate: "01/01/2026",
         userId: "other-id",
       });
 
@@ -308,11 +315,96 @@ describe("GoalService", () => {
         title: "goal",
         type: "DAILY_ONCE",
         targetMinutes: 60,
-        startDate: new Date().toISOString(),
+        startDate: "01/01/2026",
       });
 
       await expect(promise).rejects.toThrow("db error");
       expect(goalRepositoryMock.create).toHaveBeenCalledTimes(1);
+    });
+
+    it("should throw ValidationError when startDate is after endDate", async () => {
+      ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+
+      const promise = service.create(userAuthUser, {
+        title: "invalid date goal",
+        type: "TOTAL_IN_PERIOD",
+        targetMinutes: 100,
+        startDate: "10/01/2026",
+        endDate: "05/01/2026"
+      });
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError);
+      await expect(promise).rejects.toThrow("Data final não pode ser menor que a data inicial");
+
+      expect(goalRepositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should throw ValidationError when targetMinutes is zero or negative", async () => {
+      const promise = service.create(userAuthUser, {
+        title: "Invalid Goal",
+        type: "DAILY_ONCE",
+        targetMinutes: 0,
+        startDate: "01/01/2026",
+      });
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError);
+      await expect(promise).rejects.toThrow("targetMinutes deve ser maior que zero");
+    });
+
+    it("should throw ValidationError when startDate is after endDate during creation", async () => {
+      ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+
+      const promise = service.create(userAuthUser, {
+        title: "Wrong Dates",
+        type: "TOTAL_IN_PERIOD",
+        targetMinutes: 60,
+        startDate: "10/01/2026",
+        endDate: "05/01/2026"
+      });
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError);
+      await expect(promise).rejects.toThrow("Data final não pode ser menor que a data inicial");
+    });
+
+    it("should throw AuthorizationError when moduleId belongs to another user", async () => {
+
+      const moduleFromOtherUser = { ...makeModule(), course: { userId: "other-user-id" } };
+
+      ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+      moduleRepositoryMock.findByIdWithCourse.mockResolvedValue(moduleFromOtherUser);
+
+      const promise = service.create(userAuthUser, {
+        title: "Hacker Goal",
+        type: "DAILY_ONCE",
+        targetMinutes: 60,
+        startDate: "01/01/2026",
+        moduleId: moduleFromOtherUser.id,
+      });
+
+      await expect(promise).rejects.toBeInstanceOf(AuthorizationError);
+      await expect(promise).rejects.toThrow("Ação não autorizada");
+    });
+
+    it("should throw AuthorizationError when disciplineId belongs to another user", async () => {
+
+      const disciplineFromOtherUser = {
+        ...makeDiscipline(),
+        module: { course: { userId: "other-user-id" } }
+      };
+
+      ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+      disciplineRepositoryMock.findByIdWithCourse.mockResolvedValue(disciplineFromOtherUser);
+
+      const promise = service.create(userAuthUser, {
+        title: "Hacker Goal Discipline",
+        type: "DAILY_ONCE",
+        targetMinutes: 60,
+        startDate: "01/01/2026",
+        disciplineId: disciplineFromOtherUser.id,
+      });
+
+      await expect(promise).rejects.toBeInstanceOf(AuthorizationError);
+      await expect(promise).rejects.toThrow("Ação não autorizada");
     });
 
   });
@@ -488,8 +580,8 @@ describe("GoalService", () => {
 
     it("should set endDate when provided", async () => {
       const goal = makeGoal({ userId: userAuthUser.id, endDate: null });
-      const newEndDate = "2026-12-31T00:00:00.000Z";
-      const updatedGoal = { ...goal, endDate: new Date(newEndDate) };
+      const newEndDate = "31/10/2026";
+      const updatedGoal = { ...goal, endDate: new Date(Date.UTC(2026, 9, 31)) };
 
       goalRepositoryMock.findByIdWithOwner.mockResolvedValue(goal);
       goalRepositoryMock.update.mockResolvedValue(updatedGoal);
@@ -497,7 +589,7 @@ describe("GoalService", () => {
       await service.update(userAuthUser, goal.id, { endDate: newEndDate });
 
       expect(goalRepositoryMock.update).toHaveBeenCalledWith(goal.id, expect.objectContaining({
-        endDate: new Date(newEndDate),
+        endDate: new Date(Date.UTC(2026, 9, 31)),
       }));
     });
 
@@ -516,7 +608,7 @@ describe("GoalService", () => {
     });
 
     it("should keep existing endDate when endDate is not provided", async () => {
-      const existingEndDate = new Date("2026-06-30");
+      const existingEndDate = new Date(Date.UTC(2026, 5, 30));
       const goal = makeGoal({ userId: userAuthUser.id, endDate: existingEndDate });
       const updatedGoal = { ...goal, title: "UPDATED" };
 
@@ -599,6 +691,30 @@ describe("GoalService", () => {
           endDate: goal.endDate,
         })
       );
+    });
+
+    it("should throw ValidationError when endDate is before startDate", async () => {
+      const goal = makeGoal({
+        userId: userAuthUser.id,
+        startDate: new Date(Date.UTC(2026, 0, 10))
+      });
+
+      goalRepositoryMock.findByIdWithOwner.mockResolvedValue(goal);
+
+      const promise = service.update(userAuthUser, goal.id, { endDate: "05/01/2026" });
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError);
+      await expect(promise).rejects.toThrow("Data final não pode ser menor que a data inicial");
+    });
+
+    it("should throw ValidationError when updating targetMinutes to zero", async () => {
+      const goal = makeGoal({ userId: userAuthUser.id });
+      goalRepositoryMock.findByIdWithOwner.mockResolvedValue(goal);
+
+      const promise = service.update(userAuthUser, goal.id, { targetMinutes: -5 });
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError);
+      await expect(promise).rejects.toThrow("targetMinutes deve ser maior que zero");
     });
 
   });

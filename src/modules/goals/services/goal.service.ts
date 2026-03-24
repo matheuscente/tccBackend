@@ -13,6 +13,7 @@ import type { IModuleRepository } from "../../modules/interfaces/repositories/mo
 import type { IDisciplineRepository } from "../../disciplines/interfaces/repositories/discipline-repository.interface";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
+import type { IDateConvert } from "../../../shared/convert/interfaces/date-convert.interface";
 
 export class GoalService implements IGoalService {
     constructor(
@@ -22,17 +23,15 @@ export class GoalService implements IGoalService {
         private readonly courseRepository: ICourseRepository,
         private readonly disciplineRepository: IDisciplineRepository,
         private readonly moduleRepository: IModuleRepository,
+        private readonly dateUtils: IDateConvert
 
     ) { }
 
     async create(authUser: AuthUserDTO, data: CreateGoalDTO): Promise<ResponseGoalDTO> {
 
-        //verifica se a data inicial é válida
-        const startDate = new Date(data.startDate)
-        if (isNaN(startDate.getTime())) throw new ValidationError("Data inicial inválida")
+        const startDate = this.dateUtils.dateFormat(data.startDate)
 
-        //verifica se a data final é válida e se é maior que a data inicial
-        const endDate = data.endDate ? new Date(data.endDate) : null
+        const endDate = data.endDate ? this.dateUtils.dateFormat(data.endDate) : null
 
         this.validateEndDate(endDate, startDate)
 
@@ -110,7 +109,7 @@ export class GoalService implements IGoalService {
             if (data.endDate === null) {
                 endDate = null;
             } else {
-                const parsed = new Date(data.endDate);
+                const parsed = this.dateUtils.dateFormat(data.endDate);
 
                 this.validateEndDate(parsed, goal.startDate);
 
@@ -143,9 +142,6 @@ export class GoalService implements IGoalService {
     }
 
     private validateEndDate(endDate: Date | null, startDate: Date) {
-        if (endDate && isNaN(endDate.getTime())) {
-            throw new ValidationError("Data final inválida");
-        }
         if (endDate && endDate < startDate) {
             throw new ValidationError("Data final não pode ser menor que a data inicial");
         }

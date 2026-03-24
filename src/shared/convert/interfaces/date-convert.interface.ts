@@ -1,4 +1,10 @@
 export interface IDateConvert {
-    dateToSeconds(date: Date): number,
-    secondsToDate(seconds: number): Date
+    dateToSeconds(date: Date): number 
+    
+    extractDate(date: string): [number, number, number] 
+    
+    dateFormat(date: string | Date): Date
+    
+    getCurrentDate(): Date 
+    
 }

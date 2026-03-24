@@ -5,8 +5,8 @@ export interface CreateGoalRepositoryDTO {
     title: string
     type: GoalType
     targetMinutes: number
-    startDate: Date
-    endDate?: Date | null
+    startDate: Date | string
+    endDate?: Date |  string | null
     courseId?: string | null
     moduleId?: string | null
     disciplineId?: string | null

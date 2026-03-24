@@ -15,6 +15,7 @@ import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
 import type { IGoalRepository } from "../../goals/interfaces/repositories/goal-respository.interface";
 import type { IStudySessionRepository } from "../../study-sessions/interfaces/repositories/study-session-repository.interface";
+import { DateConvert } from "../../../shared/convert/utils/date-convert.utils";
 
 describe("user service tests", () => {
   const sanitizeMock: jest.Mocked<Isanitize> = {
@@ -122,12 +123,15 @@ describe("user service tests", () => {
     }),
   };
 
+  const dateUtils = new DateConvert()
+
   const service = new UserService(
     repositoryMock,
     hashMock,
     sanitizeMock,
     transactionMock,
     ownerMock,
+    dateUtils
   );
 
   beforeEach(() => {

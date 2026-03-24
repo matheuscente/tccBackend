@@ -13,10 +13,10 @@ export const baseGoalFields = {
         .min(1),
 
     startDate: Joi.string()
-        .isoDate(),
+         .pattern(/^\d{2}\/\d{2}\/\d{4}$/),
 
     endDate: Joi.string()
-        .isoDate()
+         .pattern(/^\d{2}\/\d{2}\/\d{4}$/)
         .allow(null),
 
     userId: Joi.string()

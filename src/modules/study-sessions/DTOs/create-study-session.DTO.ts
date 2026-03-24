@@ -4,5 +4,5 @@ export interface CreateStudySessionDTO {
   courseId: string | null,
   moduleId: string | null,
   disciplineId: string | null,
-  studiedAt: Date
+  studiedAt: string | Date
 }
