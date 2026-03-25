@@ -54,7 +54,7 @@ export class DateConvert implements IDateConvert {
         );
     }
 
-private normalize(date: Date): Date {
+    normalize(date: Date): Date {
     return new Date(Date.UTC(
         date.getUTCFullYear(),
         date.getUTCMonth(),

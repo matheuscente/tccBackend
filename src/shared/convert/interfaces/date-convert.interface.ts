@@ -5,6 +5,10 @@ export interface IDateConvert {
     
     dateFormat(date: string | Date): Date
     
-    getCurrentDate(): Date 
+    getCurrentDate(): Date,
+    
+    secondsToDate(seconds: number): Date
+
+    normalize(date: Date): Date
     
 }

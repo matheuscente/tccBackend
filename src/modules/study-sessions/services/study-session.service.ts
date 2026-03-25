@@ -29,11 +29,12 @@ export class StudySessionService implements IStudySessionService {
 
         if (data.minutes !== undefined && data.minutes <= 0) throw new ValidationError("minutos deve ser maior que 0")
 
-        if (data.studiedAt) {
-            data.studiedAt = this.dateUtils.dateFormat(data.studiedAt)
+        const studiedAt = data.studiedAt
+  ? this.dateUtils.dateFormat(data.studiedAt)
+  : this.dateUtils.getCurrentDate();
 
-            if (!this.isValidDate(data.studiedAt)) throw new ValidationError("Data estudada inválida")
-        }
+            if (!this.isValidDate(studiedAt)) throw new ValidationError("Data estudada inválida")
+
 
         const scopes = [data.courseId, data.moduleId, data.disciplineId].filter(Boolean)
         if (scopes.length > 1) throw new ValidationError("Sessão de estudo pode ter apenas um escopo")
@@ -61,7 +62,7 @@ export class StudySessionService implements IStudySessionService {
             disciplineId: data.disciplineId ?? null,
             userId: ownerId,
             minutes: data.minutes,
-            studiedAt: data.studiedAt ?? this.dateUtils.getCurrentDate()
+            studiedAt
         });
 
         return this.mapResponse(studySession);
@@ -86,10 +87,6 @@ export class StudySessionService implements IStudySessionService {
 
     async update(authUser: AuthUserDTO, studySessionId: string, data: UpdateStudySessionDTO): Promise<ResponseStudySessionDTO> {
 
-        if (data.studiedAt) {
-            data.studiedAt = this.dateUtils.dateFormat(data.studiedAt)
-            if (!this.isValidDate(data.studiedAt)) throw new ValidationError("Data estudada inválida")
-        }
 
         if (data.minutes !== undefined && data.minutes <= 0) throw new ValidationError("minutos deve ser maior que 0")
 
@@ -97,9 +94,15 @@ export class StudySessionService implements IStudySessionService {
 
         if (!studySession) throw new NotFoundError("Sessão de estudo não encontrada");
 
+        let studiedAt: Date | undefined;
+        if (data.studiedAt) {
+            studiedAt = this.dateUtils.dateFormat(data.studiedAt)
+            if (!this.isValidDate(studiedAt)) throw new ValidationError("Data estudada inválida")
+        }
+
         const updatedStudySession = await this.studySessionRepository.update(studySessionId, {
             minutes: data.minutes ?? studySession.minutes,
-            studiedAt: data.studiedAt ?? studySession.studiedAt
+            studiedAt: studiedAt ?? studySession.studiedAt
         });
 
         return this.mapResponse(updatedStudySession);
