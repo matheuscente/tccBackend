@@ -26,6 +26,9 @@ import { DisciplineController } from "../modules/disciplines/controllers/discipl
 import { GoalRepository } from "../modules/goals/repositories/goal.repository"
 import { GoalService } from "../modules/goals/services/goal.service"
 import { GoalController } from "../modules/goals/controllers/goal.controller"
+import { StudySessionService } from "../modules/study-sessions/services/study-session.service"
+import { StudySessionRepository } from "../modules/study-sessions/repositories/study-session.repository"
+import { StudySessionController } from "../modules/study-sessions/controllers/study-session.controller"
 
 class AppContainer {
      // shared singletons
@@ -34,6 +37,8 @@ class AppContainer {
   dateConvert = new DateConvert()
   accessTokenService = new AccessTokenService("test")
   transaction = new Trasanction(PrismaClient)
+
+
   // repositories
   userRepository = new UserRepository(prisma)
   sessionRepository = new SessionRepository(prisma)
@@ -41,6 +46,7 @@ class AppContainer {
   courseRpository = new CourseRepository(prisma, this.moduleRepository)
   disciplineRepository = new DisciplineRepository(prisma)
   goalRepository = new GoalRepository(prisma)
+  studySessionRepository = new StudySessionRepository(prisma)
 
   // services
     ownerService = new OwnershipService(this.userRepository)
@@ -55,7 +61,8 @@ class AppContainer {
     this.hashProvider,
     this.sanitizeUtils,
     this.transaction,
-    this.ownerService
+    this.ownerService,
+    this.dateConvert
   )
   authService = new AuthService(
     this.userRepository,
@@ -94,7 +101,17 @@ class AppContainer {
     this.ownerService,
     this.courseRpository,
     this.disciplineRepository,
-    this.moduleRepository
+    this.moduleRepository,
+    this.dateConvert
+  )
+
+  studySessionService = new StudySessionService(
+    this.studySessionRepository,
+    this.ownerService,
+    this.courseRpository,
+    this.disciplineRepository,
+    this.moduleRepository,
+    this.dateConvert
   )
 
   //middlewares
@@ -110,6 +127,7 @@ class AppContainer {
   moduleController = new ModuleController(this.moduleService)
   disciplineController = new DisciplineController(this.disciplineService)
   goalController = new GoalController(this.goalService)
+  studySessionController = new StudySessionController(this.studySessionService)
 } 
 
 export const container = new AppContainer()

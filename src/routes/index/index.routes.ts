@@ -6,6 +6,7 @@ import { courseRoutes } from "../../modules/courses/routes/courses.routes"
 import { moduleRoutes } from "../../modules/modules/routes/module.routes"
 import { disciplineRoutes } from "../../modules/disciplines/routes/discipline.routes"
 import { goalRoutes } from "../../modules/goals/routes/goal.routes"
+import { studySessionRoutes } from "../../modules/study-sessions/routes/study-session.routes"
 
 
 // função responsável por organizar e contralizar as rotas.
@@ -34,5 +35,7 @@ export const routes = (app: express.Express) => {
     api.use('/disciplines', disciplineRoutes)
 
     api.use('/goals', goalRoutes)
+
+    api.use('/study-sessions', studySessionRoutes)
 
 }
