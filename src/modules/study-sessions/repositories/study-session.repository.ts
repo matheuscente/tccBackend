@@ -1,6 +1,6 @@
 import type { StudySession, Prisma, PrismaClient } from "@prisma/client";
-import type { CreateStudySessionDTO } from "../DTOs/create-study-session.DTO";
 import type { IStudySessionRepository } from "../interfaces/repositories/study-session-repository.interface";
+import type { CreateStudySessionRepositoryDTO } from "../DTOs/start-study-session-repository-DTO";
 import type { UpdateStudySessionDTO } from "../DTOs/update-study-session.DTO";
 
 export class StudySessionRepository implements IStudySessionRepository {
@@ -27,7 +27,17 @@ export class StudySessionRepository implements IStudySessionRepository {
         })
     }
 
-    async create(data: CreateStudySessionDTO): Promise<StudySession> {
+        async findActiveByUser(userId: string): Promise<StudySession[]> {
+        return this.orm.studySession.findMany({
+            where: { userId,
+                status: "COMPLETED"
+             },
+            orderBy: { createdAt: "desc" }
+        })
+    }
+
+
+    async create(data: CreateStudySessionRepositoryDTO): Promise<StudySession> {
         return this.orm.studySession.create({ data })
     }
 

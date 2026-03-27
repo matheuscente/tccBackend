@@ -6,7 +6,7 @@ import type { IOwnershipService } from "../../../shared/ownership/ownership-serv
 import type { ICourseRepository } from "../../courses/interfaces/repositories/course-repository.interface";
 import type { IDisciplineRepository } from "../../disciplines/interfaces/repositories/discipline-repository.interface";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
-import type { CreateStudySessionDTO } from "../DTOs/create-study-session.DTO";
+import type { StartStudySessionDTO } from "../DTOs/start-study-session.DTO";
 import type { ResponseStudySessionDTO } from "../DTOs/response-study-session.DTO";
 import type { UpdateStudySessionDTO } from "../DTOs/update-study-session.DTO";
 import type { IStudySessionRepository } from "../interfaces/repositories/study-session-repository.interface";
@@ -25,48 +25,64 @@ export class StudySessionService implements IStudySessionService {
 
     ) { }
 
-    async create(authUser: AuthUserDTO, data: CreateStudySessionDTO): Promise<ResponseStudySessionDTO> {
+async start(authUser: AuthUserDTO, data: StartStudySessionDTO): Promise<ResponseStudySessionDTO> {
+    const scopes = [data.courseId, data.moduleId, data.disciplineId].filter(Boolean)
+    if (scopes.length !== 1) throw new ValidationError("Sessão de estudo pode ter apenas um escopo")
 
-        if (data.minutes !== undefined && data.minutes <= 0) throw new ValidationError("minutos deve ser maior que 0")
+    const ownerId = await this.ownership.resolveOwnerId(authUser, data.userId);
 
-        const studiedAt = data.studiedAt
-  ? this.dateUtils.dateFormat(data.studiedAt)
-  : this.dateUtils.getCurrentDate();
+    if (data.courseId) {
+        const parent = await this.courseRepository.findOwnedById(data.courseId, ownerId)
+        if (!parent) throw new NotFoundError("Curso não encontrado")
 
-            if (!this.isValidDate(studiedAt)) throw new ValidationError("Data estudada inválida")
+    } else if (data.moduleId) {
+        const parent = await this.moduleRepository.findByIdWithCourse(data.moduleId)
+        if (!parent) throw new NotFoundError("Módulo não encontrado")
+        if (parent.course.userId !== ownerId) throw new AuthorizationError("Ação não autorizada")
 
-
-        const scopes = [data.courseId, data.moduleId, data.disciplineId].filter(Boolean)
-        if (scopes.length > 1) throw new ValidationError("Sessão de estudo pode ter apenas um escopo")
-
-        const ownerId = await this.ownership.resolveOwnerId(authUser, data.userId);
-
-        if (data.courseId) {
-            const parent = await this.courseRepository.findOwnedById(data.courseId, ownerId)
-            if (!parent) throw new NotFoundError("Curso não encontrado")
-
-        } else if (data.moduleId) {
-            const parent = await this.moduleRepository.findByIdWithCourse(data.moduleId)
-            if (!parent) throw new NotFoundError("Módulo não encontrado")
-            if (parent.course.userId !== ownerId) throw new AuthorizationError("Ação não autorizada")
-
-        } else if (data.disciplineId) {
-            const parent = await this.disciplineRepository.findByIdWithCourse(data.disciplineId)
-            if (!parent) throw new NotFoundError("Disciplina não encontrada")
-            if (parent.module.course.userId !== ownerId) throw new AuthorizationError("Ação não autorizada")
-        }
-
-        const studySession = await this.studySessionRepository.create({
-            moduleId: data.moduleId ?? null,
-            courseId: data.courseId ?? null,
-            disciplineId: data.disciplineId ?? null,
-            userId: ownerId,
-            minutes: data.minutes,
-            studiedAt
-        });
-
-        return this.mapResponse(studySession);
+    } else if (data.disciplineId) {
+        const parent = await this.disciplineRepository.findByIdWithCourse(data.disciplineId)
+        if (!parent) throw new NotFoundError("Disciplina não encontrada")
+        if (parent.module.course.userId !== ownerId) throw new AuthorizationError("Ação não autorizada")
     }
+
+    const activeSession = await this.studySessionRepository.findActiveByUser(ownerId)
+
+if (activeSession) {
+    throw new ValidationError("Usuário já possui uma sessão em andamento")
+}
+
+    const studySession = await this.studySessionRepository.create({
+        userId: ownerId,
+        courseId: data.courseId ?? null,
+        moduleId: data.moduleId ?? null,
+        disciplineId: data.disciplineId ?? null,
+        minutes: 0,
+        startedAt: new Date(),
+        status: "IN_PROGRESS",
+        studiedAt: this.dateUtils.getCurrentDate()
+    });
+
+    return this.mapResponse(studySession);
+}
+
+async finish(authUser: AuthUserDTO, studySessionId: string): Promise<ResponseStudySessionDTO> {
+    const studySession = await this.getAccessibleSession(authUser, studySessionId)
+
+    if (!studySession) throw new NotFoundError("Sessão de estudo não encontrada")
+
+    if (studySession.status !== "IN_PROGRESS") throw new ValidationError("Sessão de estudo já finalizada")
+
+    const now = new Date()
+    const minutes = Math.ceil((now.getTime() - studySession.startedAt.getTime()) / 60000)
+
+    const updatedSession = await this.studySessionRepository.update(studySessionId, {
+        minutes: minutes < 1 ? 1 : minutes,
+        status: "COMPLETED"
+    })
+
+    return this.mapResponse(updatedSession)
+}
 
     async findById(authUser: AuthUserDTO, studySessionId: string): Promise<ResponseStudySessionDTO | null> {
         const studySession = await this.getAccessibleSession(authUser, studySessionId)
@@ -87,12 +103,13 @@ export class StudySessionService implements IStudySessionService {
 
     async update(authUser: AuthUserDTO, studySessionId: string, data: UpdateStudySessionDTO): Promise<ResponseStudySessionDTO> {
 
-
-        if (data.minutes !== undefined && data.minutes <= 0) throw new ValidationError("minutos deve ser maior que 0")
-
         const studySession = await this.getAccessibleSession(authUser, studySessionId)
 
         if (!studySession) throw new NotFoundError("Sessão de estudo não encontrada");
+
+        if (studySession.status !== "COMPLETED") {
+    throw new ValidationError("Só é possível editar sessões finalizadas")
+}
 
         let studiedAt: Date | undefined;
         if (data.studiedAt) {
@@ -101,7 +118,6 @@ export class StudySessionService implements IStudySessionService {
         }
 
         const updatedStudySession = await this.studySessionRepository.update(studySessionId, {
-            minutes: data.minutes ?? studySession.minutes,
             studiedAt: studiedAt ?? studySession.studiedAt
         });
 
@@ -128,16 +144,17 @@ export class StudySessionService implements IStudySessionService {
     }
 
 
-    private mapResponse(studySession: StudySession): ResponseStudySessionDTO {
-        return {
-            id: studySession.id,
-            minutes: studySession.minutes,
-            courseId: studySession.courseId,
-            moduleId: studySession.moduleId,
-            disciplineId: studySession.disciplineId,
-            studiedAt: studySession.studiedAt,
-            createdAt: studySession.createdAt
-        };
-    }
-
+private mapResponse(studySession: StudySession): ResponseStudySessionDTO {
+    return {
+        id: studySession.id,
+        minutes: studySession.minutes,
+        status: studySession.status,
+        startedAt: studySession.startedAt,
+        courseId: studySession.courseId,
+        moduleId: studySession.moduleId,
+        disciplineId: studySession.disciplineId,
+        studiedAt: studySession.studiedAt,
+        createdAt: studySession.createdAt
+    };
+}
 }

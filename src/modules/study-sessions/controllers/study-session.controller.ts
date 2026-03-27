@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import type { CreateStudySessionDTO } from "../DTOs/create-study-session.DTO";
+import type { CreateStudySessionDTO } from "../DTOs/start-study-session.DTO";
 import type { UpdateStudySessionDTO } from "../DTOs/update-study-session.DTO";
 import type { IStudySessionController } from "../interfaces/controllers/study-session-controller.interface";
 import type { IStudySessionService } from "../interfaces/services/study-sessions-service.interface";

@@ -15,4 +15,4 @@ export const createStudySessionSchema = Joi.object().keys({
 
     studiedAt: baseStudySessionFields.studiedAt
 
-}).prefs({ abortEarly: false }).unknown(false).required()
+}).xor('courseId', 'moduleId', 'disciplineId').prefs({ abortEarly: false }).unknown(false).required()

@@ -23,17 +23,14 @@ export const baseGoalFields = {
         .uuid({ version: "uuidv4" }),
 
     courseId: Joi.string()
-        .uuid({ version: "uuidv4" })
-        .allow(null),
-
+        .uuid({ version: "uuidv4" }),
+        
     moduleId: Joi.string()
-        .uuid({ version: "uuidv4" })
-        .allow(null),
-
+        .uuid({ version: "uuidv4" }),
+        
     disciplineId: Joi.string()
-        .uuid({ version: "uuidv4" })
-        .allow(null),
-
+        .uuid({ version: "uuidv4" }),
+        
     goalId: Joi.string()
         .uuid({ version: "uuidv4" })
 }

@@ -13,6 +13,7 @@ import { makeStudySession } from "../../../tests/factories/make-study-session";
 import { makeCourse } from "../../../tests/factories/make-course";
 import { makeModule } from "../../../tests/factories/make-module";
 import { makeDiscipline } from "../../../tests/factories/make-discipline";
+import { StudySessionStatus } from "@prisma/client";
 
 describe("StudySessionService", () => {
 
@@ -104,66 +105,44 @@ describe("StudySessionService", () => {
     });
   });
 
+  describe("start", () => {
 
-  describe("create", () => {
-
-    it("should create a general study session successfully without studiedAt", async () => {
-      const session = makeStudySession({ userId: userAuthUser.id });
+    it("should start a general study session successfully", async () => {
+      const session = makeStudySession({ userId: userAuthUser.id, minutes: 0, status: StudySessionStatus.IN_PROGRESS });
 
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
       studySessionRepositoryMock.create.mockResolvedValue(session);
 
-      const result = await service.create(userAuthUser, {
+      const result = await service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
       });
 
       expect(ownershipMock.resolveOwnerId).toHaveBeenCalledTimes(1);
       expect(ownershipMock.resolveOwnerId).toHaveBeenCalledWith(userAuthUser, userAuthUser.id);
-      expect(dateUtilsMock.getCurrentDate).toHaveBeenCalled();
-      expect(dateUtilsMock.dateFormat).not.toHaveBeenCalled();
       expect(studySessionRepositoryMock.create).toHaveBeenCalledTimes(1);
       expect(studySessionRepositoryMock.create).toHaveBeenCalledWith(expect.objectContaining({
         userId: userAuthUser.id,
-        minutes: 60,
+        minutes: 0,
+        status: StudySessionStatus.IN_PROGRESS,
         courseId: null,
         moduleId: null,
         disciplineId: null,
-        studiedAt: today,
       }));
       expect(result).not.toHaveProperty("userId");
+      expect(result.status).toBe(StudySessionStatus.IN_PROGRESS);
+      expect(result.minutes).toBe(0);
     });
 
-    it("should create a session with provided studiedAt", async () => {
-      const studiedAt = new Date(Date.UTC(2026, 2, 1));
-      const session = makeStudySession({ userId: userAuthUser.id, studiedAt });
-
-      ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
-      studySessionRepositoryMock.create.mockResolvedValue(session);
-
-      await service.create(userAuthUser, {
-        userId: userAuthUser.id,
-        minutes: 60,
-        studiedAt: "01/03/2026",
-      });
-
-      expect(dateUtilsMock.dateFormat).toHaveBeenCalledWith("01/03/2026");
-      expect(studySessionRepositoryMock.create).toHaveBeenCalledWith(
-        expect.objectContaining({ studiedAt })
-      );
-    });
-
-    it("should create a session with courseId", async () => {
+    it("should start a session with courseId", async () => {
       const course = makeCourse({ userId: userAuthUser.id });
-      const session = makeStudySession({ userId: userAuthUser.id, courseId: course.id });
+      const session = makeStudySession({ userId: userAuthUser.id, courseId: course.id, status: StudySessionStatus.IN_PROGRESS });
 
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
       courseRepositoryMock.findOwnedById.mockResolvedValue(course);
       studySessionRepositoryMock.create.mockResolvedValue(session);
 
-      await service.create(userAuthUser, {
+      await service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
         courseId: course.id,
       });
 
@@ -176,17 +155,16 @@ describe("StudySessionService", () => {
       );
     });
 
-    it("should create a session with moduleId", async () => {
+    it("should start a session with moduleId", async () => {
       const module = { ...makeModule(), course: { userId: userAuthUser.id } };
-      const session = makeStudySession({ userId: userAuthUser.id, moduleId: module.id });
+      const session = makeStudySession({ userId: userAuthUser.id, moduleId: module.id, status: StudySessionStatus.IN_PROGRESS });
 
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
       moduleRepositoryMock.findByIdWithCourse.mockResolvedValue(module);
       studySessionRepositoryMock.create.mockResolvedValue(session);
 
-      await service.create(userAuthUser, {
+      await service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
         moduleId: module.id,
       });
 
@@ -199,17 +177,16 @@ describe("StudySessionService", () => {
       );
     });
 
-    it("should create a session with disciplineId", async () => {
+    it("should start a session with disciplineId", async () => {
       const discipline = { ...makeDiscipline(), module: { course: { userId: userAuthUser.id } } };
-      const session = makeStudySession({ userId: userAuthUser.id, disciplineId: discipline.id });
+      const session = makeStudySession({ userId: userAuthUser.id, disciplineId: discipline.id, status: StudySessionStatus.IN_PROGRESS });
 
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
       disciplineRepositoryMock.findByIdWithCourse.mockResolvedValue(discipline);
       studySessionRepositoryMock.create.mockResolvedValue(session);
 
-      await service.create(userAuthUser, {
+      await service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
         disciplineId: discipline.id,
       });
 
@@ -222,66 +199,23 @@ describe("StudySessionService", () => {
       );
     });
 
-    it("should allow ADMIN to create a session for another user", async () => {
-      const session = makeStudySession({ userId: userAuthUser.id });
+    it("should allow ADMIN to start a session for another user", async () => {
+      const session = makeStudySession({ userId: userAuthUser.id, status: StudySessionStatus.IN_PROGRESS });
 
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
       studySessionRepositoryMock.create.mockResolvedValue(session);
 
-      await service.create(adminAuthUser, {
+      await service.start(adminAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
       });
 
       expect(ownershipMock.resolveOwnerId).toHaveBeenCalledWith(adminAuthUser, userAuthUser.id);
       expect(studySessionRepositoryMock.create).toHaveBeenCalledTimes(1);
     });
 
-    it("should throw ValidationError when minutes is zero", async () => {
-      const promise = service.create(userAuthUser, {
-        userId: userAuthUser.id,
-        minutes: 0,
-      });
-
-      await expect(promise).rejects.toBeInstanceOf(ValidationError);
-      await expect(promise).rejects.toThrow("minutos deve ser maior que 0");
-      expect(dateUtilsMock.dateFormat).not.toHaveBeenCalled();
-      expect(ownershipMock.resolveOwnerId).not.toHaveBeenCalled();
-      expect(studySessionRepositoryMock.create).not.toHaveBeenCalled();
-    });
-
-    it("should throw ValidationError when minutes is negative", async () => {
-      const promise = service.create(userAuthUser, {
-        userId: userAuthUser.id,
-        minutes: -10,
-      });
-
-      await expect(promise).rejects.toBeInstanceOf(ValidationError);
-      await expect(promise).rejects.toThrow("minutos deve ser maior que 0");
-      expect(dateUtilsMock.dateFormat).not.toHaveBeenCalled();
-      expect(ownershipMock.resolveOwnerId).not.toHaveBeenCalled();
-      expect(studySessionRepositoryMock.create).not.toHaveBeenCalled();
-    });
-
-    it("should throw ValidationError when studiedAt is in the future", async () => {
-      dateUtilsMock.dateFormat.mockReturnValue(new Date(Date.UTC(2099, 0, 1)));
-
-      const promise = service.create(userAuthUser, {
-        userId: userAuthUser.id,
-        minutes: 60,
-        studiedAt: "01/01/2099",
-      });
-
-      await expect(promise).rejects.toBeInstanceOf(ValidationError);
-      await expect(promise).rejects.toThrow("Data estudada inválida");
-      expect(ownershipMock.resolveOwnerId).not.toHaveBeenCalled();
-      expect(studySessionRepositoryMock.create).not.toHaveBeenCalled();
-    });
-
     it("should throw ValidationError when courseId and moduleId are provided", async () => {
-      const promise = service.create(userAuthUser, {
+      const promise = service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
         courseId: "course-id",
         moduleId: "module-id",
       });
@@ -296,9 +230,8 @@ describe("StudySessionService", () => {
     });
 
     it("should throw ValidationError when courseId and disciplineId are provided", async () => {
-      const promise = service.create(userAuthUser, {
+      const promise = service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
         courseId: "course-id",
         disciplineId: "discipline-id",
       });
@@ -310,9 +243,8 @@ describe("StudySessionService", () => {
     });
 
     it("should throw ValidationError when moduleId and disciplineId are provided", async () => {
-      const promise = service.create(userAuthUser, {
+      const promise = service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
         moduleId: "module-id",
         disciplineId: "discipline-id",
       });
@@ -324,9 +256,8 @@ describe("StudySessionService", () => {
     });
 
     it("should throw ValidationError when all three scopes are provided", async () => {
-      const promise = service.create(userAuthUser, {
+      const promise = service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
         courseId: "course-id",
         moduleId: "module-id",
         disciplineId: "discipline-id",
@@ -342,9 +273,8 @@ describe("StudySessionService", () => {
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
       courseRepositoryMock.findOwnedById.mockResolvedValue(null);
 
-      const promise = service.create(userAuthUser, {
+      const promise = service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
         courseId: "fake-id",
       });
 
@@ -359,9 +289,8 @@ describe("StudySessionService", () => {
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
       moduleRepositoryMock.findByIdWithCourse.mockResolvedValue(null);
 
-      const promise = service.create(userAuthUser, {
+      const promise = service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
         moduleId: "fake-id",
       });
 
@@ -378,9 +307,8 @@ describe("StudySessionService", () => {
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
       moduleRepositoryMock.findByIdWithCourse.mockResolvedValue(module);
 
-      const promise = service.create(userAuthUser, {
+      const promise = service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
         moduleId: module.id,
       });
 
@@ -394,9 +322,8 @@ describe("StudySessionService", () => {
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
       disciplineRepositoryMock.findByIdWithCourse.mockResolvedValue(null);
 
-      const promise = service.create(userAuthUser, {
+      const promise = service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
         disciplineId: "fake-id",
       });
 
@@ -413,9 +340,8 @@ describe("StudySessionService", () => {
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
       disciplineRepositoryMock.findByIdWithCourse.mockResolvedValue(discipline);
 
-      const promise = service.create(userAuthUser, {
+      const promise = service.start(userAuthUser, {
         userId: userAuthUser.id,
-        minutes: 60,
         disciplineId: discipline.id,
       });
 
@@ -424,12 +350,11 @@ describe("StudySessionService", () => {
       expect(studySessionRepositoryMock.create).not.toHaveBeenCalled();
     });
 
-    it("should throw AuthorizationError when USER tries to create a session for another user", async () => {
+    it("should throw AuthorizationError when USER tries to start a session for another user", async () => {
       ownershipMock.resolveOwnerId.mockRejectedValue(new AuthorizationError("Ação não autorizada"));
 
-      const promise = service.create(userAuthUser, {
+      const promise = service.start(userAuthUser, {
         userId: "other-id",
-        minutes: 60,
       });
 
       await expect(promise).rejects.toBeInstanceOf(AuthorizationError);
@@ -444,10 +369,7 @@ describe("StudySessionService", () => {
       ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
       studySessionRepositoryMock.create.mockRejectedValue(new Error("db error"));
 
-      const promise = service.create(userAuthUser, {
-        userId: userAuthUser.id,
-        minutes: 60,
-      });
+      const promise = service.start(userAuthUser, { userId: userAuthUser.id });
 
       await expect(promise).rejects.toThrow("db error");
       expect(studySessionRepositoryMock.create).toHaveBeenCalledTimes(1);
@@ -455,6 +377,255 @@ describe("StudySessionService", () => {
 
   });
 
+
+  describe("finish", () => {
+
+    it("should finish a session successfully as USER and calculate minutes", async () => {
+      const startedAt = new Date(Date.now() - 30 * 60 * 1000); // 30 minutos atrás
+      const session = makeStudySession({ userId: userAuthUser.id, status: StudySessionStatus.IN_PROGRESS, startedAt, minutes: 0 });
+      const updatedSession = { ...session, minutes: 30, status: StudySessionStatus.COMPLETED };
+
+      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
+      studySessionRepositoryMock.update.mockResolvedValue(updatedSession);
+
+      const result = await service.finish(userAuthUser, session.id);
+
+      expect(studySessionRepositoryMock.findByIdWithOwner).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.findByIdWithOwner).toHaveBeenCalledWith(session.id, userAuthUser.id);
+      expect(studySessionRepositoryMock.update).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.update).toHaveBeenCalledWith(session.id, expect.objectContaining({
+        status: StudySessionStatus.COMPLETED,
+      }));
+      expect(result.status).toBe(StudySessionStatus.COMPLETED);
+      expect(result.minutes).toBe(30);
+    });
+
+    it("should set minimum 1 minute when session lasted less than 60 seconds", async () => {
+      const startedAt = new Date(Date.now() - 10 * 1000); // 10 segundos atrás
+      const session = makeStudySession({ userId: userAuthUser.id, status: StudySessionStatus.IN_PROGRESS, startedAt, minutes: 0 });
+      const updatedSession = { ...session, minutes: 1, status: StudySessionStatus.COMPLETED };
+
+      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
+      studySessionRepositoryMock.update.mockResolvedValue(updatedSession);
+
+      await service.finish(userAuthUser, session.id);
+
+      expect(studySessionRepositoryMock.update).toHaveBeenCalledWith(session.id, expect.objectContaining({
+        minutes: 1,
+        status: StudySessionStatus.COMPLETED,
+      }));
+    });
+
+    it("should finish a session as ADMIN using findById", async () => {
+      const startedAt = new Date(Date.now() - 60 * 60 * 1000); // 60 minutos atrás
+      const session = makeStudySession({ userId: userAuthUser.id, startedAt, minutes: 0 });
+      const updatedSession = { ...session, minutes: 60, status: StudySessionStatus.COMPLETED };
+
+      studySessionRepositoryMock.findById.mockResolvedValue(session);
+      studySessionRepositoryMock.update.mockResolvedValue(updatedSession);
+
+      await service.finish(adminAuthUser, session.id);
+
+      expect(studySessionRepositoryMock.findById).toHaveBeenCalledWith(session.id);
+      expect(studySessionRepositoryMock.findByIdWithOwner).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.update).toHaveBeenCalledWith(session.id, expect.objectContaining({
+        status: StudySessionStatus.COMPLETED,
+      }));
+    });
+
+    it("should throw NotFoundError when session does not exist as USER", async () => {
+      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(null);
+
+      const promise = service.finish(userAuthUser, "fake-id");
+
+      await expect(promise).rejects.toBeInstanceOf(NotFoundError);
+      await expect(promise).rejects.toThrow("Sessão de estudo não encontrada");
+      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should throw NotFoundError when session does not exist as ADMIN", async () => {
+      studySessionRepositoryMock.findById.mockResolvedValue(null);
+
+      const promise = service.finish(adminAuthUser, "fake-id");
+
+      await expect(promise).rejects.toBeInstanceOf(NotFoundError);
+      await expect(promise).rejects.toThrow("Sessão de estudo não encontrada");
+      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should throw ValidationError when session is already COMPLETED", async () => {
+      const session = makeStudySession({ userId: userAuthUser.id, status: StudySessionStatus.COMPLETED });
+
+      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
+
+      const promise = service.finish(userAuthUser, session.id);
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError);
+      await expect(promise).rejects.toThrow("Sessão de estudo já finalizada");
+      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should propagate findByIdWithOwner error for USER", async () => {
+      studySessionRepositoryMock.findByIdWithOwner.mockRejectedValue(new Error("db error"));
+
+      const promise = service.finish(userAuthUser, "any-id");
+
+      await expect(promise).rejects.toThrow("db error");
+      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should propagate findById error for ADMIN", async () => {
+      studySessionRepositoryMock.findById.mockRejectedValue(new Error("db error"));
+
+      const promise = service.finish(adminAuthUser, "any-id");
+
+      await expect(promise).rejects.toThrow("db error");
+      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should propagate update repository error", async () => {
+      const startedAt = new Date(Date.now() - 30 * 60 * 1000);
+      const session = makeStudySession({ userId: userAuthUser.id, status: StudySessionStatus.IN_PROGRESS, startedAt });
+
+      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
+      studySessionRepositoryMock.update.mockRejectedValue(new Error("db error"));
+
+      const promise = service.finish(userAuthUser, session.id);
+
+      await expect(promise).rejects.toThrow("db error");
+      expect(studySessionRepositoryMock.update).toHaveBeenCalledTimes(1);
+    });
+
+  });
+
+
+  describe("update", () => {
+
+    it("should throw error when trying to update minutes", async () => {
+    await expect(
+        service.update(userAuthUser, session.id, { minutes: 30 })
+    ).rejects.toThrow(ValidationError)
+})
+
+    it("should update studiedAt successfully", async () => {
+      const session = makeStudySession({ userId: userAuthUser.id, status: StudySessionStatus.COMPLETED });
+      const newDate = new Date(Date.UTC(2026, 2, 1));
+      const updatedSession = { ...session, studiedAt: newDate };
+
+      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
+      studySessionRepositoryMock.update.mockResolvedValue(updatedSession);
+      dateUtilsMock.dateFormat.mockReturnValue(newDate);
+
+      await service.update(userAuthUser, session.id, { studiedAt: "01/03/2026" });
+
+      expect(dateUtilsMock.dateFormat).toHaveBeenCalledWith("01/03/2026");
+      expect(studySessionRepositoryMock.update).toHaveBeenCalledWith(session.id, expect.objectContaining({
+        studiedAt: newDate,
+      }));
+    });
+
+    it("should keep existing studiedAt when not provided", async () => {
+      const existingDate = new Date(Date.UTC(2026, 1, 15));
+      const session = makeStudySession({ userId: userAuthUser.id, status: StudySessionStatus.COMPLETED, studiedAt: existingDate });
+      const updatedSession = { ...session, minutes: 45 };
+
+      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
+      studySessionRepositoryMock.update.mockResolvedValue(updatedSession);
+
+      await service.update(userAuthUser, session.id, { minutes: 45 });
+
+      expect(dateUtilsMock.dateFormat).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.update).toHaveBeenCalledWith(session.id, expect.objectContaining({
+        studiedAt: existingDate,
+      }));
+    });
+
+    it("should allow ADMIN to update another user's session", async () => {
+      const session = makeStudySession({ userId: userAuthUser.id, status: StudySessionStatus.COMPLETED });
+
+      studySessionRepositoryMock.findById.mockResolvedValue(session);
+      studySessionRepositoryMock.update.mockResolvedValue(session);
+
+      await service.update(adminAuthUser, session.id, { minutes: 30 });
+
+      expect(studySessionRepositoryMock.findById).toHaveBeenCalledWith(session.id);
+      expect(studySessionRepositoryMock.findByIdWithOwner).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.update).toHaveBeenCalledTimes(1);
+    });
+
+    it("should throw ValidationError when minutes is zero", async () => {
+      const promise = service.update(userAuthUser, "any-id", { minutes: 0 });
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError);
+      await expect(promise).rejects.toThrow("minutos deve ser maior que 0");
+      expect(studySessionRepositoryMock.findByIdWithOwner).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should throw ValidationError when minutes is negative", async () => {
+      const promise = service.update(userAuthUser, "any-id", { minutes: -5 });
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError);
+      await expect(promise).rejects.toThrow("minutos deve ser maior que 0");
+      expect(studySessionRepositoryMock.findByIdWithOwner).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should throw ValidationError when studiedAt is in the future", async () => {
+      dateUtilsMock.dateFormat.mockReturnValue(new Date(Date.UTC(2099, 0, 1)));
+
+      const session = makeStudySession({ userId: userAuthUser.id, status: StudySessionStatus.COMPLETED });
+      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
+
+      const promise = service.update(userAuthUser, session.id, { studiedAt: "01/01/2099" });
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError);
+      await expect(promise).rejects.toThrow("Data estudada inválida");
+      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should throw NotFoundError when session does not exist as USER", async () => {
+      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(null);
+
+      const promise = service.update(userAuthUser, "fake-id", { minutes: 30 });
+
+      await expect(promise).rejects.toBeInstanceOf(NotFoundError);
+      await expect(promise).rejects.toThrow("Sessão de estudo não encontrada");
+      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should throw NotFoundError when session does not exist as ADMIN", async () => {
+      studySessionRepositoryMock.findById.mockResolvedValue(null);
+
+      const promise = service.update(adminAuthUser, "fake-id", { minutes: 30 });
+
+      await expect(promise).rejects.toBeInstanceOf(NotFoundError);
+      await expect(promise).rejects.toThrow("Sessão de estudo não encontrada");
+      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should propagate findByIdWithOwner error for USER", async () => {
+      studySessionRepositoryMock.findByIdWithOwner.mockRejectedValue(new Error("db error"));
+
+      const promise = service.update(userAuthUser, "any-id", { minutes: 30 });
+
+      await expect(promise).rejects.toThrow("db error");
+      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should propagate update repository error", async () => {
+      const session = makeStudySession({ userId: userAuthUser.id, status: StudySessionStatus.COMPLETED });
+
+      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
+      studySessionRepositoryMock.update.mockRejectedValue(new Error("db error"));
+
+      const promise = service.update(userAuthUser, session.id, { minutes: 30 });
+
+      await expect(promise).rejects.toThrow("db error");
+      expect(studySessionRepositoryMock.update).toHaveBeenCalledTimes(1);
+    });
+
+  });
 
   describe("findById", () => {
 
@@ -582,147 +753,6 @@ describe("StudySessionService", () => {
       const promise = service.findAllByUserId(userAuthUser, userAuthUser.id);
 
       await expect(promise).rejects.toThrow("db error");
-    });
-
-  });
-
-
-  describe("update", () => {
-
-    it("should update minutes successfully as the owner", async () => {
-      const session = makeStudySession({ userId: userAuthUser.id });
-      const updatedSession = { ...session, minutes: 30 };
-
-      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
-      studySessionRepositoryMock.update.mockResolvedValue(updatedSession);
-
-      const result = await service.update(userAuthUser, session.id, { minutes: 30 });
-
-      expect(studySessionRepositoryMock.findByIdWithOwner).toHaveBeenCalledTimes(1);
-      expect(studySessionRepositoryMock.findByIdWithOwner).toHaveBeenCalledWith(session.id, userAuthUser.id);
-      expect(studySessionRepositoryMock.update).toHaveBeenCalledTimes(1);
-      expect(studySessionRepositoryMock.update).toHaveBeenCalledWith(session.id, expect.objectContaining({
-        minutes: 30,
-      }));
-      expect(result).not.toHaveProperty("userId");
-    });
-
-    it("should update studiedAt successfully", async () => {
-      const session = makeStudySession({ userId: userAuthUser.id });
-      const newDate = new Date(Date.UTC(2026, 2, 1));
-      const updatedSession = { ...session, studiedAt: newDate };
-
-      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
-      studySessionRepositoryMock.update.mockResolvedValue(updatedSession);
-      dateUtilsMock.dateFormat.mockReturnValue(newDate);
-
-      await service.update(userAuthUser, session.id, { studiedAt: "01/03/2026" });
-
-      expect(dateUtilsMock.dateFormat).toHaveBeenCalledWith("01/03/2026");
-      expect(studySessionRepositoryMock.update).toHaveBeenCalledWith(session.id, expect.objectContaining({
-        studiedAt: newDate,
-      }));
-    });
-
-    it("should keep existing studiedAt when not provided", async () => {
-      const existingDate = new Date(Date.UTC(2026, 1, 15));
-      const session = makeStudySession({ userId: userAuthUser.id, studiedAt: existingDate });
-      const updatedSession = { ...session, minutes: 45 };
-
-      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
-      studySessionRepositoryMock.update.mockResolvedValue(updatedSession);
-
-      await service.update(userAuthUser, session.id, { minutes: 45 });
-
-      expect(dateUtilsMock.dateFormat).not.toHaveBeenCalled();
-      expect(studySessionRepositoryMock.update).toHaveBeenCalledWith(session.id, expect.objectContaining({
-        studiedAt: existingDate,
-      }));
-    });
-
-    it("should allow ADMIN to update another user's session", async () => {
-      const session = makeStudySession({ userId: userAuthUser.id });
-
-      studySessionRepositoryMock.findById.mockResolvedValue(session);
-      studySessionRepositoryMock.update.mockResolvedValue(session);
-
-      await service.update(adminAuthUser, session.id, { minutes: 30 });
-
-      expect(studySessionRepositoryMock.findById).toHaveBeenCalledWith(session.id);
-      expect(studySessionRepositoryMock.findByIdWithOwner).not.toHaveBeenCalled();
-      expect(studySessionRepositoryMock.update).toHaveBeenCalledTimes(1);
-    });
-
-    it("should throw ValidationError when minutes is zero", async () => {
-      const promise = service.update(userAuthUser, "any-id", { minutes: 0 });
-
-      await expect(promise).rejects.toBeInstanceOf(ValidationError);
-      await expect(promise).rejects.toThrow("minutos deve ser maior que 0");
-      expect(studySessionRepositoryMock.findByIdWithOwner).not.toHaveBeenCalled();
-      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
-    });
-
-    it("should throw ValidationError when minutes is negative", async () => {
-      const promise = service.update(userAuthUser, "any-id", { minutes: -5 });
-
-      await expect(promise).rejects.toBeInstanceOf(ValidationError);
-      await expect(promise).rejects.toThrow("minutos deve ser maior que 0");
-      expect(studySessionRepositoryMock.findByIdWithOwner).not.toHaveBeenCalled();
-      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
-    });
-
-    it("should throw ValidationError when studiedAt is in the future", async () => {
-      dateUtilsMock.dateFormat.mockReturnValue(new Date(Date.UTC(2099, 0, 1)));
-
-      const session = makeStudySession({ userId: userAuthUser.id });
-      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
-
-      const promise = service.update(userAuthUser, session.id, { studiedAt: "01/01/2099" });
-
-      await expect(promise).rejects.toBeInstanceOf(ValidationError);
-      await expect(promise).rejects.toThrow("Data estudada inválida");
-      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
-    });
-
-    it("should throw NotFoundError when session does not exist as USER", async () => {
-      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(null);
-
-      const promise = service.update(userAuthUser, "fake-id", { minutes: 30 });
-
-      await expect(promise).rejects.toBeInstanceOf(NotFoundError);
-      await expect(promise).rejects.toThrow("Sessão de estudo não encontrada");
-      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
-    });
-
-    it("should throw NotFoundError when session does not exist as ADMIN", async () => {
-      studySessionRepositoryMock.findById.mockResolvedValue(null);
-
-      const promise = service.update(adminAuthUser, "fake-id", { minutes: 30 });
-
-      await expect(promise).rejects.toBeInstanceOf(NotFoundError);
-      await expect(promise).rejects.toThrow("Sessão de estudo não encontrada");
-      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
-    });
-
-    it("should propagate findByIdWithOwner error for USER", async () => {
-      studySessionRepositoryMock.findByIdWithOwner.mockRejectedValue(new Error("db error"));
-
-      const promise = service.update(userAuthUser, "any-id", { minutes: 30 });
-
-      await expect(promise).rejects.toThrow("db error");
-      expect(studySessionRepositoryMock.update).not.toHaveBeenCalled();
-    });
-
-    it("should propagate update repository error", async () => {
-      const session = makeStudySession({ userId: userAuthUser.id });
-
-      studySessionRepositoryMock.findByIdWithOwner.mockResolvedValue(session);
-      studySessionRepositoryMock.update.mockRejectedValue(new Error("db error"));
-
-      const promise = service.update(userAuthUser, session.id, { minutes: 30 });
-
-      await expect(promise).rejects.toThrow("db error");
-      expect(studySessionRepositoryMock.update).toHaveBeenCalledTimes(1);
     });
 
   });

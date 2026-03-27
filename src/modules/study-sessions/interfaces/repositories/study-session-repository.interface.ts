@@ -1,16 +1,19 @@
 import type { StudySession } from "@prisma/client"
-import type { CreateStudySessionDTO } from "../../DTOs/create-study-session.DTO"
+import type { CreateStudySessionRepositoryDTO } from "../../DTOs/start-study-session-repository-DTO"
+import type { UpdateStudySessionDTO } from "../../DTOs/update-study-session.DTO"
+import type { UpdateStudySessionRepositoryDTO } from "../../DTOs/update-study-session-repository.DTO"
 
 export interface IStudySessionRepository {
     findById(studySessionId: string): Promise<StudySession | null>
     findByIdWithOwner(studySessionId: string, userId: string): Promise<StudySession | null>
     findAllByUserId(userId: string): Promise<StudySession[]>
-    create(data: CreateStudySessionDTO): Promise<StudySession>
-    update(studySessionId: string, data: Partial<CreateStudySessionDTO>): Promise<StudySession>
+    create(data: CreateStudySessionRepositoryDTO): Promise<StudySession>
+    update(studySessionId: string, data: UpdateStudySessionRepositoryDTO): Promise<StudySession>
     delete(studySessionId: string): Promise<void>
     deleteAllByCourseIds(courseIds: string[]): Promise<void>
     deleteAllByModuleIds(moduleIds: string[]): Promise<void>
     deleteAllByDisciplineIds(disciplineIds: string[]): Promise<void>,
-    deleteAllByUserId(userId: string): Promise<void>
+    deleteAllByUserId(userId: string): Promise<void>,
+    findActiveByUser(userId: string): Promise<StudySession[]> 
 
 }

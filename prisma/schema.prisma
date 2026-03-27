@@ -140,6 +140,8 @@ model StudySession {
   courseId     String?
   moduleId     String?
   disciplineId String?
+  startedAt    DateTime
+  status       StudySessionStatus
   studiedAt    DateTime
   createdAt    DateTime @default(now())
 
@@ -162,4 +164,9 @@ enum GoalType {
 enum Role {
   ADMIN
   USER
+}
+
+enum StudySessionStatus {
+  IN_PROGRESS
+  COMPLETED
 }

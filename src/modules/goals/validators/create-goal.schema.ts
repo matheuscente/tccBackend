@@ -20,4 +20,4 @@ export const createGoalSchema = Joi.object().keys({
 
     disciplineId: baseGoalFields.disciplineId
 
-}).prefs({ abortEarly: false }).unknown(false).required()
+}).xor('courseId', 'moduleId', 'disciplineId') .prefs({ abortEarly: false }).unknown(false).required()
