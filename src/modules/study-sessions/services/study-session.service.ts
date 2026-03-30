@@ -48,7 +48,7 @@ async start(authUser: AuthUserDTO, data: StartStudySessionDTO): Promise<Response
 
     const activeSession = await this.studySessionRepository.findActiveByUser(ownerId)
 
-if (activeSession) {
+if (activeSession.length > 0) {
     throw new ValidationError("Usuário já possui uma sessão em andamento")
 }
 

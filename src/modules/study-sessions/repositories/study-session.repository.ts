@@ -30,7 +30,7 @@ export class StudySessionRepository implements IStudySessionRepository {
         async findActiveByUser(userId: string): Promise<StudySession[]> {
         return this.orm.studySession.findMany({
             where: { userId,
-                status: "COMPLETED"
+                status: "IN_PROGRESS"
              },
             orderBy: { createdAt: "desc" }
         })

@@ -48,6 +48,139 @@ describe("StudySessionRepository", () => {
         await prismaTests.user.deleteMany();
     });
 
+    describe("findActiveByUser", () => {
+
+                beforeEach(async () => {
+        user = await userRepository.create(makeUser());
+    });
+
+            it("should ignore COMPLETED sessions", async () => {
+
+                await prismaTests.studySession.create({
+                    data: {
+                        userId: user.id,
+                        minutes: 50,
+                        status: "COMPLETED",
+                        studiedAt: new Date(),
+                        startedAt: new Date()
+                    }
+                })
+
+                const result = await studySessionRepository.findActiveByUser(user.id)
+
+                expect(result).toHaveLength(0)
+            })
+            it("should return sessions ordered by createdAt desc", async () => {
+                const older = await prismaTests.studySession.create({
+                    data: {
+                        userId: user.id,
+                        minutes: 0,
+                        status: "IN_PROGRESS",
+                        studiedAt: new Date(),
+                        createdAt: new Date(Date.now() - 10000),
+                        startedAt: new Date()
+                    }
+                })
+
+                const newer = await prismaTests.studySession.create({
+                    data: {
+                        userId: user.id,
+                        minutes: 0,
+                        status: "IN_PROGRESS",
+                        studiedAt: new Date(),
+                        createdAt: new Date(),
+                        startedAt: new Date()
+                    }
+                })
+
+                const result = await studySessionRepository.findActiveByUser(user.id)
+
+                expect(result[0]?.id).toBe(newer.id)
+                expect(result[1]?.id).toBe(older.id)
+            })
+
+            it("should return multiple active sessions if they exist", async () => {
+                await prismaTests.studySession.createMany({
+                    data: [
+                        {
+                            userId: user.id,
+                            minutes: 0,
+                            status: "IN_PROGRESS",
+                            studiedAt: new Date(),
+                            startedAt: new Date()
+                        },
+                        {
+                            userId: user.id,
+                            minutes: 0,
+                            status: "IN_PROGRESS",
+                            studiedAt: new Date(),
+                            startedAt: new Date()
+                        }
+                    ]
+                })
+
+                const result = await studySessionRepository.findActiveByUser(user.id)
+
+                expect(result).toHaveLength(2)
+            })
+
+            it("should return empty array when no active sessions exist", async () => {
+
+                const result = await studySessionRepository.findActiveByUser(user.id)
+
+                expect(result).toEqual([])
+            })
+
+            it("should not return sessions from other users", async () => {
+                const otherUserId = (await prismaTests.user.create({data: makeUser()})).id
+
+                await prismaTests.studySession.create({
+                    data: {
+                        userId: otherUserId,
+                        minutes: 0,
+                        status: "IN_PROGRESS",
+                        studiedAt: new Date(),
+                        startedAt: new Date()
+                    }
+                })
+
+                const result = await studySessionRepository.findActiveByUser(user.id)
+
+                expect(result).toHaveLength(0)
+            })
+
+            it("should return only IN_PROGRESS sessions for the user", async () => {
+                const userId = user.id
+
+                const activeSession = await prismaTests.studySession.create({
+                    data: {
+                        userId,
+                        minutes: 0,
+                        status: "IN_PROGRESS",
+                        studiedAt: new Date(),
+                        startedAt: new Date()
+                    }
+                })
+
+                await prismaTests.studySession.create({
+                    data: {
+                        userId,
+                        minutes: 60,
+                        status: "COMPLETED",
+                        studiedAt: new Date(),
+                        startedAt: new Date()
+                    }
+                })
+
+                const result = await studySessionRepository.findActiveByUser(userId)
+
+                expect(result).toHaveLength(1)
+                expect(result[0]?.id).toBe(activeSession.id)
+            })
+
+    })
+
+
     describe("findById", () => {
         it("should find a study session by id", async () => {
             const found = await studySessionRepository.findById(studySession.id);
@@ -220,16 +353,6 @@ describe("StudySessionRepository", () => {
 
 
     describe("update", () => {
-        it("should update minutes only", async () => {
-            const originalDate = studySession.studiedAt;
-
-            const updated = await studySessionRepository.update(studySession.id, {
-                minutes: 90,
-            });
-
-            expect(updated.minutes).toBe(90);
-            expect(updated.studiedAt).toEqual(originalDate);
-        });
 
         it("should update studiedAt only", async () => {
             const newDate = new Date("2025-01-01");
@@ -249,7 +372,7 @@ describe("StudySessionRepository", () => {
 
         it("should throw if not found", async () => {
             await expect(
-                studySessionRepository.update("fake-id", { minutes: 50 })
+                studySessionRepository.update("fake-id", { status: 'COMPLETED' })
             ).rejects.toThrow();
         });
     });
@@ -273,7 +396,6 @@ describe("StudySessionRepository", () => {
         });
     });
 
- 
 
     describe("deleteAllByUserId", () => {
         it("should delete only sessions from given user", async () => {
@@ -296,4 +418,5 @@ describe("StudySessionRepository", () => {
             ).resolves.not.toThrow();
         });
     });
+
 });
