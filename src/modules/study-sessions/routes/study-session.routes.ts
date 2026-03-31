@@ -16,7 +16,9 @@ studySessionRoutes.get('/id/:id', RequestValidator.paramsValidator(FindByIdSchem
 
 studySessionRoutes.get('/user/:userId', RequestValidator.queryValidator(findAllByUserIdStudySessionSchema), authentication, studySessionController.findAllByUserId)
 
-studySessionRoutes.post('/', RequestValidator.bodyValidator(createStudySessionSchema), authentication, studySessionController.create)
+studySessionRoutes.post('/', RequestValidator.bodyValidator(createStudySessionSchema), authentication, studySessionController.start)
+
+studySessionRoutes.patch('/:id/finish', RequestValidator.paramsValidator(FindByIdSchema), authentication, studySessionController.finish)
 
 studySessionRoutes.patch('/:id', RequestValidator.paramsValidator(FindByIdSchema), RequestValidator.bodyValidator(updateStudySessionSchema), authentication, studySessionController.update)
 

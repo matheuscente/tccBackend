@@ -27,11 +27,12 @@ export class StudySessionRepository implements IStudySessionRepository {
         })
     }
 
-        async findActiveByUser(userId: string): Promise<StudySession[]> {
+    async findActiveByUser(userId: string): Promise<StudySession[]> {
         return this.orm.studySession.findMany({
-            where: { userId,
+            where: {
+                userId,
                 status: "IN_PROGRESS"
-             },
+            },
             orderBy: { createdAt: "desc" }
         })
     }
@@ -73,9 +74,16 @@ export class StudySessionRepository implements IStudySessionRepository {
     }
 
     async deleteAllByUserId(userId: string): Promise<void> {
-    await this.orm.studySession.deleteMany({
-        where: { userId }
-    })
-}
+        await this.orm.studySession.deleteMany({
+            where: { userId }
+        })
+    }
 
+    async findByGeneralScope(userId: string, startDate: Date, endDate: Date): Promise<StudySession[]> { }
+
+    async findByCourseScope(userId: string, courseId: string, startDate: Date, endDate: Date): Promise<StudySession[]> { }
+    
+    async findByModuleScope(userId: string, moduleId: string, startDate: Date, endDate: Date): Promise<StudySession[]> { }
+    
+    async findByDisciplineScope(userId: string, disciplineId: string, startDate: Date, endDate: Date): Promise<StudySession[]> { }
 }

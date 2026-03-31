@@ -1,9 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
-import type { CreateStudySessionDTO } from "../DTOs/start-study-session.DTO";
 import type { UpdateStudySessionDTO } from "../DTOs/update-study-session.DTO";
 import type { IStudySessionController } from "../interfaces/controllers/study-session-controller.interface";
 import type { IStudySessionService } from "../interfaces/services/study-sessions-service.interface";
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
+import type { StartStudySessionDTO } from "../DTOs/start-study-session.DTO";
 
 export class StudySessionController implements IStudySessionController {
 
@@ -11,22 +11,38 @@ export class StudySessionController implements IStudySessionController {
         private readonly service: IStudySessionService
     ) {}
 
-    create = async (req: Request<any, any, CreateStudySessionDTO>, res: Response, next: NextFunction): Promise<void> => {
-        try {
-            const authUser = req.user
-            const data = req.body
 
-            if (!authUser) throw new AuthorizationError("Usuário não autenticado")
+start = async (req: Request<any, any, StartStudySessionDTO>, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const authUser = req.user
+        const data = req.body
 
-            const goal = await this.service.create(authUser, data)
+        if (!authUser) throw new AuthorizationError("Usuário não autenticado")
 
-            res.status(201).json({ data: goal })
+        const session = await this.service.start(authUser, data)
 
-        } catch (err) {
-            next(err)
-        }
+        res.status(201).json({ data: session })
+
+    } catch (err) {
+        next(err)
     }
+}
 
+finish = async (req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const authUser = req.user
+        const { id } = req.params
+
+        if (!authUser) throw new AuthorizationError("Usuário não autenticado")
+
+        const session = await this.service.finish(authUser, id)
+
+        res.status(200).json({ data: session })
+
+    } catch (err) {
+        next(err)
+    }
+}
     findById = async (req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> => {
         try {
             const authUser = req.user
