@@ -13,6 +13,32 @@ export interface IStudySessionRepository {
     deleteAllByModuleIds(moduleIds: string[]): Promise<void>
     deleteAllByDisciplineIds(disciplineIds: string[]): Promise<void>,
     deleteAllByUserId(userId: string): Promise<void>,
-    findActiveByUser(userId: string): Promise<StudySession[]> 
+    findActiveByUser(userId: string): Promise<StudySession[]>
+    findByGeneralScope(
+    userId: string,
+    startDate: Date,
+    endDate?: Date | null
+): Promise<StudySession[]>
+    
+    findByCourseScope(
+    userId: string,
+    courseId: string,
+    startDate: Date,
+    endDate?: Date | null
+): Promise<StudySession[]>
+
+findByModuleScope(
+    userId: string,
+    moduleId: string,
+    startDate: Date,
+    endDate?: Date | null
+): Promise<StudySession[]>
+
+findByDisciplineScope(
+    userId: string,
+    disciplineId: string,
+    startDate: Date,
+    endDate?: Date | null
+): Promise<StudySession[]>
 
 }

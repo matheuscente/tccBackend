@@ -50,133 +50,133 @@ describe("StudySessionRepository", () => {
 
     describe("findActiveByUser", () => {
 
-                beforeEach(async () => {
-        user = await userRepository.create(makeUser());
-    });
+        beforeEach(async () => {
+            user = await userRepository.create(makeUser());
+        });
 
-            it("should ignore COMPLETED sessions", async () => {
+        it("should ignore COMPLETED sessions", async () => {
 
-                await prismaTests.studySession.create({
-                    data: {
+            await prismaTests.studySession.create({
+                data: {
+                    userId: user.id,
+                    minutes: 50,
+                    status: "COMPLETED",
+                    studiedAt: new Date(),
+                    startedAt: new Date()
+                }
+            })
+
+            const result = await studySessionRepository.findActiveByUser(user.id)
+
+            expect(result).toHaveLength(0)
+        })
+        it("should return sessions ordered by createdAt desc", async () => {
+            const older = await prismaTests.studySession.create({
+                data: {
+                    userId: user.id,
+                    minutes: 0,
+                    status: "IN_PROGRESS",
+                    studiedAt: new Date(),
+                    createdAt: new Date(Date.now() - 10000),
+                    startedAt: new Date()
+                }
+            })
+
+            const newer = await prismaTests.studySession.create({
+                data: {
+                    userId: user.id,
+                    minutes: 0,
+                    status: "IN_PROGRESS",
+                    studiedAt: new Date(),
+                    createdAt: new Date(),
+                    startedAt: new Date()
+                }
+            })
+
+            const result = await studySessionRepository.findActiveByUser(user.id)
+
+            expect(result[0]?.id).toBe(newer.id)
+            expect(result[1]?.id).toBe(older.id)
+        })
+
+        it("should return multiple active sessions if they exist", async () => {
+            await prismaTests.studySession.createMany({
+                data: [
+                    {
                         userId: user.id,
-                        minutes: 50,
-                        status: "COMPLETED",
+                        minutes: 0,
+                        status: "IN_PROGRESS",
                         studiedAt: new Date(),
                         startedAt: new Date()
-                    }
-                })
-
-                const result = await studySessionRepository.findActiveByUser(user.id)
-
-                expect(result).toHaveLength(0)
-            })
-            it("should return sessions ordered by createdAt desc", async () => {
-                const older = await prismaTests.studySession.create({
-                    data: {
+                    },
+                    {
                         userId: user.id,
                         minutes: 0,
                         status: "IN_PROGRESS",
                         studiedAt: new Date(),
-                        createdAt: new Date(Date.now() - 10000),
                         startedAt: new Date()
                     }
-                })
-
-                const newer = await prismaTests.studySession.create({
-                    data: {
-                        userId: user.id,
-                        minutes: 0,
-                        status: "IN_PROGRESS",
-                        studiedAt: new Date(),
-                        createdAt: new Date(),
-                        startedAt: new Date()
-                    }
-                })
-
-                const result = await studySessionRepository.findActiveByUser(user.id)
-
-                expect(result[0]?.id).toBe(newer.id)
-                expect(result[1]?.id).toBe(older.id)
+                ]
             })
 
-            it("should return multiple active sessions if they exist", async () => {
-                await prismaTests.studySession.createMany({
-                    data: [
-                        {
-                            userId: user.id,
-                            minutes: 0,
-                            status: "IN_PROGRESS",
-                            studiedAt: new Date(),
-                            startedAt: new Date()
-                        },
-                        {
-                            userId: user.id,
-                            minutes: 0,
-                            status: "IN_PROGRESS",
-                            studiedAt: new Date(),
-                            startedAt: new Date()
-                        }
-                    ]
-                })
+            const result = await studySessionRepository.findActiveByUser(user.id)
 
-                const result = await studySessionRepository.findActiveByUser(user.id)
+            expect(result).toHaveLength(2)
+        })
 
-                expect(result).toHaveLength(2)
+        it("should return empty array when no active sessions exist", async () => {
+
+            const result = await studySessionRepository.findActiveByUser(user.id)
+
+            expect(result).toEqual([])
+        })
+
+        it("should not return sessions from other users", async () => {
+            const otherUserId = (await prismaTests.user.create({ data: makeUser() })).id
+
+            await prismaTests.studySession.create({
+                data: {
+                    userId: otherUserId,
+                    minutes: 0,
+                    status: "IN_PROGRESS",
+                    studiedAt: new Date(),
+                    startedAt: new Date()
+                }
             })
 
-            it("should return empty array when no active sessions exist", async () => {
+            const result = await studySessionRepository.findActiveByUser(user.id)
 
-                const result = await studySessionRepository.findActiveByUser(user.id)
+            expect(result).toHaveLength(0)
+        })
 
-                expect(result).toEqual([])
+        it("should return only IN_PROGRESS sessions for the user", async () => {
+            const userId = user.id
+
+            const activeSession = await prismaTests.studySession.create({
+                data: {
+                    userId,
+                    minutes: 0,
+                    status: "IN_PROGRESS",
+                    studiedAt: new Date(),
+                    startedAt: new Date()
+                }
             })
 
-            it("should not return sessions from other users", async () => {
-                const otherUserId = (await prismaTests.user.create({data: makeUser()})).id
-
-                await prismaTests.studySession.create({
-                    data: {
-                        userId: otherUserId,
-                        minutes: 0,
-                        status: "IN_PROGRESS",
-                        studiedAt: new Date(),
-                        startedAt: new Date()
-                    }
-                })
-
-                const result = await studySessionRepository.findActiveByUser(user.id)
-
-                expect(result).toHaveLength(0)
+            await prismaTests.studySession.create({
+                data: {
+                    userId,
+                    minutes: 60,
+                    status: "COMPLETED",
+                    studiedAt: new Date(),
+                    startedAt: new Date()
+                }
             })
 
-            it("should return only IN_PROGRESS sessions for the user", async () => {
-                const userId = user.id
+            const result = await studySessionRepository.findActiveByUser(userId)
 
-                const activeSession = await prismaTests.studySession.create({
-                    data: {
-                        userId,
-                        minutes: 0,
-                        status: "IN_PROGRESS",
-                        studiedAt: new Date(),
-                        startedAt: new Date()
-                    }
-                })
-
-                await prismaTests.studySession.create({
-                    data: {
-                        userId,
-                        minutes: 60,
-                        status: "COMPLETED",
-                        studiedAt: new Date(),
-                        startedAt: new Date()
-                    }
-                })
-
-                const result = await studySessionRepository.findActiveByUser(userId)
-
-                expect(result).toHaveLength(1)
-                expect(result[0]?.id).toBe(activeSession.id)
-            })
+            expect(result).toHaveLength(1)
+            expect(result[0]?.id).toBe(activeSession.id)
+        })
 
     })
 
@@ -418,5 +418,802 @@ describe("StudySessionRepository", () => {
             ).resolves.not.toThrow();
         });
     });
+
+    describe("findByGeneralScope", () => {
+
+        it("should include sessions exactly at startDate", async () => {
+            const date = new Date("2026-03-10T10:00:00")
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    studiedAt: date,
+                    startedAt: date,
+                    minutes: 30,
+                    courseId: (await courseRepository.create(makeCourse({ userId: user.id }))).id
+                })
+            })
+
+            const result = await studySessionRepository.findByGeneralScope(
+                user.id,
+                date,
+                null
+            )
+
+            expect(result).toHaveLength(1)
+        })
+
+
+        it("should include sessions exactly at endDate", async () => {
+            const date = new Date("2026-03-10T10:00:00")
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    studiedAt: date,
+                    startedAt: date,
+                    minutes: 30,
+                    courseId: (await courseRepository.create(makeCourse({ userId: user.id }))).id
+                })
+            })
+
+            const result = await studySessionRepository.findByGeneralScope(
+                user.id,
+                new Date("2026-03-09"),
+                date
+            )
+
+            expect(result).toHaveLength(1)
+        })
+
+        it("should return all COMPLETED sessions of user in period", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    courseId: course.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    courseId: null,
+                    studiedAt: new Date("2026-03-15"),
+                    startedAt: new Date("2026-03-15"),
+                    minutes: 45
+                })
+            })
+
+            const result = await studySessionRepository.findByGeneralScope(
+                user.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(2)
+            expect(result.every(s => s.userId === user.id)).toBe(true)
+        })
+
+        it("should not return IN_PROGRESS sessions", async () => {
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "IN_PROGRESS",
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 0
+                })
+            })
+
+            const result = await studySessionRepository.findByGeneralScope(
+                user.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+        it("should not return sessions outside period", async () => {
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    studiedAt: new Date("2026-01-01"),
+                    startedAt: new Date("2026-01-01"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByGeneralScope(
+                user.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+        it("should return sessions when endDate is null", async () => {
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByGeneralScope(
+                user.id,
+                new Date("2026-03-01"),
+                null
+            )
+
+            expect(result).toHaveLength(1)
+        })
+
+        it("should not return sessions from another user", async () => {
+            const user2 = await userRepository.create(makeUser())
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user2.id,
+                    status: "COMPLETED",
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByGeneralScope(
+                user.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+        it("should return sessions ordered by studiedAt asc", async () => {
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    studiedAt: new Date("2026-03-15"),
+                    startedAt: new Date("2026-03-15"),
+                    minutes: 30
+                })
+            })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByGeneralScope(
+                user.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result[0]?.studiedAt.getTime()).toBeLessThan(result[1]?.studiedAt.getTime()!)
+        })
+
+    })
+
+
+    describe("findByCourseScope", () => {
+
+        it("should include sessions exactly at startDate (course scope)", async () => {
+            const date = new Date("2026-03-10T10:00:00")
+
+            const course = await courseRepository.create(
+                makeCourse({ userId: user.id })
+            )
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    studiedAt: date,
+                    startedAt: date,
+                    minutes: 30,
+                    courseId: course.id
+                })
+            })
+
+            const result = await studySessionRepository.findByCourseScope(
+                user.id,
+                course.id,
+                date,
+                null
+            )
+
+            expect(result).toHaveLength(1)
+        })
+
+        it("should return sessions linked directly to course", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    courseId: course.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByCourseScope(
+                user.id,
+                course.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(1)
+            expect(result[0]?.courseId).toBe(course.id)
+        })
+
+        it("should return sessions linked to modules of the course", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    moduleId: module.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByCourseScope(
+                user.id,
+                course.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(1)
+            expect(result[0]?.moduleId).toBe(module.id)
+        })
+
+        it("should return sessions linked to disciplines of the course", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+            const discipline = await prismaTests.discipline.create({ data: makeDiscipline({ moduleId: module.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    disciplineId: discipline.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByCourseScope(
+                user.id,
+                course.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(1)
+            expect(result[0]?.disciplineId).toBe(discipline.id)
+        })
+
+        it("should not return sessions from another course", async () => {
+            const course1 = await courseRepository.create(makeCourse({ userId: user.id }))
+            const course2 = await courseRepository.create(makeCourse({ userId: user.id }))
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    courseId: course2.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByCourseScope(
+                user.id,
+                course1.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+        it("should not return IN_PROGRESS sessions", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "IN_PROGRESS",
+                    courseId: course.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 0
+                })
+            })
+
+            const result = await studySessionRepository.findByCourseScope(
+                user.id,
+                course.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+        it("should not return sessions outside period", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    courseId: course.id,
+                    studiedAt: new Date("2026-01-01"),
+                    startedAt: new Date("2026-01-01"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByCourseScope(
+                user.id,
+                course.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+        it("should return sessions when endDate is null", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    courseId: course.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByCourseScope(
+                user.id,
+                course.id,
+                new Date("2026-03-01"),
+                null
+            )
+
+            expect(result).toHaveLength(1)
+        })
+
+    })
+
+
+    describe("findByModuleScope", () => {
+
+        it("should include sessions exactly at endDate (module scope)", async () => {
+            const date = new Date("2026-03-10T10:00:00")
+
+            const course = await courseRepository.create(
+                makeCourse({ userId: user.id })
+            )
+
+            const module = await prismaTests.module.create({
+                data: makeModule({ courseId: course.id })
+            })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    studiedAt: date,
+                    startedAt: date,
+                    minutes: 30,
+                    moduleId: module.id
+                })
+            })
+
+            const result = await studySessionRepository.findByModuleScope(
+                user.id,
+                module.id,
+                new Date("2026-03-09"),
+                date
+            )
+
+            expect(result).toHaveLength(1)
+        })
+
+        it("should return sessions linked directly to module", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    moduleId: module.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByModuleScope(
+                user.id,
+                module.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(1)
+            expect(result[0]?.moduleId).toBe(module.id)
+        })
+
+        it("should return sessions linked to disciplines of the module", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+            const discipline = await prismaTests.discipline.create({ data: makeDiscipline({ moduleId: module.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    disciplineId: discipline.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByModuleScope(
+                user.id,
+                module.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(1)
+            expect(result[0]?.disciplineId).toBe(discipline.id)
+        })
+
+        it("should not return sessions from another module", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module1 = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+            const module2 = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    moduleId: module2.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByModuleScope(
+                user.id,
+                module1.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+        it("should not return IN_PROGRESS sessions", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "IN_PROGRESS",
+                    moduleId: module.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 0
+                })
+            })
+
+            const result = await studySessionRepository.findByModuleScope(
+                user.id,
+                module.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+        it("should not return sessions outside period", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    moduleId: module.id,
+                    studiedAt: new Date("2026-01-01"),
+                    startedAt: new Date("2026-01-01"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByModuleScope(
+                user.id,
+                module.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+        it("should return sessions when endDate is null", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    moduleId: module.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByModuleScope(
+                user.id,
+                module.id,
+                new Date("2026-03-01"),
+                null
+            )
+
+            expect(result).toHaveLength(1)
+        })
+
+    })
+
+
+    describe("findByDisciplineScope", () => {
+
+        it("should include sessions exactly at startDate (discipline scope)", async () => {
+            const date = new Date("2026-03-10T10:00:00")
+
+            const course = await courseRepository.create(
+                makeCourse({ userId: user.id })
+            )
+
+            const module = await prismaTests.module.create({
+                data: makeModule({ courseId: course.id })
+            })
+
+            const discipline = await prismaTests.discipline.create({
+                data: makeDiscipline({ moduleId: module.id })
+            })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    studiedAt: date,
+                    startedAt: date,
+                    minutes: 30,
+                    disciplineId: discipline.id
+                })
+            })
+
+            const result = await studySessionRepository.findByDisciplineScope(
+                user.id,
+                discipline.id,
+                date,
+                null
+            )
+
+            expect(result).toHaveLength(1)
+        })
+
+        it("should return sessions linked to discipline", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+            const discipline = await prismaTests.discipline.create({ data: makeDiscipline({ moduleId: module.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    disciplineId: discipline.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByDisciplineScope(
+                user.id,
+                discipline.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(1)
+            expect(result[0]?.disciplineId).toBe(discipline.id)
+        })
+
+        it("should not return sessions from another discipline", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+            const discipline1 = await prismaTests.discipline.create({ data: makeDiscipline({ moduleId: module.id }) })
+            const discipline2 = await prismaTests.discipline.create({ data: makeDiscipline({ moduleId: module.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    disciplineId: discipline2.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByDisciplineScope(
+                user.id,
+                discipline1.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+        it("should not return IN_PROGRESS sessions", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+            const discipline = await prismaTests.discipline.create({ data: makeDiscipline({ moduleId: module.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "IN_PROGRESS",
+                    disciplineId: discipline.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 0
+                })
+            })
+
+            const result = await studySessionRepository.findByDisciplineScope(
+                user.id,
+                discipline.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+        it("should not return sessions outside period", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+            const discipline = await prismaTests.discipline.create({ data: makeDiscipline({ moduleId: module.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    disciplineId: discipline.id,
+                    studiedAt: new Date("2026-01-01"),
+                    startedAt: new Date("2026-01-01"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByDisciplineScope(
+                user.id,
+                discipline.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+        it("should return sessions when endDate is null", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+            const discipline = await prismaTests.discipline.create({ data: makeDiscipline({ moduleId: module.id }) })
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user.id,
+                    status: "COMPLETED",
+                    disciplineId: discipline.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByDisciplineScope(
+                user.id,
+                discipline.id,
+                new Date("2026-03-01"),
+                null
+            )
+
+            expect(result).toHaveLength(1)
+        })
+
+        it("should not return sessions from another user", async () => {
+            const course = await courseRepository.create(makeCourse({ userId: user.id }))
+            const module = await prismaTests.module.create({ data: makeModule({ courseId: course.id }) })
+            const discipline = await prismaTests.discipline.create({ data: makeDiscipline({ moduleId: module.id }) })
+            const user2 = await userRepository.create(makeUser())
+
+            await prismaTests.studySession.create({
+                data: makeStudySession({
+                    userId: user2.id,
+                    status: "COMPLETED",
+                    disciplineId: discipline.id,
+                    studiedAt: new Date("2026-03-10"),
+                    startedAt: new Date("2026-03-10"),
+                    minutes: 30
+                })
+            })
+
+            const result = await studySessionRepository.findByDisciplineScope(
+                user.id,
+                discipline.id,
+                new Date("2026-03-01"),
+                new Date("2026-03-31")
+            )
+
+            expect(result).toHaveLength(0)
+        })
+
+    })
 
 });

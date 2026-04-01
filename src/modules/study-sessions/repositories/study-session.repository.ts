@@ -79,11 +79,88 @@ export class StudySessionRepository implements IStudySessionRepository {
         })
     }
 
-    async findByGeneralScope(userId: string, startDate: Date, endDate: Date): Promise<StudySession[]> { }
-
-    async findByCourseScope(userId: string, courseId: string, startDate: Date, endDate: Date): Promise<StudySession[]> { }
-    
-    async findByModuleScope(userId: string, moduleId: string, startDate: Date, endDate: Date): Promise<StudySession[]> { }
-    
-    async findByDisciplineScope(userId: string, disciplineId: string, startDate: Date, endDate: Date): Promise<StudySession[]> { }
+    async findByGeneralScope(
+    userId: string,
+    startDate: Date,
+    endDate?: Date | null
+): Promise<StudySession[]> {
+    return this.orm.studySession.findMany({
+        where: {
+            userId,
+            status: "COMPLETED",
+            studiedAt: {
+                gte: startDate,
+                ...(endDate ? { lte: endDate } : {})
+            }
+        },
+        orderBy: { studiedAt: "asc" }
+    })
+}
+ 
+async findByCourseScope(
+    userId: string,
+    courseId: string,
+    startDate: Date,
+    endDate?: Date | null
+): Promise<StudySession[]> {
+    return this.orm.studySession.findMany({
+        where: {
+            userId,
+            status: "COMPLETED",
+            studiedAt: {
+                gte: startDate,
+                ...(endDate ? { lte: endDate } : {})
+            },
+            OR: [
+                { courseId },
+                { module: { courseId } },
+                { discipline: { module: { courseId } } }
+            ]
+        },
+        orderBy: { studiedAt: "asc" }
+    })
+}
+ 
+async findByModuleScope(
+    userId: string,
+    moduleId: string,
+    startDate: Date,
+    endDate?: Date | null
+): Promise<StudySession[]> {
+    return this.orm.studySession.findMany({
+        where: {
+            userId,
+            status: "COMPLETED",
+            studiedAt: {
+                gte: startDate,
+                ...(endDate ? { lte: endDate } : {})
+            },
+            OR: [
+                { moduleId },
+                { discipline: { moduleId } }
+            ]
+        },
+        orderBy: { studiedAt: "asc" }
+    })
+}
+ 
+async findByDisciplineScope(
+    userId: string,
+    disciplineId: string,
+    startDate: Date,
+    endDate?: Date | null
+): Promise<StudySession[]> {
+    return this.orm.studySession.findMany({
+        where: {
+            userId,
+            status: "COMPLETED",
+            studiedAt: {
+                gte: startDate,
+                ...(endDate ? { lte: endDate } : {})
+            },
+            disciplineId
+        },
+        orderBy: { studiedAt: "asc" }
+    })
+}
 }
