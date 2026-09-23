@@ -1,36 +1,36 @@
-import { prismaTests } from "../../../lib/prisma-tests";
 import { UserRepository } from "./user.repository";
 import type { CreateUserDTO } from "../DTOs/create-user.dto";
+import { databaseTests } from "../../../database/database-config-tests";
+import { deleteAllUsers } from "../querys/userQuerys";
+import type { UserResponseDTO } from "../DTOs/user-response.dto";
 
 describe('UserRepository tests', () => {
-    const repository = new UserRepository(prismaTests)
+    const repository = new UserRepository(databaseTests)
     let createUserId: string
     let createdUsername: string
     const user: CreateUserDTO = {
         name: "test",
         username: `test_${Date.now()}`,
         password: "test",
-        birthDate: new Date('2000-01-01')
+        birthDate: new Date('2000-01-01').toISOString().slice(0,10),
+        role: "USER"
     }
 
-    beforeAll(async () => {
-        await prismaTests.$connect()
-    })
-
-    afterAll(async () => {
-        await prismaTests.$disconnect()
-    })
+    let createdUser: UserResponseDTO;
 
     beforeEach( async () => {
         createdUsername = `test_${Date.now()}`
-        createUserId = (await repository.create({
+        const newUser = await repository.create({
             ...user,
             username: createdUsername
-        })).id
+        })
+
+        createUserId = newUser.id
+        createdUser = newUser
     })
 
     afterEach(async () => {
-        await prismaTests.user.deleteMany()
+        await databaseTests.execute(deleteAllUsers)
     })
 
     it('should create a user', async () => {
@@ -38,7 +38,8 @@ describe('UserRepository tests', () => {
             name: "create test",
             username: `test_${Date.now()}`,
             password: "create test",
-            birthDate: new Date('2000-01-01')
+            birthDate: new Date('2000-01-01').toISOString().slice(0,10),
+            role: "USER"
         }
 
         const userReturns =  await repository.create(createdUser)
@@ -60,6 +61,9 @@ describe('UserRepository tests', () => {
 
     it('should update user', async () => {
         const updated = await repository.update(createUserId, {
+           username: createdUser.username,
+           birthDate: createdUser.birthDate.toISOString().slice(0,10),
+           role: createdUser.role,
            name: 'test updated' 
         })
 
@@ -78,7 +82,7 @@ describe('UserRepository tests', () => {
 
         await repository.updatePassword(createUserId, 'new password')
 
-        const newPassword = (await repository.findById(createUserId))?.password
+        const newPassword = (await repository.getUserWithPassword(createdUsername))?.password
         
         expect(newPassword).toBe('new password')
     })

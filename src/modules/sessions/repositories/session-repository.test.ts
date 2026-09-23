@@ -1,5 +1,5 @@
 import type { Session, User } from "@prisma/client";
-import { prismaTests } from "../../../lib/prisma-tests";
+import { prismaTests } from "../../../lib/neo4j-tests";
 import type { CreateSessionDTO } from "..//../sessions/DTOs/create-session.DTO";
 import { SessionRepository } from "./session.repository";
 import { UserRepository } from "../../users/repositories/user.repository";

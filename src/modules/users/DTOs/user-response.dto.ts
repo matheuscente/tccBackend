@@ -7,6 +7,6 @@ export interface UserResponseDTO {
     role: UserRole,
     birthDate: Date,
     createdAt: Date,
-    updatedAt: Date
-
+    updatedAt?: Date | undefined
+    deletedAt?: Date | undefined
 }

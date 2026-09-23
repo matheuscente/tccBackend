@@ -17,8 +17,6 @@ module.exports = {
     '/dist/',
   ],
 
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
-
   transform: {
     '^.+\\.ts$': ['babel-jest', { configFile: './babel.config.cjs' }],
   },

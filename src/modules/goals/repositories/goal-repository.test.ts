@@ -1,5 +1,5 @@
 import type { Goal, User } from "@prisma/client";
-import { prismaTests } from "../../../lib/prisma-tests";
+import { prismaTests } from "../../../lib/neo4j-tests";
 import { makeGoal } from "../../../tests/factories/make-goal";
 import { makeUser } from "../../../tests/factories/make-user";
 import { makeCourse } from "../../../tests/factories/make-course";

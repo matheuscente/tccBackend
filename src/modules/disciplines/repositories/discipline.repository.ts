@@ -1,138 +1,140 @@
-import type { Discipline, Prisma, PrismaClient } from "@prisma/client"
+import type { Discipline } from "@prisma/client"
 import type { IDisciplineRepository } from "../interfaces/repositories/discipline-repository.interface"
 import type { CreateDisciplineDTO } from "../DTOs/create-discipline.DTO"
 import type { DisciplineWithCourseDTO } from "../DTOs/discipline-with-course-DTO"
+import type { DatabaseInterface } from "../../../database/database.interface"
 
-export class DisciplineRepository implements IDisciplineRepository {
+export class DisciplineRepository //implements IDisciplineRepository 
+{
     constructor(
-        private readonly orm: PrismaClient | Prisma.TransactionClient
+        private orm: DatabaseInterface
     ) { }
-    async findById(disciplineId: string): Promise<Discipline | null> {
-        return this.orm.discipline.findFirst({
-            where: {
-                id: disciplineId,
-                deletedAt: null
-            }
-        })
-    }
-    findAllByModuleId(moduleId: string): Promise<Discipline[]> {
-        return this.orm.discipline.findMany({
-            where: {
-                moduleId,
-                deletedAt: null
-            }
-        })
-    }
+    // async findById(disciplineId: string): Promise<Discipline | null> {
+    //     return this.orm.discipline.findFirst({
+    //         where: {
+    //             id: disciplineId,
+    //             deletedAt: null
+    //         }
+    //     })
+    // }
+    // findAllByModuleId(moduleId: string): Promise<Discipline[]> {
+    //     return this.orm.discipline.findMany({
+    //         where: {
+    //             moduleId,
+    //             deletedAt: null
+    //         }
+    //     })
+    // }
 
-    findAllByUserId(userId: string): Promise<Discipline[]> {
-        return this.orm.discipline.findMany({
-            where: {
-                deletedAt: null,
-                module: {
-                    course: {
-                        userId
-                    }
-                }
-            }
-        })
-    }
+    // findAllByUserId(userId: string): Promise<Discipline[]> {
+    //     return this.orm.discipline.findMany({
+    //         where: {
+    //             deletedAt: null,
+    //             module: {
+    //                 course: {
+    //                     userId
+    //                 }
+    //             }
+    //         }
+    //     })
+    // }
 
-    async findAllByModuleIdWithOwner(moduleId: string, userId: string): Promise<Discipline[]> {
-        return this.orm.discipline.findMany({
-            where: {
-                moduleId,
-                deletedAt: null,
-                module: {
-                    course: {
-                        userId
-                    }
-                }
-            }
-        })
-    }
+    // async findAllByModuleIdWithOwner(moduleId: string, userId: string): Promise<Discipline[]> {
+    //     return this.orm.discipline.findMany({
+    //         where: {
+    //             moduleId,
+    //             deletedAt: null,
+    //             module: {
+    //                 course: {
+    //                     userId
+    //                 }
+    //             }
+    //         }
+    //     })
+    // }
 
-    async findByIdWithOwner(disciplineId: string, userId: string): Promise<Discipline | null> {
-        return this.orm.discipline.findFirst({
-            where: {
-                id: disciplineId,
-                deletedAt: null,
-                module: {
-                    course: {
-                        userId
-                    }
-                }
-            }
-        })
-    }
+    // async findByIdWithOwner(disciplineId: string, userId: string): Promise<Discipline | null> {
+    //     return this.orm.discipline.findFirst({
+    //         where: {
+    //             id: disciplineId,
+    //             deletedAt: null,
+    //             module: {
+    //                 course: {
+    //                     userId
+    //                 }
+    //             }
+    //         }
+    //     })
+    // }
 
-    async findByIdWithCourse(disciplineId: string): Promise<DisciplineWithCourseDTO | null> {
-        return this.orm.discipline.findFirst({
-            where: { id: disciplineId, deletedAt: null },
-            include: {
-                module: {
-                    select: {
-                        course: {
-                            select: { userId: true }
-                        }
-                    }
-                }
-            }
-        })
-    }
+    // async findByIdWithCourse(disciplineId: string): Promise<DisciplineWithCourseDTO | null> {
+    //     return this.orm.discipline.findFirst({
+    //         where: { id: disciplineId, deletedAt: null },
+    //         include: {
+    //             module: {
+    //                 select: {
+    //                     course: {
+    //                         select: { userId: true }
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     })
+    // }
 
 
-    create(data: CreateDisciplineDTO): Promise<Discipline> {
-        return this.orm.discipline.create({
-            data
-        })
-    }
+    // create(data: CreateDisciplineDTO): Promise<Discipline> {
+    //     return this.orm.discipline.create({
+    //         data
+    //     })
+    // }
 
-    update(disciplineId: string, data: Partial<CreateDisciplineDTO>): Promise<Discipline> {
-        return this.orm.discipline.update({
-            where: {
-                id: disciplineId,
+    // update(disciplineId: string, data: Partial<CreateDisciplineDTO>): Promise<Discipline> {
+    //     return this.orm.discipline.update({
+    //         where: {
+    //             id: disciplineId,
 
-            },
-            data
-        })
-    }
+    //         },
+    //         data
+    //     })
+    // }
 
-    async softDelete(disciplineId: string): Promise<void> {
-        await this.orm.discipline.updateMany({
-            where: {
-                id: disciplineId,
-                deletedAt: null
-            },
+    // async softDelete(disciplineId: string): Promise<void> {
+    //     await this.orm.discipline.updateMany({
+    //         where: {
+    //             id: disciplineId,
+    //             deletedAt: null
+    //         },
 
-            data: { deletedAt: new Date() }
-        })
-    }
-    async softDeleteAllByModuleIds(moduleIds: string[]): Promise<void> {
-        const disciplines = await this.orm.discipline.findMany({
-            where: { moduleId: { in: moduleIds }, deletedAt: null }
-        })
-        const disciplineIds = disciplines.map(d => d.id)
+    //         data: { deletedAt: new Date() }
+    //     })
+    // }
+    // async softDeleteAllByModuleIds(moduleIds: string[]): Promise<void> {
+    //     const disciplines = await this.orm.discipline.findMany({
+    //         where: { moduleId: { in: moduleIds }, deletedAt: null }
+    //     })
+    //     const disciplineIds = disciplines.map(d => d.id)
 
-        if (disciplineIds.length > 0) {
-            await this.orm.goal.deleteMany({
-                where: { disciplineId: { in: disciplineIds } }
-            })
+    //     if (disciplineIds.length > 0) {
+    //         await this.orm.goal.deleteMany({
+    //             where: { disciplineId: { in: disciplineIds } }
+    //         })
 
-             await this.orm.studySession.deleteMany({
-                where: { disciplineId: { in: disciplineIds } }
-            })
-        }
+    //          await this.orm.studySession.deleteMany({
+    //             where: { disciplineId: { in: disciplineIds } }
+    //         })
+    //     }
 
-        await this.orm.discipline.updateMany({
-            where: {
-                moduleId: { in: moduleIds },
-                deletedAt: null
-            },
-            data: {
-                deletedAt: new Date()
-            }
-        })
+    //     await this.orm.discipline.updateMany({
+    //         where: {
+    //             moduleId: { in: moduleIds },
+    //             deletedAt: null
+    //         },
+    //         data: {
+    //             deletedAt: new Date()
+    //         }
+    //     })
 
-    }
+    // }
 
 }

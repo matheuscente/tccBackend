@@ -1,4 +1,3 @@
-import { prisma } from "../lib/prisma"
 import { authenticationMiddleware } from "../middlewares/authentication/authentication.middleware"
 import { AuthController } from "../modules/auth/controllers/auth-controller"
 import { AccessTokenService } from "../modules/auth/services/access-token/access-token.service"
@@ -29,6 +28,13 @@ import { GoalController } from "../modules/goals/controllers/goal.controller"
 import { StudySessionService } from "../modules/study-sessions/services/study-session.service"
 import { StudySessionRepository } from "../modules/study-sessions/repositories/study-session.repository"
 import { StudySessionController } from "../modules/study-sessions/controllers/study-session.controller"
+import { database } from "../database/database-config"
+import type { IModuleRepository } from "../modules/modules/interfaces/repositories/module-repository.interface"
+import type { ISessionRepository } from "../modules/sessions/interfaces/repositories/session-repository.interface"
+import type { ICourseRepository } from "../modules/courses/interfaces/repositories/course-repository.interface"
+import type { IDisciplineRepository } from "../modules/disciplines/interfaces/repositories/discipline-repository.interface"
+import type { IGoalRepository } from "../modules/goals/interfaces/repositories/goal-respository.interface"
+import type { IStudySessionRepository } from "../modules/study-sessions/interfaces/repositories/study-session-repository.interface"
 
 class AppContainer {
      // shared singletons
@@ -40,19 +46,19 @@ class AppContainer {
 
 
   // repositories
-  userRepository = new UserRepository(prisma)
-  sessionRepository = new SessionRepository(prisma)
-  moduleRepository = new ModuleRepository(prisma)
-  courseRpository = new CourseRepository(prisma, this.moduleRepository)
-  disciplineRepository = new DisciplineRepository(prisma)
-  goalRepository = new GoalRepository(prisma)
-  studySessionRepository = new StudySessionRepository(prisma)
+  userRepository = new UserRepository(database)
+  sessionRepository = new SessionRepository(database)
+  moduleRepository = new ModuleRepository(database)
+  courseRpository = new CourseRepository(database, this.moduleRepository as unknown as IModuleRepository)
+  disciplineRepository = new DisciplineRepository(database)
+  goalRepository = new GoalRepository(database)
+  studySessionRepository = new StudySessionRepository(database)
 
   // services
     ownerService = new OwnershipService(this.userRepository)
 
     sessionService = new SessionService(
-    this.sessionRepository,
+    this.sessionRepository as unknown as ISessionRepository,
     this.hashProvider
   )
   
@@ -73,44 +79,44 @@ class AppContainer {
   )
 
   courseService = new CourseService(
-    this.courseRpository,
+    this.courseRpository  as unknown as ICourseRepository,
     this.sanitizeUtils,
     this.transaction,
     this.ownerService
   )
 
   moduleService = new ModuleService(
-    this.moduleRepository,
-    this.courseRpository,
+    this.moduleRepository  as unknown as IModuleRepository,
+    this.courseRpository  as unknown as ICourseRepository,
     this.sanitizeUtils,
     this.ownerService,
     this.transaction,
   )
 
   disciplineService = new DisciplineService(
-    this.disciplineRepository,
-    this.moduleRepository,
+    this.disciplineRepository  as unknown as IDisciplineRepository,
+    this.moduleRepository as unknown as IModuleRepository,
     this.sanitizeUtils,
     this.ownerService,
     this.transaction
   )
 
   goalService = new GoalService(
-    this.goalRepository,
+    this.goalRepository as unknown as IGoalRepository,
     this.sanitizeUtils,
     this.ownerService,
-    this.courseRpository,
-    this.disciplineRepository,
-    this.moduleRepository,
+    this.courseRpository as unknown as ICourseRepository,
+    this.disciplineRepository as unknown as IDisciplineRepository,
+    this.moduleRepository as unknown as IModuleRepository,
     this.dateConvert
   )
 
   studySessionService = new StudySessionService(
-    this.studySessionRepository,
+    this.studySessionRepository as unknown as IStudySessionRepository,
     this.ownerService,
-    this.courseRpository,
-    this.disciplineRepository,
-    this.moduleRepository,
+    this.courseRpository as unknown as ICourseRepository,
+    this.disciplineRepository as unknown as IDisciplineRepository,
+    this.moduleRepository as unknown as IModuleRepository,
     this.dateConvert
   )
 

@@ -44,5 +44,5 @@
     "skipLibCheck": true,
   },
 
-    "include": ["src/**/*.ts", "tests/**/*.ts", "jest.setup.ts"]
+    "include": ["src/**/*.ts", "tests/**/*.ts"]
 }

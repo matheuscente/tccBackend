@@ -1,5 +1,5 @@
 import type { StudySession, User } from "@prisma/client";
-import { prismaTests } from "../../../lib/prisma-tests";
+import { prismaTests } from "../../../lib/neo4j-tests";
 import { makeStudySession } from "../../../tests/factories/make-study-session";
 import { makeUser } from "../../../tests/factories/make-user";
 import { makeCourse } from "../../../tests/factories/make-course";

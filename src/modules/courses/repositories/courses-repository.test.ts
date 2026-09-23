@@ -1,6 +1,6 @@
 import type { User } from "@prisma/client";
-import { prisma } from "../../../lib/prisma";
-import { prismaTests } from "../../../lib/prisma-tests";
+import { prisma } from "../../../lib/neo4j";
+import { prismaTests } from "../../../lib/neo4j-tests";
 import { makeCourse } from "../../../tests/factories/make-course";
 import { makeUser } from "../../../tests/factories/make-user";
 import { UserRepository } from "../../users/repositories/user.repository";
