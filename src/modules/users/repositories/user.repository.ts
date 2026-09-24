@@ -1,4 +1,3 @@
-import { Prisma, PrismaClient, type User } from "@prisma/client";
 import type { CreateUserDTO } from "../DTOs/create-user.dto";
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 import type { IUserRepository } from "../interfaces/user-repository.interface";

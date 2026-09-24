@@ -1,15 +1,15 @@
-import type { User } from "@prisma/client";
 import { randomUUID } from "node:crypto";
+import type { UserWithAllProps } from "../../shared/convert/utils/user-with-all-props";
 
-  export const makeUser = (overrides?: Partial<User>): User => ({
+  export const makeUser = (overrides?: Partial<UserWithAllProps>): UserWithAllProps => ({
     id: randomUUID(),
     name: "test",
     username: `test ${randomUUID()}`,
     role: "USER",
-    birthDate: new Date("2000-01-01"),
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    birthDate: 31102001,
+    createdAt: 123,
+    updatedAt: 123,
     password: "hashed password",
-    deletedAt: null,
+    deletedAt: undefined,
     ...overrides,
   });

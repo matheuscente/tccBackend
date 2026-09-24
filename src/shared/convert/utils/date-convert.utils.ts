@@ -47,6 +47,10 @@ export class DateConvert implements IDateConvert {
     return formattedDate;
 }
 
+    birthDateStringToNumber(date: string): number {
+        return Number(this.extractDate(date).toString().replaceAll(",",""))
+    }
+
     getCurrentDate(): Date {
         const now = new Date();
         return new Date(

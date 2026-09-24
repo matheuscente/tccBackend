@@ -4,7 +4,6 @@ import type { UserResponseDTO } from "../DTOs/user-response.dto";
 import type { IUserService } from "../interfaces/user-service.interface";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IUserRepository } from "../interfaces/user-repository.interface";
-import type { User } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provider.interface";
 import { InternalServerError } from "../../../shared/errors/internal-server-error";
@@ -25,8 +24,8 @@ export class UserService implements IUserService {
   ) { }
 
 
-  async updatePassword(authUser: AuthUserDTO, id: string, oldPassword: string, newPassword: string): Promise<void> {
-    const user = await this.repository.findById(id)
+  async updatePassword(authUser: AuthUserDTO, id: string, username: string, oldPassword: string, newPassword: string): Promise<void> {
+    const user = await this.repository.getUserWithPassword(username)
 
     if (!user) throw new NotFoundError('usuário não encontrado')
 
@@ -54,16 +53,21 @@ export class UserService implements IUserService {
 
     if (hashedPassoword === data.password) throw new InternalServerError("Ocorreu um erro interno, favor contatar o suporte")
 
-    const formatedDate = this.dateUtils.dateFormat(data.birthDate)
+    if(!(typeof data.birthDate === "string")) {
+      throw new Error("data de nascimento inválida")
+    }
+    const validateDate = this.dateUtils.dateFormat(data.birthDate)
+    if(!this.isValidBirthDate(validateDate)) throw new ValidationError("Data de nascimento maior que a data atual")
 
-    if(!this.isValidBirthDate(formatedDate)) throw new ValidationError("Data de nascimento maior que a data atual") 
+    const formatedDate = Number(this.dateUtils.extractDate(data.birthDate).toString().replaceAll(",",""))
 
 
     const user = await this.repository.create({
       name: this.sanitize.sanitizeName(data.name),
       username: this.sanitize.sanitizeUsername(data.username),
       password: hashedPassoword,
-      birthDate: formatedDate
+      birthDate: formatedDate,
+      role: data.role
     })
 
     return {
@@ -82,7 +86,7 @@ export class UserService implements IUserService {
   async findById(authUser: AuthUserDTO, id: string): Promise<UserResponseDTO | null> {
     this.ownership.validateOwnership(authUser, id)
 
-    const user: User | null = await this.repository.findById(id);
+    const user = await this.repository.findById(id);
     if (!user) return null;
 
     return this.mapResponse(user)
@@ -120,16 +124,20 @@ export class UserService implements IUserService {
       }
     }
 
-    if (data.birthDate) {
-      //transforma o birthDate em date, sempre virá como string, pois é validado no middlware.
-      data.birthDate = this.dateUtils.dateFormat(data.birthDate);
-
-      if(!this.isValidBirthDate(data.birthDate)) throw new ValidationError('Data de nascimento maior que a data atual')
+    if (!(typeof data.birthDate === "string")) {
+      throw new ValidationError('Data de nascimento Inválida')
     }
+      //transforma o birthDate em number, sempre virá como string, pois é validado no middlware.
+      const validateBirthDate = this.dateUtils.dateFormat(data.birthDate);
+
+      if(!this.isValidBirthDate(validateBirthDate)) throw new ValidationError('Data de nascimento maior que a data atual')
+  
+
+    const formatedDate = this.dateUtils.birthDateStringToNumber(data.birthDate)
 
     const updateUser: UpdateUserDTO = {
       name: data.name ? this.sanitize.sanitizeName(data.name) : user.name,
-      birthDate: data.birthDate ?? user.birthDate,
+      birthDate: formatedDate ?? user.birthDate,
       username: data.username ? this.sanitize.sanitizeUsername(data.username) : user.username
     };
 
@@ -160,7 +168,7 @@ export class UserService implements IUserService {
     }
 
 
-  private mapResponse(user: User): UserResponseDTO {
+  private mapResponse(user: UserResponseDTO): UserResponseDTO {
     return {
       id: user.id,
       name: user.name,

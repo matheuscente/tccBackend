@@ -38,6 +38,7 @@ describe("user service tests", () => {
     update: jest.fn(),
     updatePassword: jest.fn(),
     softDelete: jest.fn(),
+    getUserWithPassword: jest.fn()
   };
 
   const hashMock: jest.Mocked<IHashProvider> = {
@@ -108,6 +109,7 @@ describe("user service tests", () => {
     deleteAllByModuleIds: jest.fn(),
     deleteAllByDisciplineIds: jest.fn(),
     deleteAllByUserId: jest.fn(),
+    findActiveByUser: jest.fn()
   };
 
   const transactionMock: jest.Mocked<ITransaction> = {
@@ -234,11 +236,13 @@ describe("user service tests", () => {
       await service.updatePassword(
         authUser,
         user.id,
+        user.username,
         "old-password",
         "new-password",
       );
 
       expect(repositoryMock.findById).toHaveBeenCalledWith(user.id);
+      expect(repositoryMock.findByUsername).toHaveBeenCalledWith(user.id);
       expect(ownerMock.validateOwnership).toHaveBeenCalledWith(
         authUser,
         user.id,
@@ -270,6 +274,7 @@ describe("user service tests", () => {
       const promise = service.updatePassword(
         otherUser,
         user.id,
+        user.username,
         "old-password",
         "new-password",
       );
@@ -299,6 +304,7 @@ describe("user service tests", () => {
       const promise = service.updatePassword(
         authUser,
         user.id,
+        user.username,
         "wrong-password",
         "new-password",
       );
@@ -325,6 +331,7 @@ describe("user service tests", () => {
       const promise = service.updatePassword(
         authUser,
         "nonexistent-id",
+        "nonexistent-username",
         "old-password",
         "new-password",
       );

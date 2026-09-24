@@ -4,6 +4,6 @@ export interface CreateUserDTO {
     name: string,
     username: string,
     password: string,
-    birthDate: string,
+    birthDate: string | number,
     role: UserRole
 }

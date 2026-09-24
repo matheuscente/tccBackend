@@ -20,7 +20,7 @@ export class AuthService implements IAuthService {
     ) {}
 
     async login(data: LoginDTO): Promise<AuthResponseDTO> {
-        const user = await this.userRepository.findByUsername(data.username)
+        const user = await this.userRepository.getUserWithPassword(data.username)
 
         if(!user) throw new AuthorizationError("usuário ou senha inválidos")
 

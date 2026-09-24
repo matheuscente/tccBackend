@@ -12,7 +12,7 @@ describe('UserRepository tests', () => {
         name: "test",
         username: `test_${Date.now()}`,
         password: "test",
-        birthDate: new Date('2000-01-01').toISOString().slice(0,10),
+        birthDate: 31102001,
         role: "USER"
     }
 
@@ -38,7 +38,7 @@ describe('UserRepository tests', () => {
             name: "create test",
             username: `test_${Date.now()}`,
             password: "create test",
-            birthDate: new Date('2000-01-01').toISOString().slice(0,10),
+            birthDate: 31102001,
             role: "USER"
         }
 
@@ -62,7 +62,7 @@ describe('UserRepository tests', () => {
     it('should update user', async () => {
         const updated = await repository.update(createUserId, {
            username: createdUser.username,
-           birthDate: createdUser.birthDate.toISOString().slice(0,10),
+           birthDate: createdUser.birthDate,
            role: createdUser.role,
            name: 'test updated' 
         })

@@ -4,9 +4,9 @@ CREATE(u:User{
   id: randomUUID(),
   name: $name,
   password : $password,
-  birthDate:  Date($birthDate),
+  birthDate:  $birthDate,
   role: $role,
-  createdAt: dateTime()
+  createdAt: timestamp()
 })
 
 RETURN {
@@ -66,7 +66,7 @@ MATCH(u:User{id: $userId})
 WHERE u.deletedAt IS NULL
 
   SET u.password = $password,
-      u.updatedAt = dateTime()
+      u.updatedAt = timestamp()
 `
 
 const updateUserData = `
@@ -75,9 +75,9 @@ WHERE u.deletedAt IS NULL
 
 SET u.name = $name,
     u.username = $username,
-    u.birthDate =  Date($birthDate),
+    u.birthDate = $birthDate,
     u.role = $role,
-    u.updatedAt = dateTime()
+    u.updatedAt = timestamp()
 
 RETURN {
   id: u.id,
@@ -94,8 +94,8 @@ const deleteUser = `
 MATCH(u:User{id: $id})
 WHERE u.deletedAt IS NULL
 
-SET u.deletedAt =  dateTime(),
-    u.updatedAt = dateTime()
+SET u.deletedAt =  timestamp(),
+    u.updatedAt = timestamp()
 `
 
 const deleteAllUsers = `

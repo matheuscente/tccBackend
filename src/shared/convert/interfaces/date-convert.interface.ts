@@ -10,5 +10,7 @@ export interface IDateConvert {
     secondsToDate(seconds: number): Date
 
     normalize(date: Date): Date
+
+    birthDateStringToNumber(date: string): number
     
 }

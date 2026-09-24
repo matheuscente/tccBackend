@@ -1,4 +1,3 @@
-import type { User } from "@prisma/client";
 import type { CreateUserDTO } from "../DTOs/create-user.dto";
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 import type { UserResponseDTO } from "../DTOs/user-response.dto";
@@ -10,7 +9,8 @@ export interface IUserService {
     findByUsername(authUser: AuthUserDTO, username: string): Promise<UserResponseDTO | null>
     update(authUser: AuthUserDTO, id: string, data: UpdateUserDTO): Promise<UserResponseDTO>
     updatePassword(authUser: AuthUserDTO, 
-        id: string, 
+        id: string,
+        username: string,
         oldPassword: string,
         newPassword: string
     ): Promise<void>

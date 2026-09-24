@@ -1,5 +1,4 @@
 import type { CreateUserDTO } from "../DTOs/create-user.dto";
-import type {User} from "@prisma/client"
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 import type { UserResponseDTO } from "../DTOs/user-response.dto";
 import type { UserResponseWithPasswordDTO } from "../DTOs/user-response-password.DTO";
