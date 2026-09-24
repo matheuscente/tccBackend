@@ -501,7 +501,7 @@ describe("user service tests", () => {
 
       await service.update(authUser, user.id, { birthDate: "31/10/2001" });
 
-      const expectedBirthDate = new Date(Date.UTC(2001, 9, 31, 0, 0, 0));
+      const expectedBirthDate = 31102001;
 
       expect(repositoryMock.update).toHaveBeenCalledWith(
         user.id,
