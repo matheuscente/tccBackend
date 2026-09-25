@@ -124,16 +124,22 @@ export class UserService implements IUserService {
       }
     }
 
-    if (!(typeof data.birthDate === "string")) {
+    let formatedDate: number | null = null
+
+    if(data.birthDate){
+      if (!(typeof data.birthDate === "string")) {
       throw new ValidationError('Data de nascimento Inválida')
     }
-      //transforma o birthDate em number, sempre virá como string, pois é validado no middlware.
+
+    //transforma o birthDate em number, sempre virá como string, pois é validado no middlware.
       const validateBirthDate = this.dateUtils.dateFormat(data.birthDate);
 
       if(!this.isValidBirthDate(validateBirthDate)) throw new ValidationError('Data de nascimento maior que a data atual')
   
 
-    const formatedDate = this.dateUtils.birthDateStringToNumber(data.birthDate)
+    formatedDate = this.dateUtils.birthDateStringToNumber(data.birthDate)
+  }
+      
 
     const updateUser: UpdateUserDTO = {
       name: data.name ? this.sanitize.sanitizeName(data.name) : user.name,

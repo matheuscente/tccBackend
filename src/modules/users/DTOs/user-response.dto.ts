@@ -5,7 +5,7 @@ export interface UserResponseDTO {
     name: string,
     username: string,
     role: UserRole,
-    birthDate: number,
+    birthDate: number | string,
     createdAt: number,
     updatedAt?: number | undefined,
     deletedAt?: number | undefined
