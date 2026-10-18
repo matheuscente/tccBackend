@@ -1,4 +1,5 @@
 export interface StudyTimeByScopeDTO {
-  scopeId: string
+  scopeId: string,
+  scope: "discipline" | "module" | "course"
   minutes: number
 }

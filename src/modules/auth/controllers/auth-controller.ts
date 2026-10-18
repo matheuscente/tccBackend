@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import type { IAuthController } from "../interfaces/auth/auth-controller.interface";
 import type { IAuthService } from "../interfaces/auth/auth-service.interface";
 import type { LoginDTO } from "../DTOs/login.dto";
+import { httpSuccessResponse } from "../../../shared/controller/httpSuccessResponse.util";
 
 export class AuthController implements IAuthController {
     constructor(
@@ -19,13 +20,12 @@ export class AuthController implements IAuthController {
 
             this.setRefreshCookie(res, result.refreshToken.token, result.refreshToken.expiresAt)
 
-
-            res.status(200).json({
-                data: {
+            const response =  {
                     accessToken: result.accessToken,
                     sessionExpiresAt: result.refreshToken.expiresAt
                 }
-            })
+
+            res.status(200).json(httpSuccessResponse(200, response))
 
         } catch (err) {
 
@@ -58,7 +58,7 @@ export class AuthController implements IAuthController {
                 path: "/auth/refresh"
             })
 
-            res.status(204).send()
+            res.status(204).send(httpSuccessResponse(204, {}))
 
         } catch (err) {
 
@@ -84,12 +84,12 @@ export class AuthController implements IAuthController {
 
             this.setRefreshCookie(res, result.refreshToken.token, result.refreshToken.expiresAt)
 
-            res.status(200).json({
-                data: {
+            const data = {
                     accessToken: result.accessToken,
                     sessionExpiresAt: result.refreshToken.expiresAt
                 }
-            })
+
+            res.status(200).json(httpSuccessResponse(200, data))
 
         } catch (err) {
             console.log(err)
@@ -108,6 +108,5 @@ export class AuthController implements IAuthController {
         expires: new Date(expiresAt * 1000)
 
     })
-}
-
+    }
 }
