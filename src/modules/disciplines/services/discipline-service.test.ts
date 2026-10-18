@@ -59,6 +59,13 @@ describe("DisciplineService", () => {
     const studySessionRepositoryMock = {
     deleteAllByDisciplineIds: jest.fn()
   }
+  const scopedContentRepositoryMock = {
+    cleanupByCourseIds: jest.fn(),
+    cleanupByModuleIds: jest.fn(),
+    cleanupByDisciplineIds: jest.fn(),
+    cleanupByUserId: jest.fn(),
+  };
+
 
   const transactionMock: jest.Mocked<ITransaction> = {
     execute: jest.fn().mockImplementation(async (callback) => {
@@ -66,7 +73,8 @@ describe("DisciplineService", () => {
         disciplineRepository: disciplineRepositoryMock,
         moduleRepository: moduleRepositoryMock,
         goalRepository: goalRepositoryMock,
-        studySessionRepository: studySessionRepositoryMock
+        studySessionRepository: studySessionRepositoryMock,
+        scopedContentRepository: scopedContentRepositoryMock
       });
     }),
   };

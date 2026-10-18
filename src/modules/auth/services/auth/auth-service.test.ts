@@ -16,9 +16,12 @@ describe(("authService teste"), ()=> {
     create: jest.fn(),
     findById: jest.fn(),
     findByUsername: jest.fn(),
+    findByEmail: jest.fn(),
     update: jest.fn(),
     updatePassword: jest.fn(),
     softDelete: jest.fn(),
+    findMany: jest.fn(),
+    updateRole: jest.fn(),
   }
 
   const sessionServiceMock: jest.Mocked<ISessionService> = {
@@ -36,6 +39,10 @@ describe(("authService teste"), ()=> {
     const dateConvertMock: jest.Mocked<IDateConvert> = {
         secondsToDate: jest.fn(),
         dateToSeconds: jest.fn(),
+        extractDate: jest.fn(),
+        dateFormat: jest.fn(),
+        getCurrentDate: jest.fn(),
+        normalize: jest.fn(),
   }
 
     const accessTokenMock: jest.Mocked<IAccessTokenService> = {

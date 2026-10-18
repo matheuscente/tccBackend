@@ -191,10 +191,11 @@ describe("Session service test", () => {
       );
 
       expect(repositoryMock.update).toHaveBeenCalledTimes(1);
-      expect(repositoryMock.update).toHaveBeenCalledWith(session.id, {
+      expect(repositoryMock.update).toHaveBeenCalledWith(session.id, expect.objectContaining({
         refreshToken: "123",
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-      });
+        previousRefreshToken: session.refreshToken,
+      }));
 
       expect(newSession).toMatchObject({
         id: expect.any(String),
@@ -312,6 +313,43 @@ describe("Session service test", () => {
       expect(repositoryMock.invalidate).not.toHaveBeenCalled();
 
       expect(repositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should accept the previous refresh token within the grace window", async () => {
+      const rotated = makeSession({
+        id: sessionId,
+        refreshToken: "new-hash",
+        previousRefreshToken: "old-hash",
+        rotatedAt: new Date(Date.now() - 5000),
+      });
+      repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithActiveUser(rotated));
+      hashMock.compare.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      hashMock.hash.mockResolvedValue("rotated-again");
+      repositoryMock.update.mockResolvedValue();
+
+      const result = await service.refreshSession(refreshToken);
+
+      expect(hashMock.compare).toHaveBeenNthCalledWith(2, secret, "old-hash");
+      expect(repositoryMock.update).toHaveBeenCalledWith(sessionId, expect.objectContaining({
+        refreshToken: "rotated-again",
+        previousRefreshToken: "new-hash",
+      }));
+      expect(result.refreshToken.startsWith(`${sessionId}.`)).toBe(true);
+    });
+
+    it("should reject the previous refresh token after the grace window", async () => {
+      const rotated = makeSession({
+        id: sessionId,
+        refreshToken: "new-hash",
+        previousRefreshToken: "old-hash",
+        rotatedAt: new Date(Date.now() - 120000),
+      });
+      repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithActiveUser(rotated));
+      hashMock.compare.mockResolvedValue(false);
+
+      await expect(service.refreshSession(refreshToken)).rejects.toBeInstanceOf(ValidationError);
+      expect(hashMock.compare).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.update).not.toHaveBeenCalled();
     });
 
     it("should propagate repository findByIdWithUser error", async () => {

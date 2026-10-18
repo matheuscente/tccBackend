@@ -80,6 +80,13 @@ describe("ModuleService", () => {
     const studySessionRepositoryMock = {
     deleteAllByModuleIds: jest.fn(),
   }
+  const scopedContentRepositoryMock = {
+    cleanupByCourseIds: jest.fn(),
+    cleanupByModuleIds: jest.fn(),
+    cleanupByDisciplineIds: jest.fn(),
+    cleanupByUserId: jest.fn(),
+  };
+
 
 
   const transactionMock: jest.Mocked<ITransaction> = {
@@ -89,7 +96,8 @@ describe("ModuleService", () => {
         courseRepository: courseRepositoryMock,
         disciplineRepository: disciplineRepositoryMock,
         goalRepository: goalRepositoryMock,
-        studySessionRepository: studySessionRepositoryMock
+        studySessionRepository: studySessionRepositoryMock,
+        scopedContentRepository: scopedContentRepositoryMock
       });
     }),
   };

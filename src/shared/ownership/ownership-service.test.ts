@@ -11,9 +11,12 @@ describe("OwnershipService", () => {
     create: jest.fn(),
     findById: jest.fn(),
     findByUsername: jest.fn(),
+    findByEmail: jest.fn(),
     update: jest.fn(),
     updatePassword: jest.fn(),
     softDelete: jest.fn(),
+    findMany: jest.fn(),
+    updateRole: jest.fn(),
   };
 
   const service = new OwnershipService(userRepositoryMock);
