@@ -1,5 +1,5 @@
 import type { Session } from "@prisma/client";
-import type { CreateSessionDTO } from "../../DTOs/create-session.DTO";
+import type { CreateSessionDTO, UpdateSessionDTO } from "../../DTOs/create-session.DTO";
 import type { SessionWithUserDTO } from "../../DTOs/session-with-user.DTO"
 
 export interface ISessionRepository {
@@ -13,7 +13,7 @@ export interface ISessionRepository {
 
     invalidate(sessionId: string): Promise<void>
 
-    update(sessionId: string, data: Omit<CreateSessionDTO, "userId">): Promise<void>
+    update(sessionId: string, data: UpdateSessionDTO): Promise<void>
 
     invalidateAllByUserId(userId: string): Promise<void>
 

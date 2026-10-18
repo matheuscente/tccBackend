@@ -1,5 +1,5 @@
 import { Joi } from "celebrate";
-import { ErrorMessages } from "../../../shared/errorMessages/ErrorMessages";
+import { ErrorMessages } from "../../../shared/errorMessages/errorMessages";
 
 export const loginAuthSchema = Joi.object().keys({
       username: Joi.string()

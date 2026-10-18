@@ -1,3 +1,5 @@
+import { NotFoundError } from "../../../shared/errors/not-found-error";
+import { httpSuccessResponse } from "../../../shared/controller/httpSuccessResponse.util";
 import type { Request, Response, NextFunction } from "express";
 import type { CreateGoalDTO } from "../DTOs/create-goal.DTO";
 import type { UpdateGoalDTO } from "../DTOs/update-goal.DTO";
@@ -20,7 +22,7 @@ export class GoalController implements IGoalController {
 
             const goal = await this.service.create(authUser, data)
 
-            res.status(201).json({ data: goal })
+            res.status(201).json(httpSuccessResponse(201, goal))
 
         } catch (err) {
             next(err)
@@ -36,12 +38,9 @@ export class GoalController implements IGoalController {
 
             const goal = await this.service.findById(authUser, id)
 
-            if (!goal) {
-                res.status(204).send()
-                return
-            }
+            if (!goal) throw new NotFoundError("Registro não encontrado")
 
-            res.status(200).json({ data: goal })
+            res.status(200).json(httpSuccessResponse(200, goal))
 
         } catch (err) {
             next(err)
@@ -57,12 +56,7 @@ export class GoalController implements IGoalController {
 
             const goals = await this.service.findAllByUserId(authUser, userId)
 
-            if (goals.length === 0) {
-                res.status(204).send()
-                return
-            }
-
-            res.status(200).json({ data: goals })
+            res.status(200).json(httpSuccessResponse(200, goals))
 
         } catch (err) {
             next(err)
@@ -79,7 +73,7 @@ export class GoalController implements IGoalController {
 
             const updatedGoal = await this.service.update(authUser, id, data)
 
-            res.status(200).json({ data: updatedGoal })
+            res.status(200).json(httpSuccessResponse(200, updatedGoal))
 
         } catch (err) {
             next(err)

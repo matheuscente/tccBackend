@@ -1,3 +1,4 @@
+import { ForbiddenError } from "../errors/forbidden.error";
 import type { User } from "@prisma/client";
 import type { AuthUserDTO } from "../../shared/DTOs/auth-user.DTO";
 import type { IUserRepository } from "../../modules/users/interfaces/user-repository.interface";
@@ -25,7 +26,7 @@ export class OwnershipService {
         }
 
         if (userId && userId !== authUser.id) {
-            throw new AuthorizationError("Ação não autorizada");
+            throw new ForbiddenError("Ação não autorizada");
         }
 
         return authUser.id;
@@ -36,7 +37,7 @@ export class OwnershipService {
         ownerId: string,
     ): void {
         if (user.role !== "ADMIN" && user.id !== ownerId) {
-            throw new AuthorizationError("Ação não autorizada");
+            throw new ForbiddenError("Ação não autorizada");
         }
     }
 
@@ -45,7 +46,7 @@ export class OwnershipService {
         ownerId: string,
     ): void {
         if (user.id !== ownerId) {
-            throw new AuthorizationError("Ação não autorizada");
+            throw new ForbiddenError("Ação não autorizada");
         }
     }
 }

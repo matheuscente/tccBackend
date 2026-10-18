@@ -9,6 +9,8 @@ import type { Session } from "@prisma/client";
 import type { ValidateSessionResponseDTO } from "../DTOs/validate-session-response.DTO";
 import type { SessionWithUserDTO } from "../DTOs/session-with-user.DTO";
 
+const REFRESH_GRACE_MS = 60 * 1000;
+
 export class SessionService implements ISessionService {
   constructor(
     private readonly repository: ISessionRepository,
@@ -63,7 +65,17 @@ export class SessionService implements ISessionService {
 
     //Compare client unhashed secret with database hashed secret
     const isMatch = await this.hash.compare(secret, session.refreshToken);
-    if (!isMatch) throw new ValidationError("Refresh token inválido");
+
+    if (!isMatch) {
+      // tolerância: o token anterior continua válido por alguns segundos após a rotação,
+      // evitando derrubar a sessão quando duas abas renovam juntas ou a resposta se perde
+      const withinGrace = !!session.previousRefreshToken && !!session.rotatedAt &&
+        Date.now() - session.rotatedAt.getTime() <= REFRESH_GRACE_MS;
+
+      const isPrevious = withinGrace && await this.hash.compare(secret, session.previousRefreshToken!);
+
+      if (!isPrevious) throw new ValidationError("Refresh token inválido");
+    }
 
     const newSecret = randomUUID();
 
@@ -75,6 +87,8 @@ export class SessionService implements ISessionService {
     await this.repository.update(sessionId, {
       refreshToken: newHashedSecret,
       expiresAt: newExpiresAt,
+      previousRefreshToken: session.refreshToken,
+      rotatedAt: new Date(),
     });
 
     return {

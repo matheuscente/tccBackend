@@ -1,6 +1,6 @@
 import { Joi } from "celebrate"
 import { baseModuleFields } from "./base-module.schema"
-import { ErrorMessages } from "../../../shared/errorMessages/ErrorMessages"
+import { ErrorMessages } from "../../../shared/errorMessages/errorMessages"
 
 export const createModuleSchema = Joi.object().keys({
     title: baseModuleFields.title

@@ -5,7 +5,8 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  engineType = "client"
 }
 
 datasource db {
@@ -17,6 +18,7 @@ model User {
   id        String   @id @default(uuid())
   name      String
   username  String
+  email     String
   password  String
   birthDate DateTime
   role      Role     @default(USER)
@@ -26,12 +28,21 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sessions      Session[]
-  courses       Course[]
-  goals         Goal[]
-  studySessions StudySession[]
+  sessions            Session[]
+  courses             Course[]
+  goals               Goal[]
+  studySessions       StudySession[]
+  passwordResetTokens PasswordResetToken[]
+  questions           Question[]
+  activities          Activity[]
+  activityAttempts    ActivityAttempt[]
+  notes               Note[]
+  files               StoredFile[]
+  tickets             Ticket[]
+  ticketMessages      TicketMessage[]
 
   @@index([username])
+  @@index([email])
   @@map("users")
 }
 
@@ -42,6 +53,10 @@ model Session {
   refreshToken String   @unique
   expiresAt    DateTime
   isValid      Boolean  @default(true)
+
+  // token anterior aceito por alguns segundos após a rotação (abas simultâneas / requisição interrompida)
+  previousRefreshToken String?
+  rotatedAt            DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -64,6 +79,10 @@ model Course {
   modules       Module[]
   goals         Goal[]
   studySessions StudySession[]
+  questions     Question[]
+  activities    Activity[]
+  notes         Note[]
+  files         StoredFile[]
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -84,6 +103,10 @@ model Module {
   disciplines   Discipline[]
   goals         Goal[]
   studySessions StudySession[]
+  questions     Question[]
+  activities    Activity[]
+  notes         Note[]
+  files         StoredFile[]
 
   @@index([courseId])
   @@map("modules")
@@ -101,6 +124,10 @@ model Discipline {
   module        Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   goals         Goal[]
   studySessions StudySession[]
+  questions     Question[]
+  activities    Activity[]
+  notes         Note[]
+  files         StoredFile[]
 
   @@index([moduleId])
   @@map("disciplines")
@@ -134,7 +161,7 @@ model Goal {
 }
 
 model StudySession {
-  id           String   @id @default(uuid())
+  id           String             @id @default(uuid())
   userId       String
   minutes      Int
   courseId     String?
@@ -143,7 +170,7 @@ model StudySession {
   startedAt    DateTime
   status       StudySessionStatus
   studiedAt    DateTime
-  createdAt    DateTime @default(now())
+  createdAt    DateTime           @default(now())
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   course     Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -152,6 +179,239 @@ model StudySession {
 
   @@index([userId])
   @@map("study_sessions")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model Question {
+  id           String       @id @default(uuid())
+  userId       String
+  statement    String
+  type         QuestionType
+  explanation  String?
+  courseId     String?
+  moduleId     String?
+  disciplineId String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course            Course?            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module            Module?            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  discipline        Discipline?        @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  options           QuestionOption[]
+  activityQuestions ActivityQuestion[]
+  attemptAnswers    AttemptAnswer[]
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([moduleId])
+  @@index([disciplineId])
+  @@map("questions")
+}
+
+model QuestionOption {
+  id         String  @id @default(uuid())
+  questionId String
+  text       String
+  isCorrect  Boolean @default(false)
+  order      Int
+
+  question       Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attemptAnswers AttemptAnswer[]
+
+  @@index([questionId])
+  @@map("question_options")
+}
+
+model Activity {
+  id           String    @id @default(uuid())
+  userId       String
+  title        String
+  description  String?
+  courseId     String?
+  moduleId     String?
+  disciplineId String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course     Course?            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module     Module?            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  discipline Discipline?        @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  questions  ActivityQuestion[]
+  attempts   ActivityAttempt[]
+
+  @@index([userId])
+  @@map("activities")
+}
+
+model ActivityQuestion {
+  activityId String
+  questionId String
+  order      Int
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([activityId, questionId])
+  @@map("activity_questions")
+}
+
+model ActivityAttempt {
+  id             String   @id @default(uuid())
+  activityId     String
+  userId         String
+  correctCount   Int
+  totalQuestions Int
+  score          Float
+  startedAt      DateTime
+  finishedAt     DateTime @default(now())
+
+  activity Activity        @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers  AttemptAnswer[]
+
+  @@index([activityId])
+  @@index([userId])
+  @@map("activity_attempts")
+}
+
+model AttemptAnswer {
+  id               String  @id @default(uuid())
+  attemptId        String
+  questionId       String
+  selectedOptionId String?
+  isCorrect        Boolean
+
+  attempt        ActivityAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption QuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+
+  @@index([attemptId])
+  @@map("attempt_answers")
+}
+
+model Note {
+  id           String    @id @default(uuid())
+  userId       String
+  title        String
+  content      String    @default("")
+  courseId     String?
+  moduleId     String?
+  disciplineId String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course     Course?     @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  module     Module?     @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  discipline Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("notes")
+}
+
+model StoredFile {
+  id           String   @id @default(uuid())
+  userId       String
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String   @unique
+  courseId     String?
+  moduleId     String?
+  disciplineId String?
+  createdAt    DateTime @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course     Course?     @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  module     Module?     @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  discipline Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("files")
+}
+
+model Ticket {
+  id        String         @id @default(uuid())
+  userId    String
+  subject   String
+  category  TicketCategory
+  status    TicketStatus   @default(OPEN)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  closedAt  DateTime?
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages TicketMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id        String   @id @default(uuid())
+  ticketId  String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  ticket      Ticket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author      User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  attachments TicketAttachment[]
+
+  @@index([ticketId])
+  @@map("ticket_messages")
+}
+
+model TicketAttachment {
+  id           String   @id @default(uuid())
+  messageId    String
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String   @unique
+  createdAt    DateTime @default(now())
+
+  message TicketMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("ticket_attachments")
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+}
+
+enum TicketCategory {
+  DOUBT
+  PROBLEM
+  SUGGESTION
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  ANSWERED
+  CLOSED
 }
 
 enum GoalType {

@@ -7,6 +7,7 @@ import { UserRepository } from "../../users/repositories/user.repository"
 import { SessionRepository } from "../../sessions/repositories/session.repository"
 import { DisciplineRepository } from "../../disciplines/repositories/discipline.repository"
 import { GoalRepository } from "../../goals/repositories/goal.repository"
+import { ScopedContentRepository } from "../../scoped-content/repositories/scoped-content.repository"
 import { StudySessionRepository } from "../../study-sessions/repositories/study-session.repository"
 
 export class Trasanction implements ITransaction {
@@ -22,6 +23,7 @@ export class Trasanction implements ITransaction {
       const disciplineRepository = new DisciplineRepository(tx)
       const goalRepository = new GoalRepository(tx)
       const studySessionRepository = new StudySessionRepository(tx)
+      const scopedContentRepository = new ScopedContentRepository(tx)
 
       const repositories: IRepositories = {
         moduleRepository,
@@ -30,7 +32,8 @@ export class Trasanction implements ITransaction {
         sessionRepository,
         disciplineRepository,
         goalRepository,
-        studySessionRepository
+        studySessionRepository,
+        scopedContentRepository
       }
 
       return work(repositories)

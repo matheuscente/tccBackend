@@ -1,5 +1,5 @@
 import type { Prisma, PrismaClient, Session } from "@prisma/client";
-import type { CreateSessionDTO } from "../../sessions/DTOs/create-session.DTO";
+import type { CreateSessionDTO, UpdateSessionDTO } from "../../sessions/DTOs/create-session.DTO";
 import type { ISessionRepository } from "../interfaces/repositories/session-repository.interface";
 import type { SessionWithUserDTO } from "../DTOs/session-with-user.DTO";
 
@@ -21,7 +21,7 @@ export class SessionRepository implements ISessionRepository {
         })
     }
 
-    async update(sessionId: string, data: Omit<CreateSessionDTO, "userId">): Promise<void> {
+    async update(sessionId: string, data: UpdateSessionDTO): Promise<void> {
         await this.orm.session.update({
         where: { id: sessionId,
                 isValid: true
@@ -29,7 +29,9 @@ export class SessionRepository implements ISessionRepository {
         data: {
             refreshToken: data.refreshToken,
             expiresAt: data.expiresAt,
-            isValid: true
+            isValid: true,
+            ...(data.previousRefreshToken !== undefined ? { previousRefreshToken: data.previousRefreshToken } : {}),
+            ...(data.rotatedAt !== undefined ? { rotatedAt: data.rotatedAt } : {})
         }
     })
     }

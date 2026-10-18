@@ -1,6 +1,6 @@
 import { Joi } from "celebrate"
 import { baseGoalFields } from "./base-goal.schema"
-import { ErrorMessages } from "../../../shared/errorMessages/ErrorMessages"
+import { ErrorMessages } from "../../../shared/errorMessages/errorMessages"
 
 export const findAllByUserIdGoalSchema = Joi.object().keys({
     userId: baseGoalFields.userId

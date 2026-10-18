@@ -1,3 +1,5 @@
+import { NotFoundError } from "../../../shared/errors/not-found-error";
+import { httpSuccessResponse } from "../../../shared/controller/httpSuccessResponse.util";
 import type { Request, Response, NextFunction } from "express";
 import type { CreateCourseDTO } from "../DTOs/create-course.DTO";
 import type { ICourseController } from "../interfaces/controllers/course-controller.interface";
@@ -19,7 +21,7 @@ export class CourseController implements ICourseController {
 
             const createdCourse = await this.service.create(authUser, course)
 
-            res.status(201).json({data: createdCourse})
+            res.status(201).json(httpSuccessResponse(201, createdCourse))
 
         } catch(err) {
             next(err)
@@ -35,12 +37,9 @@ export class CourseController implements ICourseController {
 
             const course = await this.service.findById(authUser, id)
 
-            if(!course) {
-                res.status(204).send()
-                return
-            }
+            if (!course) throw new NotFoundError("Registro não encontrado")
 
-            res.status(200).json({data: course})
+            res.status(200).json(httpSuccessResponse(200, course))
 
         } catch(err) {
             next(err)
@@ -56,12 +55,7 @@ export class CourseController implements ICourseController {
 
             const courses = await this.service.findAllByUserId(authUser, userId)
 
-            if(courses.length === 0) {
-                res.status(204).send()
-                return
-            }
-
-            res.status(200).json({data: courses})
+            res.status(200).json(httpSuccessResponse(200, courses))
 
         } catch(err) {
             next(err)
@@ -78,7 +72,7 @@ export class CourseController implements ICourseController {
 
             const updatedCourse = await this.service.update(authUser, id, course)
 
-            res.status(200).json({data: updatedCourse})
+            res.status(200).json(httpSuccessResponse(200, updatedCourse))
 
         } catch(err) {
             next(err)

@@ -2,6 +2,8 @@ import type { User } from "@prisma/client";
 import type { CreateUserDTO } from "../DTOs/create-user.dto";
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
 import type { UserResponseDTO } from "../DTOs/user-response.dto";
+import type { ListUsersQueryDTO, PaginatedUsersDTO } from "../DTOs/list-users-query.dto";
+import type { UserRole } from "../types/user-role.type";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 
 export interface IUserService {
@@ -15,4 +17,7 @@ export interface IUserService {
         newPassword: string
     ): Promise<void>
     softDelete(authUser: AuthUserDTO, id: string): Promise<void>
+    getMe(authUser: AuthUserDTO): Promise<UserResponseDTO>
+    list(authUser: AuthUserDTO, query: ListUsersQueryDTO): Promise<PaginatedUsersDTO<UserResponseDTO>>
+    updateRole(authUser: AuthUserDTO, id: string, role: UserRole): Promise<UserResponseDTO>
 }

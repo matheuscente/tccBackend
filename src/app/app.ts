@@ -7,6 +7,9 @@ import cors from "cors"
 import { env } from '../config/env'
 
 const app = express()
+
+app.disable("x-powered-by")
+app.set("trust proxy", 1)
 const allowedOrigins = (env.allowedOrigins ?? "")
   .split(",")
   .map((origin) => origin.trim())
@@ -21,7 +24,8 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "Range"],
+    exposedHeaders: ["Content-Disposition", "Content-Range", "Accept-Ranges"],
     maxAge: 600,
   })
 );

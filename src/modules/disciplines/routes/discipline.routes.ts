@@ -15,9 +15,9 @@ const authentication = container.authenticationMiddleware
 
 disciplineRoutes.get('/id/:id', RequestValidator.paramsValidator(FindByIdSchema), authentication, disciplineController.findById)
 
-disciplineRoutes.get('/user/:userId', RequestValidator.queryValidator(findAllByUserIdSchema), authentication, disciplineController.findAllByUserId)
+disciplineRoutes.get('/user/:userId', RequestValidator.paramsValidator(findAllByUserIdSchema), authentication, disciplineController.findAllByUserId)
 
-disciplineRoutes.get('/module/:moduleId', RequestValidator.queryValidator(findAllByModuleIdSchema), authentication, disciplineController.findAllByModuleId)
+disciplineRoutes.get('/module/:moduleId', RequestValidator.paramsValidator(findAllByModuleIdSchema), authentication, disciplineController.findAllByModuleId)
 
 disciplineRoutes.post('/', RequestValidator.bodyValidator(createDisciplineSchema), authentication, disciplineController.create)
 

@@ -7,13 +7,22 @@ import { moduleRoutes } from "../../modules/modules/routes/module.routes"
 import { disciplineRoutes } from "../../modules/disciplines/routes/discipline.routes"
 import { goalRoutes } from "../../modules/goals/routes/goal.routes"
 import { studySessionRoutes } from "../../modules/study-sessions/routes/study-session.routes"
+import { questionRoutes } from "../../modules/questions/routes/question.routes"
+import { activityRoutes } from "../../modules/activities/routes/activity.routes"
+import { noteRoutes } from "../../modules/notes/routes/note.routes"
+import { fileRoutes } from "../../modules/files/routes/file.routes"
+import { ticketRoutes } from "../../modules/tickets/routes/ticket.routes"
+import { statsRoutes } from "../../modules/stats/routes/stats.routes"
+import { adminRoutes } from "../../modules/admin/routes/admin.routes"
+import { docsRoutes } from "../docs/docs.routes"
 
 
 // função responsável por organizar e contralizar as rotas.
 export const routes = (app: express.Express) => {
     
     //determina o app usar JSON em todas as rotas
-    app.use(express.json())
+    app.use(express.json({ limit: "1mb" }))
+    app.use(express.urlencoded({ extended: false, limit: "1mb" }))
 
     //instancia do router do express
     const api = Router()
@@ -37,5 +46,21 @@ export const routes = (app: express.Express) => {
     api.use('/goals', goalRoutes)
 
     api.use('/study-sessions', studySessionRoutes)
+
+    api.use('/questions', questionRoutes)
+
+    api.use('/activities', activityRoutes)
+
+    api.use('/notes', noteRoutes)
+
+    api.use('/files', fileRoutes)
+
+    api.use('/tickets', ticketRoutes)
+
+    api.use('/stats', statsRoutes)
+
+    api.use('/admin', adminRoutes)
+
+    api.use('/docs', docsRoutes)
 
 }

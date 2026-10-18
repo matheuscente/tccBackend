@@ -15,9 +15,9 @@ const authentication = container.authenticationMiddleware
 
 moduleRoutes.get('/id/:id', RequestValidator.paramsValidator(FindByIdSchema), authentication, moduleController.findById)
 
-moduleRoutes.get('/user/:userId', RequestValidator.queryValidator(findAllByUserIdSchema), authentication, moduleController.findAllByUserId)
+moduleRoutes.get('/user/:userId', RequestValidator.paramsValidator(findAllByUserIdSchema), authentication, moduleController.findAllByUserId)
 
-moduleRoutes.get('/course/:courseId', RequestValidator.queryValidator(findAllByCourseIdSchema), authentication, moduleController.findAllByCourseId)
+moduleRoutes.get('/course/:courseId', RequestValidator.paramsValidator(findAllByCourseIdSchema), authentication, moduleController.findAllByCourseId)
 
 moduleRoutes.post('/', RequestValidator.bodyValidator(createModuleSchema), authentication, moduleController.create)
 

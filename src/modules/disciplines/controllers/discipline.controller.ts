@@ -1,3 +1,5 @@
+import { NotFoundError } from "../../../shared/errors/not-found-error";
+import { httpSuccessResponse } from "../../../shared/controller/httpSuccessResponse.util";
 import type { Request, Response, NextFunction } from "express";
 import type { CreateDisciplineDTO } from "../DTOs/create-discipline.DTO";
 import type { IDisciplineController } from "../interfaces/controllers/discipline-controller.interface";
@@ -19,7 +21,7 @@ export class DisciplineController implements IDisciplineController {
 
             const discipline = await this.service.create(authUser, data)
 
-            res.status(201).json({ data: discipline })
+            res.status(201).json(httpSuccessResponse(201, discipline))
 
         } catch (err) {
             next(err)
@@ -35,12 +37,9 @@ export class DisciplineController implements IDisciplineController {
 
             const discipline = await this.service.findById(authUser, id)
 
-            if (!discipline) {
-                res.status(204).send()
-                return
-            }
+            if (!discipline) throw new NotFoundError("Registro não encontrado")
 
-            res.status(200).json({ data: discipline })
+            res.status(200).json(httpSuccessResponse(200, discipline))
 
         } catch (err) {
             next(err)
@@ -56,12 +55,7 @@ export class DisciplineController implements IDisciplineController {
 
             const disciplines = await this.service.findAllByModuleId(authUser, moduleId)
 
-            if (disciplines.length === 0) {
-                res.status(204).send()
-                return
-            }
-
-            res.status(200).json({ data: disciplines })
+            res.status(200).json(httpSuccessResponse(200, disciplines))
 
         } catch (err) {
             next(err)
@@ -77,12 +71,7 @@ export class DisciplineController implements IDisciplineController {
 
             const disciplines = await this.service.findAllByUserId(authUser, userId)
 
-            if (disciplines.length === 0) {
-                res.status(204).send()
-                return
-            }
-
-            res.status(200).json({ data: disciplines })
+            res.status(200).json(httpSuccessResponse(200, disciplines))
 
         } catch (err) {
             next(err)
@@ -99,7 +88,7 @@ export class DisciplineController implements IDisciplineController {
 
             const updatedDiscipline = await this.service.update(authUser, id, data)
 
-            res.status(200).json({ data: updatedDiscipline })
+            res.status(200).json(httpSuccessResponse(200, updatedDiscipline))
 
         } catch (err) {
             next(err)
