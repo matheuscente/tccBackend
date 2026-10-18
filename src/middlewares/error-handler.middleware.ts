@@ -2,18 +2,24 @@ import express, {type Request, type Response, type NextFunction} from "express"
 import { ValidationError } from "../shared/errors/validation-error"
 import { NotFoundError } from "../shared/errors/not-found-error"
 import { InternalServerError } from "../shared/errors/internal-server-error"
-import { errors } from "celebrate"
+import { errors, isCelebrateError } from "celebrate"
 import { AuthorizationError } from "../shared/errors/authorization.error"
+import CelebrateValidationError from "../shared/errors/celebrate-validation.error"
 
 export abstract class ErrorHandler {
     static handler(app: express.Express) {
-        app.use(errors())
         app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-            console.log(err)
+            if(isCelebrateError(err)) {
+                new CelebrateValidationError(err).send(res)
+                return
+            }
+
             if(!(err instanceof ValidationError || err instanceof NotFoundError || err instanceof AuthorizationError)) {
                 new InternalServerError().send(res)
+                return
             } else {
                 err.send(res)
+                return
             }
         })
     }
