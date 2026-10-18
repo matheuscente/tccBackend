@@ -6,6 +6,8 @@ import type { Session } from "@prisma/client";
         refreshToken: "hashed-secret",
         expiresAt: new Date(Date.now() + 100000),
         isValid: true,
+        previousRefreshToken: null,
+        rotatedAt: null,
         createdAt: new Date(Date.now()),
         updatedAt: new Date(Date.now()),
         ...overrrides,

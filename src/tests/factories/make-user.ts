@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
     id: randomUUID(),
     name: "test",
     username: `test ${randomUUID()}`,
+    email: `${randomUUID()}@test.com`,
     role: "USER",
     birthDate: new Date("2000-01-01"),
     createdAt: new Date(),

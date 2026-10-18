@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { prismaTests } from "../../../lib/prisma-tests";
 import { UserRepository } from "./user.repository";
 import type { CreateUserDTO } from "../DTOs/create-user.dto";
@@ -9,6 +10,7 @@ describe('UserRepository tests', () => {
     const user: CreateUserDTO = {
         name: "test",
         username: `test_${Date.now()}`,
+        email: `${crypto.randomUUID()}@test.com`,
         password: "test",
         birthDate: new Date('2000-01-01')
     }
@@ -37,6 +39,7 @@ describe('UserRepository tests', () => {
         const createdUser: CreateUserDTO = {
             name: "create test",
             username: `test_${Date.now()}`,
+            email: `${crypto.randomUUID()}@test.com`,
             password: "create test",
             birthDate: new Date('2000-01-01')
         }

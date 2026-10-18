@@ -35,9 +35,12 @@ describe("user service tests", () => {
     create: jest.fn(),
     findById: jest.fn(),
     findByUsername: jest.fn(),
+    findByEmail: jest.fn(),
     update: jest.fn(),
     updatePassword: jest.fn(),
     softDelete: jest.fn(),
+    findMany: jest.fn(),
+    updateRole: jest.fn(),
   };
 
   const hashMock: jest.Mocked<IHashProvider> = {
@@ -108,7 +111,19 @@ describe("user service tests", () => {
     deleteAllByModuleIds: jest.fn(),
     deleteAllByDisciplineIds: jest.fn(),
     deleteAllByUserId: jest.fn(),
+    findActiveByUser: jest.fn(),
+    findByGeneralScope: jest.fn(),
+    findByCourseScope: jest.fn(),
+    findByModuleScope: jest.fn(),
+    findByDisciplineScope: jest.fn(),
   };
+  const scopedContentRepositoryMock = {
+    cleanupByCourseIds: jest.fn(),
+    cleanupByModuleIds: jest.fn(),
+    cleanupByDisciplineIds: jest.fn(),
+    cleanupByUserId: jest.fn(),
+  };
+
 
   const transactionMock: jest.Mocked<ITransaction> = {
     execute: jest.fn().mockImplementation(async (callback) => {
@@ -118,7 +133,8 @@ describe("user service tests", () => {
         userRepository: repositoryMock,
         sessionRepository: sessionRepositoryMock,
         goalRepository: goalRepositoryMock,
-        studySessionRepository: studySessionRepositoryMock
+        studySessionRepository: studySessionRepositoryMock,
+        scopedContentRepository: scopedContentRepositoryMock
       });
     }),
   };
@@ -359,6 +375,7 @@ describe("user service tests", () => {
       const expectedData: UpdateUserDTO = {
         name: "NEW NAME",
         username: user.username,
+        email: user.email,
         birthDate: user.birthDate,
       };
 

@@ -26,6 +26,7 @@ describe("SessionRepository tests", () => {
     user = await userRepository.create({
       name: "test",
       username: `test-${crypto.randomUUID()}`,
+      email: `${crypto.randomUUID()}@test.com`,
       password: "test",
       birthDate: new Date("2000-01-01"),
     });

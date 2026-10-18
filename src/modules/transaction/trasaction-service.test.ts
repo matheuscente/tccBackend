@@ -8,6 +8,7 @@ import type { IRepositories } from "./interfaces/repositories.interface";
 import { DisciplineRepository } from "../disciplines/repositories/discipline.repository";
 import { GoalRepository } from "../goals/repositories/goal.repository";
 import { StudySessionRepository } from "../study-sessions/repositories/study-session.repository";
+import { ScopedContentRepository } from "../scoped-content/repositories/scoped-content.repository";
 
 
 // mock de todos os repositórios para isolar a Transaction
@@ -18,6 +19,7 @@ jest.mock("../sessions/repositories/session.repository");
 jest.mock("../disciplines/repositories/discipline.repository")
 jest.mock("../goals/repositories/goal.repository");
 jest.mock("../study-sessions/repositories/study-session.repository");
+jest.mock("../scoped-content/repositories/scoped-content.repository");
 
 
 describe("Transaction", () => {
@@ -91,7 +93,8 @@ describe("Transaction", () => {
           sessionRepository: expect.any(SessionRepository),
           disciplineRepository: expect.any(DisciplineRepository),
           goalRepository: expect.any(GoalRepository),
-          studySessionRepository:expect.any(StudySessionRepository)
+          studySessionRepository:expect.any(StudySessionRepository),
+          scopedContentRepository: expect.any(ScopedContentRepository)
         } satisfies Record<keyof IRepositories, unknown>)
       );
     });

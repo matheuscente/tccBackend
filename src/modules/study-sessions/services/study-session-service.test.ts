@@ -28,7 +28,11 @@ describe("StudySessionService", () => {
     deleteAllByModuleIds: jest.fn(),
     deleteAllByDisciplineIds: jest.fn(),
     deleteAllByUserId: jest.fn(),
-    findActiveByUser: jest.fn()
+    findActiveByUser: jest.fn(),
+    findByGeneralScope: jest.fn(),
+    findByCourseScope: jest.fn(),
+    findByModuleScope: jest.fn(),
+    findByDisciplineScope: jest.fn(),
   };
 
   const courseRepositoryMock: jest.Mocked<ICourseRepository> = {
@@ -860,6 +864,178 @@ describe("StudySessionService", () => {
 
       await expect(promise).rejects.toThrow("db error");
       expect(studySessionRepositoryMock.delete).toHaveBeenCalledTimes(1);
+    });
+
+  });
+
+  describe("register", () => {
+
+    it("should register a completed session with courseId", async () => {
+      const course = makeCourse({ userId: userAuthUser.id });
+      const studiedAt = new Date(Date.UTC(2026, 2, 20));
+      const session = makeStudySession({ userId: userAuthUser.id, courseId: course.id, minutes: 45, status: StudySessionStatus.COMPLETED, studiedAt });
+
+      ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+      courseRepositoryMock.findOwnedById.mockResolvedValue(course);
+      studySessionRepositoryMock.create.mockResolvedValue(session);
+
+      const result = await service.register(userAuthUser, {
+        courseId: course.id,
+        minutes: 45,
+        studiedAt: "20/03/2026",
+      });
+
+      expect(ownershipMock.resolveOwnerId).toHaveBeenCalledWith(userAuthUser, undefined);
+      expect(courseRepositoryMock.findOwnedById).toHaveBeenCalledWith(course.id, userAuthUser.id);
+      expect(dateUtilsMock.dateFormat).toHaveBeenCalledWith("20/03/2026");
+      expect(studySessionRepositoryMock.findActiveByUser).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.create).toHaveBeenCalledTimes(1);
+      expect(studySessionRepositoryMock.create).toHaveBeenCalledWith(expect.objectContaining({
+        userId: userAuthUser.id,
+        courseId: course.id,
+        moduleId: null,
+        disciplineId: null,
+        minutes: 45,
+        status: StudySessionStatus.COMPLETED,
+        studiedAt,
+      }));
+      expect(result).toEqual(expect.objectContaining({ id: session.id, minutes: 45, status: StudySessionStatus.COMPLETED }));
+    });
+
+    it("should register a session for today", async () => {
+      const discipline = { ...makeDiscipline(), module: { course: { userId: userAuthUser.id } } };
+
+      ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+      disciplineRepositoryMock.findByIdWithCourse.mockResolvedValue(discipline);
+      studySessionRepositoryMock.create.mockResolvedValue(makeStudySession({ userId: userAuthUser.id }));
+
+      await service.register(userAuthUser, { disciplineId: discipline.id, minutes: 10, studiedAt: "25/03/2026" });
+
+      expect(studySessionRepositoryMock.create).toHaveBeenCalledWith(expect.objectContaining({ studiedAt: today, disciplineId: discipline.id }));
+    });
+
+    it("should allow ADMIN to register a session for another user", async () => {
+      const module = { ...makeModule(), course: { userId: "other-user-id" } };
+
+      ownershipMock.resolveOwnerId.mockResolvedValue("other-user-id");
+      moduleRepositoryMock.findByIdWithCourse.mockResolvedValue(module);
+      studySessionRepositoryMock.create.mockResolvedValue(makeStudySession({ userId: "other-user-id" }));
+
+      await service.register(adminAuthUser, { userId: "other-user-id", moduleId: module.id, minutes: 30, studiedAt: "01/03/2026" });
+
+      expect(ownershipMock.resolveOwnerId).toHaveBeenCalledWith(adminAuthUser, "other-user-id");
+      expect(studySessionRepositoryMock.create).toHaveBeenCalledWith(expect.objectContaining({ userId: "other-user-id", moduleId: module.id }));
+    });
+
+    it("should throw ValidationError when the study date is in the future", async () => {
+      ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+      courseRepositoryMock.findOwnedById.mockResolvedValue(makeCourse({ userId: userAuthUser.id }));
+
+      const promise = service.register(userAuthUser, { courseId: "course-id", minutes: 30, studiedAt: "26/03/2026" });
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError);
+      await expect(service.register(userAuthUser, { courseId: "course-id", minutes: 30, studiedAt: "26/03/2026" })).rejects.toThrow("A data do estudo não pode ser futura");
+      expect(studySessionRepositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it.each([0, -5])("should throw ValidationError when minutes is %s", async (minutes) => {
+      ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+      courseRepositoryMock.findOwnedById.mockResolvedValue(makeCourse({ userId: userAuthUser.id }));
+
+      const promise = service.register(userAuthUser, { courseId: "course-id", minutes, studiedAt: "20/03/2026" });
+
+      await expect(promise).rejects.toThrow("Informe os minutos estudados");
+      expect(studySessionRepositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should throw ValidationError when no scope is informed", async () => {
+      const promise = service.register(userAuthUser, { minutes: 30, studiedAt: "20/03/2026" });
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError);
+      expect(ownershipMock.resolveOwnerId).not.toHaveBeenCalled();
+      expect(studySessionRepositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should throw ValidationError when more than one scope is informed", async () => {
+      const promise = service.register(userAuthUser, { courseId: "c", moduleId: "m", minutes: 30, studiedAt: "20/03/2026" });
+
+      await expect(promise).rejects.toThrow("Sessão de estudo pode ter apenas um escopo");
+      expect(studySessionRepositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should throw NotFoundError when the course is not owned", async () => {
+      ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+      courseRepositoryMock.findOwnedById.mockResolvedValue(null);
+
+      const promise = service.register(userAuthUser, { courseId: "course-id", minutes: 30, studiedAt: "20/03/2026" });
+
+      await expect(promise).rejects.toBeInstanceOf(NotFoundError);
+      expect(studySessionRepositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should throw AuthorizationError when the module belongs to another user", async () => {
+      ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+      moduleRepositoryMock.findByIdWithCourse.mockResolvedValue({ ...makeModule(), course: { userId: "other-user-id" } });
+
+      const promise = service.register(userAuthUser, { moduleId: "module-id", minutes: 30, studiedAt: "20/03/2026" });
+
+      await expect(promise).rejects.toBeInstanceOf(AuthorizationError);
+      expect(studySessionRepositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should propagate create repository error", async () => {
+      ownershipMock.resolveOwnerId.mockResolvedValue(userAuthUser.id);
+      courseRepositoryMock.findOwnedById.mockResolvedValue(makeCourse({ userId: userAuthUser.id }));
+      studySessionRepositoryMock.create.mockRejectedValue(new Error("db error"));
+
+      await expect(service.register(userAuthUser, { courseId: "course-id", minutes: 30, studiedAt: "20/03/2026" })).rejects.toThrow("db error");
+    });
+
+  });
+
+  describe("findActive", () => {
+
+    it("should return the active session of the authenticated user", async () => {
+      const session = makeStudySession({ userId: userAuthUser.id, status: StudySessionStatus.IN_PROGRESS });
+
+      studySessionRepositoryMock.findActiveByUser.mockResolvedValue([session]);
+
+      const result = await service.findActive(userAuthUser);
+
+      expect(studySessionRepositoryMock.findActiveByUser).toHaveBeenCalledWith(userAuthUser.id);
+      expect(result).toEqual({
+        id: session.id,
+        minutes: session.minutes,
+        status: session.status,
+        startedAt: session.startedAt,
+        courseId: session.courseId,
+        moduleId: session.moduleId,
+        disciplineId: session.disciplineId,
+        studiedAt: session.studiedAt,
+        createdAt: session.createdAt,
+      });
+    });
+
+    it("should return null when there is no active session", async () => {
+      studySessionRepositoryMock.findActiveByUser.mockResolvedValue([]);
+
+      const result = await service.findActive(userAuthUser);
+
+      expect(result).toBeNull();
+    });
+
+    it("should only look at the authenticated user's sessions (even for ADMIN)", async () => {
+      studySessionRepositoryMock.findActiveByUser.mockResolvedValue([]);
+
+      await service.findActive(adminAuthUser);
+
+      expect(studySessionRepositoryMock.findActiveByUser).toHaveBeenCalledWith(adminAuthUser.id);
+    });
+
+    it("should propagate repository error", async () => {
+      studySessionRepositoryMock.findActiveByUser.mockRejectedValue(new Error("db error"));
+
+      await expect(service.findActive(userAuthUser)).rejects.toThrow("db error");
     });
 
   });
