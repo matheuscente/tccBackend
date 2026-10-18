@@ -2,6 +2,12 @@ import { ValidationError } from "../../errors/validation-error";
 import type { IDateConvert } from "../interfaces/date-convert.interface";
 
 export class DateConvert implements IDateConvert {
+    /**
+     * @param timeZone fuso usado para saber qual é o "dia de hoje" do usuário
+     * (ex.: às 22h no Brasil ainda é o mesmo dia, embora em UTC já seja o dia seguinte).
+     */
+    constructor(private readonly timeZone: string = "America/Sao_Paulo") {}
+
     dateToSeconds(date: Date): number {
         return Math.floor(date.getTime() / 1000)
     }
@@ -48,10 +54,17 @@ export class DateConvert implements IDateConvert {
 }
 
     getCurrentDate(): Date {
-        const now = new Date();
-        return new Date(
-            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-        );
+        // en-CA formata como AAAA-MM-DD
+        const today = new Intl.DateTimeFormat("en-CA", {
+            timeZone: this.timeZone,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+        }).format(new Date());
+
+        const [year, month, day] = today.split("-").map(Number);
+
+        return new Date(Date.UTC(year!, month! - 1, day!));
     }
 
     normalize(date: Date): Date {

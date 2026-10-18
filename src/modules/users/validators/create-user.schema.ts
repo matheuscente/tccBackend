@@ -1,6 +1,6 @@
 import { Joi } from "celebrate";
 import { baseUserFields } from "./base-user-schema";
-import { ErrorMessages } from "../../../shared/errorMessages/ErrorMessages";
+import { ErrorMessages } from "../../../shared/errorMessages/errorMessages";
 
 export const CreateUserSchema = Joi.object().keys({
     name: baseUserFields.name
@@ -13,6 +13,12 @@ export const CreateUserSchema = Joi.object().keys({
     .required()
     .messages({
         "any.required": ErrorMessages.required("nome de usuário")
+    }),
+
+    email: baseUserFields.email
+    .required()
+    .messages({
+        "any.required": ErrorMessages.required("e-mail")
     }),
 
     password: baseUserFields.password

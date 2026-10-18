@@ -14,7 +14,7 @@ const authentication = container.authenticationMiddleware
 
 goalRoutes.get('/id/:id', RequestValidator.paramsValidator(FindByIdSchema), authentication, goalController.findById)
 
-goalRoutes.get('/user/:userId', RequestValidator.queryValidator(findAllByUserIdGoalSchema), authentication, goalController.findAllByUserId)
+goalRoutes.get('/user/:userId', RequestValidator.paramsValidator(findAllByUserIdGoalSchema), authentication, goalController.findAllByUserId)
 
 goalRoutes.post('/', RequestValidator.bodyValidator(createGoalSchema), authentication, goalController.create)
 

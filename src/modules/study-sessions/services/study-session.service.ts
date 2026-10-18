@@ -1,3 +1,4 @@
+import { ForbiddenError } from "../../../shared/errors/forbidden.error";
 import type { StudySession } from "@prisma/client";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
@@ -6,7 +7,7 @@ import type { IOwnershipService } from "../../../shared/ownership/ownership-serv
 import type { ICourseRepository } from "../../courses/interfaces/repositories/course-repository.interface";
 import type { IDisciplineRepository } from "../../disciplines/interfaces/repositories/discipline-repository.interface";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
-import type { StartStudySessionDTO } from "../DTOs/start-study-session.DTO";
+import type { RegisterStudySessionDTO, StartStudySessionDTO } from "../DTOs/start-study-session.DTO";
 import type { ResponseStudySessionDTO } from "../DTOs/response-study-session.DTO";
 import type { UpdateStudySessionDTO } from "../DTOs/update-study-session.DTO";
 import type { IStudySessionRepository } from "../interfaces/repositories/study-session-repository.interface";
@@ -26,31 +27,13 @@ export class StudySessionService implements IStudySessionService {
     ) { }
 
 async start(authUser: AuthUserDTO, data: StartStudySessionDTO): Promise<ResponseStudySessionDTO> {
-    const scopes = [data.courseId, data.moduleId, data.disciplineId].filter(Boolean)
-    if (scopes.length !== 1) throw new ValidationError("Sessão de estudo pode ter apenas um escopo")
-
-    const ownerId = await this.ownership.resolveOwnerId(authUser, data.userId);
-
-    if (data.courseId) {
-        const parent = await this.courseRepository.findOwnedById(data.courseId, ownerId)
-        if (!parent) throw new NotFoundError("Curso não encontrado")
-
-    } else if (data.moduleId) {
-        const parent = await this.moduleRepository.findByIdWithCourse(data.moduleId)
-        if (!parent) throw new NotFoundError("Módulo não encontrado")
-        if (parent.course.userId !== ownerId) throw new AuthorizationError("Ação não autorizada")
-
-    } else if (data.disciplineId) {
-        const parent = await this.disciplineRepository.findByIdWithCourse(data.disciplineId)
-        if (!parent) throw new NotFoundError("Disciplina não encontrada")
-        if (parent.module.course.userId !== ownerId) throw new AuthorizationError("Ação não autorizada")
-    }
+    const ownerId = await this.validateScope(authUser, data)
 
     const activeSession = await this.studySessionRepository.findActiveByUser(ownerId)
 
-if (activeSession.length > 0) {
-    throw new ValidationError("Usuário já possui uma sessão em andamento")
-}
+    if (activeSession.length > 0) {
+        throw new ValidationError("Usuário já possui uma sessão em andamento")
+    }
 
     const studySession = await this.studySessionRepository.create({
         userId: ownerId,
@@ -64,6 +47,57 @@ if (activeSession.length > 0) {
     });
 
     return this.mapResponse(studySession);
+}
+
+async register(authUser: AuthUserDTO, data: RegisterStudySessionDTO): Promise<ResponseStudySessionDTO> {
+    const ownerId = await this.validateScope(authUser, data)
+
+    if (!data.minutes || data.minutes <= 0) throw new ValidationError("Informe os minutos estudados")
+
+    const studiedAt = this.dateUtils.dateFormat(data.studiedAt)
+    if (!this.isValidDate(studiedAt)) throw new ValidationError("A data do estudo não pode ser futura")
+
+    const studySession = await this.studySessionRepository.create({
+        userId: ownerId,
+        courseId: data.courseId ?? null,
+        moduleId: data.moduleId ?? null,
+        disciplineId: data.disciplineId ?? null,
+        minutes: data.minutes,
+        startedAt: new Date(),
+        status: "COMPLETED",
+        studiedAt
+    });
+
+    return this.mapResponse(studySession);
+}
+
+async findActive(authUser: AuthUserDTO): Promise<ResponseStudySessionDTO | null> {
+    const [active] = await this.studySessionRepository.findActiveByUser(authUser.id)
+    return active ? this.mapResponse(active) : null
+}
+
+private async validateScope(authUser: AuthUserDTO, data: StartStudySessionDTO): Promise<string> {
+    const scopes = [data.courseId, data.moduleId, data.disciplineId].filter(Boolean)
+    if (scopes.length !== 1) throw new ValidationError("Sessão de estudo pode ter apenas um escopo")
+
+    const ownerId = await this.ownership.resolveOwnerId(authUser, data.userId);
+
+    if (data.courseId) {
+        const parent = await this.courseRepository.findOwnedById(data.courseId, ownerId)
+        if (!parent) throw new NotFoundError("Curso não encontrado")
+
+    } else if (data.moduleId) {
+        const parent = await this.moduleRepository.findByIdWithCourse(data.moduleId)
+        if (!parent) throw new NotFoundError("Módulo não encontrado")
+        if (parent.course.userId !== ownerId) throw new ForbiddenError("Ação não autorizada")
+
+    } else if (data.disciplineId) {
+        const parent = await this.disciplineRepository.findByIdWithCourse(data.disciplineId)
+        if (!parent) throw new NotFoundError("Disciplina não encontrada")
+        if (parent.module.course.userId !== ownerId) throw new ForbiddenError("Ação não autorizada")
+    }
+
+    return ownerId
 }
 
 async finish(authUser: AuthUserDTO, studySessionId: string): Promise<ResponseStudySessionDTO> {
@@ -118,7 +152,8 @@ async finish(authUser: AuthUserDTO, studySessionId: string): Promise<ResponseStu
         }
 
         const updatedStudySession = await this.studySessionRepository.update(studySessionId, {
-            studiedAt: studiedAt ?? studySession.studiedAt
+            studiedAt: studiedAt ?? studySession.studiedAt,
+            ...(data.minutes !== undefined ? { minutes: data.minutes } : {})
         });
 
         return this.mapResponse(updatedStudySession);

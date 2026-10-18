@@ -1,5 +1,5 @@
 import { Joi } from "celebrate";
-import { ErrorMessages } from "../../../shared/errorMessages/ErrorMessages";
+import { ErrorMessages } from "../../../shared/errorMessages/errorMessages";
 
 export const baseUserFields = {
   name: Joi.string()
@@ -28,8 +28,8 @@ export const baseUserFields = {
   password: Joi.string()
     .min(8)
     .max(100)
-    .pattern(/[a-z]/, "letra maiúscula")
-    .pattern(/[A-Z]/, "letra minúscula")
+    .pattern(/[a-z]/, "letra minúscula")
+    .pattern(/[A-Z]/, "letra maiúscula")
     .pattern(/[0-9]/, "número")
     .messages({
     "string.min": ErrorMessages.min("senha"),
@@ -38,6 +38,17 @@ export const baseUserFields = {
     'string.pattern.name': 'A senha precisa conter pelo menos um(a) {#name}.'
 
   }),
+
+  email: Joi.string()
+    .trim()
+    .email({ tlds: { allow: false } })
+    .max(120)
+    .messages({
+      "string.email": "Informe um e-mail válido.",
+      "string.empty": ErrorMessages.empty("e-mail"),
+      "string.max": ErrorMessages.max("e-mail"),
+      "string.base": ErrorMessages.type("e-mail", "um texto")
+    }),
 
    birthDate: Joi.string()
   .pattern(/^\d{2}\/\d{2}\/\d{4}$/)

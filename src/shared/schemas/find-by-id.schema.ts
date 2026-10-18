@@ -1,5 +1,5 @@
 import { Joi } from "celebrate";
-import { ErrorMessages } from "../errorMessages/ErrorMessages";
+import { ErrorMessages } from "../errorMessages/errorMessages";
 
 export const FindByIdSchema = Joi.object({
   id: Joi.string()

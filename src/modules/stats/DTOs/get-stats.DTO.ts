@@ -7,3 +7,12 @@ export interface GetStatsDTO {
   moduleId?: string
   disciplineId?: string
 }
+
+export interface StatsQueryDTO {
+  userId: string
+  startDate?: string
+  endDate?: string
+  courseId?: string
+  moduleId?: string
+  disciplineId?: string
+}

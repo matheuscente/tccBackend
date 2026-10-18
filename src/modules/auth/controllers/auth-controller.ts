@@ -3,10 +3,15 @@ import type { IAuthController } from "../interfaces/auth/auth-controller.interfa
 import type { IAuthService } from "../interfaces/auth/auth-service.interface";
 import type { LoginDTO } from "../DTOs/login.dto";
 import { httpSuccessResponse } from "../../../shared/controller/httpSuccessResponse.util";
+import type { IPasswordResetService } from "../interfaces/password-reset/password-reset-service.interface";
+import type { ForgotPasswordDTO, ResetPasswordDTO } from "../DTOs/password-reset.DTO";
+import { AuthorizationError } from "../../../shared/errors/authorization.error";
 
 export class AuthController implements IAuthController {
     constructor(
-        private readonly service: IAuthService
+        private readonly service: IAuthService,
+        private readonly passwordResetService: IPasswordResetService,
+        private readonly cookieSecure: boolean = false
     ) { }
 
     login = async (req: Request<any, any, LoginDTO>, res: Response, next: NextFunction): Promise<void> => {
@@ -41,24 +46,18 @@ export class AuthController implements IAuthController {
             const authHeader = req.headers.authorization
 
             if (!authHeader || !authHeader.startsWith("Bearer ")) {
-                res.status(401).json({ message: "Token não informado" })
-                return
+                throw new AuthorizationError("Token não informado")
             }
 
             const token = authHeader.split(" ")[1]
 
-            if(!token) {
-                res.status(401).json({ message: "Token não informado" })
-                return
-            }
+            if(!token) throw new AuthorizationError("Token não informado")
 
             await this.service.logout(token)
 
-            res.clearCookie("rToken", {
-                path: "/auth/refresh"
-            })
+            res.clearCookie("rToken", { path: "/" })
 
-            res.status(204).send(httpSuccessResponse(204, {}))
+            res.status(204).send()
 
         } catch (err) {
 
@@ -72,15 +71,10 @@ export class AuthController implements IAuthController {
             const refreshToken: unknown = req.cookies.rToken
 
             if (!refreshToken || typeof refreshToken !== "string") {
-                res.status(401).json({ message: "Refresh token inválido ou não informado" });
-                return
+                throw new AuthorizationError("Refresh token inválido ou não informado")
             }
 
             const result = await this.service.refreshSession(refreshToken);
-
-            res.clearCookie("rToken", {
-                path: "/auth/refresh"
-            })
 
             this.setRefreshCookie(res, result.refreshToken.token, result.refreshToken.expiresAt)
 
@@ -92,7 +86,8 @@ export class AuthController implements IAuthController {
             res.status(200).json(httpSuccessResponse(200, data))
 
         } catch (err) {
-            console.log(err)
+            // refresh inválido: remove o cookie para o cliente não insistir
+            res.clearCookie("rToken", { path: "/" })
             next(err)
 
         }
@@ -101,12 +96,34 @@ export class AuthController implements IAuthController {
     private setRefreshCookie = (res: Response, token: string, expiresAt: number): void => {
     res.cookie("rToken", token, {
         httpOnly: true,
-        secure: false, //mudar em produção
+        secure: this.cookieSecure,
         sameSite: "lax",
         //path: "/auth/refresh",
         path: "/",
         expires: new Date(expiresAt * 1000)
 
     })
+    }
+
+    forgotPassword = async (req: Request<any, any, ForgotPasswordDTO>, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            await this.passwordResetService.requestReset(req.body)
+
+            res.status(200).json(httpSuccessResponse(200, {
+                message: "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha."
+            }))
+        } catch (err) {
+            next(err)
+        }
+    }
+
+    resetPassword = async (req: Request<any, any, ResetPasswordDTO>, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            await this.passwordResetService.resetPassword(req.body)
+
+            res.status(200).json(httpSuccessResponse(200, { message: "Senha redefinida com sucesso." }))
+        } catch (err) {
+            next(err)
+        }
     }
 }

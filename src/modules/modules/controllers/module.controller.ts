@@ -1,3 +1,5 @@
+import { NotFoundError } from "../../../shared/errors/not-found-error";
+import { httpSuccessResponse } from "../../../shared/controller/httpSuccessResponse.util";
 import type { Request, Response, NextFunction } from "express";
 import type { CreateModuleDTO } from "../DTOs/create-module.dto";
 import type { IModuleController } from "../interfaces/controllers/module-controller.interface";
@@ -19,7 +21,7 @@ export class ModuleController implements IModuleController {
 
             const module = await this.service.create(authUser, data)
 
-            res.status(201).json({ data: module })
+            res.status(201).json(httpSuccessResponse(201, module))
 
         } catch (err) {
             next(err)
@@ -35,12 +37,9 @@ export class ModuleController implements IModuleController {
 
             const module = await this.service.findById(authUser, id)
 
-            if (!module) {
-                res.status(204).send()
-                return
-            }
+            if (!module) throw new NotFoundError("Registro não encontrado")
 
-            res.status(200).json({ data: module })
+            res.status(200).json(httpSuccessResponse(200, module))
 
         } catch (err) {
             next(err)
@@ -56,12 +55,7 @@ export class ModuleController implements IModuleController {
 
             const modules = await this.service.findAllByCourseId(authUser, courseId)
 
-            if (modules.length === 0) {
-                res.status(204).send()
-                return
-            }
-
-            res.status(200).json({ data: modules })
+            res.status(200).json(httpSuccessResponse(200, modules))
 
         } catch (err) {
             next(err)
@@ -77,12 +71,7 @@ export class ModuleController implements IModuleController {
 
             const modules = await this.service.findAllByUserId(authUser, userId)
 
-            if (modules.length === 0) {
-                res.status(204).send()
-                return
-            }
-
-            res.status(200).json({ data: modules })
+            res.status(200).json(httpSuccessResponse(200, modules))
 
         } catch (err) {
             next(err)
@@ -99,7 +88,7 @@ export class ModuleController implements IModuleController {
 
             const updatedModule = await this.service.update(authUser, id, data)
 
-            res.status(200).json({ data: updatedModule })
+            res.status(200).json(httpSuccessResponse(200, updatedModule))
 
         } catch (err) {
             next(err)

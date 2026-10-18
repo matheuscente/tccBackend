@@ -1,3 +1,4 @@
+import { ForbiddenError } from "../../../shared/errors/forbidden.error";
 import type { Goal } from "@prisma/client";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
@@ -51,12 +52,12 @@ export class GoalService implements IGoalService {
         } else if (data.moduleId) {
             const parent = await this.moduleRepository.findByIdWithCourse(data.moduleId)
             if (!parent) throw new NotFoundError("Módulo não encontrado")
-            if (parent.course.userId !== ownerId) throw new AuthorizationError("Ação não autorizada")
+            if (parent.course.userId !== ownerId) throw new ForbiddenError("Ação não autorizada")
 
         } else if (data.disciplineId) {
             const parent = await this.disciplineRepository.findByIdWithCourse(data.disciplineId)
             if (!parent) throw new NotFoundError("Disciplina não encontrada")
-            if (parent.module.course.userId !== ownerId) throw new AuthorizationError("Ação não autorizada")
+            if (parent.module.course.userId !== ownerId) throw new ForbiddenError("Ação não autorizada")
         }
 
         const goal = await this.goalRepository.create({
