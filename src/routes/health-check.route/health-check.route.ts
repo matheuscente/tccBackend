@@ -3,7 +3,6 @@ import {prisma} from "../../lib/prisma"
 
 const heathCheckRoute = express.Router()
 
-// verifica se a API está no ar; o banco é testado sem derrubar a resposta
 heathCheckRoute.get("/", async (_req, res) => {
     let database: "conectado" | "indisponível" = "conectado"
 

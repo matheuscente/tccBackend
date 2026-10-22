@@ -109,7 +109,6 @@ describe("StatsService", () => {
 
   const userAuthUser: AuthUserDTO = { id: "user-id", role: "USER", sessionId: "default" };
 
-  // "hoje" fixo: 10/03/2026
   const today = new Date(Date.UTC(2026, 2, 10));
   const day = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
 
@@ -315,7 +314,6 @@ describe("StatsService", () => {
       expect(result.sessionsCount).toBe(4);
       expect(result.studiedDays).toBe(4);
       expect(result.averageMinutesPerDay).toBe(5);
-      // hoje (10/03) ainda sem estudo não quebra a sequência
       expect(result.currentStreak).toBe(3);
     });
 
@@ -573,9 +571,20 @@ describe("StatsService", () => {
 
       const result = await service.getPerformance(userAuthUser, { userId: userAuthUser.id, startDate: "01/03/2026", courseId: "course-1" });
 
-      expect(activityRepositoryMock.findAttemptsByUserId).toHaveBeenCalledWith(userAuthUser.id, day("2026-03-01"));
+      expect(activityRepositoryMock.findAttemptsByUserId).toHaveBeenCalledWith(userAuthUser.id, new Date("2026-03-01T03:00:00.000Z"));
       expect(result.totalAttempts).toBe(1);
       expect(result.byActivity.map(item => item.activityId)).toEqual(["a1"]);
+    });
+
+    it("should use the user's time zone for the end date limit", async () => {
+      activityRepositoryMock.findAttemptsByUserId.mockResolvedValue([
+        { ...attempt("late-night", 70), finishedAt: new Date("2026-04-01T02:30:00.000Z") },
+        { ...attempt("next-day", 90), finishedAt: new Date("2026-04-01T03:00:00.000Z") },
+      ]);
+
+      const result = await service.getPerformance(userAuthUser, { userId: userAuthUser.id, endDate: "31/03/2026" });
+
+      expect(result.timeline.map(item => item.activityId)).toEqual(["late-night"]);
     });
 
     it("should return nulls when there are no attempts", async () => {

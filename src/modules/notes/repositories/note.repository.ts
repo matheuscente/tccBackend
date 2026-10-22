@@ -1,5 +1,7 @@
 import type { Note, Prisma, PrismaClient } from "@prisma/client";
-import type { CreateNoteRepositoryDTO, NoteFilterDTO } from "../DTOs/note.DTO";
+import type { CreateNoteRepositoryDTO } from "../DTOs/create-note-repository.DTO";
+import type { UpdateNoteRepositoryDTO } from "../DTOs/update-note-repository.DTO";
+import type { NoteFilterDTO } from "../DTOs/note-filter.DTO";
 import type { INoteRepository } from "../interfaces/repositories/note-repository.interface";
 
 export class NoteRepository implements INoteRepository {
@@ -32,7 +34,7 @@ export class NoteRepository implements INoteRepository {
         })
     }
 
-    update(noteId: string, data: Partial<Omit<CreateNoteRepositoryDTO, "userId">>): Promise<Note> {
+    update(noteId: string, data: UpdateNoteRepositoryDTO): Promise<Note> {
         return this.orm.note.update({ where: { id: noteId }, data })
     }
 

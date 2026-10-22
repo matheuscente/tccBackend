@@ -5,19 +5,21 @@ import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { IScopeService } from "../../../shared/scope/scope-service.interface";
-import type { IStorageProvider } from "../../../shared/storage/storage-provider.interface";
-import type { IFileTokenService } from "../../../shared/file-token/file-token.service";
-import type { FileAccessDTO, FileFilterDTO, FileScopeDTO, ResponseFileDTO, UpdateFileDTO, UploadedFileDTO } from "../DTOs/file.DTO";
+import type { IScopeService } from "../../../shared/scope/interfaces/scope-service.interface";
+import type { IStorageProvider } from "../../../shared/storage/interfaces/storage-provider.interface";
+import type { IFileTokenService } from "../../../shared/file-token/interfaces/file-token-service.interface";
+import type { FileAccessDTO } from "../DTOs/file-access.DTO";
+import type { FileFilterDTO } from "../DTOs/file-filter.DTO";
+import type { FileScopeDTO } from "../DTOs/file-scope.DTO";
+import type { ResponseFileDTO } from "../DTOs/response-file.DTO";
+import type { UpdateFileDTO } from "../DTOs/update-file.DTO";
+import type { UploadedFileDTO } from "../DTOs/uploaded-file.DTO";
 import type { IFileRepository } from "../interfaces/repositories/file-repository.interface";
 import type { IFileService } from "../interfaces/services/file-service.interface";
 
-export const USER_STORAGE_QUOTA_BYTES = 2 * 1024 * 1024 * 1024 // 2 GB por usuário
+export const USER_STORAGE_QUOTA_BYTES = 2 * 1024 * 1024 * 1024
 
-/**
- * Arquivos pessoais: somente o dono acessa. Por privacidade, nem o administrador
- * consegue listar, baixar ou visualizar os arquivos de outro usuário.
- */
+// por privacidade, somente o dono acessa os arquivos: nem o administrador lista, baixa ou visualiza
 export class FileService implements IFileService {
     constructor(
         private readonly fileRepository: IFileRepository,

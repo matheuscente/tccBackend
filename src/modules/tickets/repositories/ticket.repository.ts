@@ -1,5 +1,10 @@
 import type { Prisma, PrismaClient, Ticket, TicketMessage, TicketStatus } from "@prisma/client";
-import type { AttachmentInputDTO, CreateTicketRepositoryDTO, TicketFilterDTO, TicketWithMessagesDTO, TicketWithSummaryDTO } from "../DTOs/ticket.DTO";
+import type { AttachmentInputDTO } from "../DTOs/attachment-input.DTO";
+import type { AttachmentWithOwnerDTO } from "../DTOs/attachment-with-owner.DTO";
+import type { CreateTicketRepositoryDTO } from "../DTOs/create-ticket-repository.DTO";
+import type { TicketRepositoryFilterDTO } from "../DTOs/ticket-repository-filter.DTO";
+import type { TicketWithMessagesDTO } from "../DTOs/ticket-with-messages.DTO";
+import type { TicketWithSummaryDTO } from "../DTOs/ticket-with-summary.DTO";
 import type { ITicketRepository } from "../interfaces/repositories/ticket-repository.interface";
 
 export class TicketRepository implements ITicketRepository {
@@ -42,7 +47,7 @@ export class TicketRepository implements ITicketRepository {
         })
     }
 
-    findAll(filter: TicketFilterDTO & { userId?: string }): Promise<TicketWithSummaryDTO[]> {
+    findAll(filter: TicketRepositoryFilterDTO): Promise<TicketWithSummaryDTO[]> {
         return this.orm.ticket.findMany({
             where: {
                 ...(filter.userId ? { userId: filter.userId } : {}),
@@ -78,7 +83,7 @@ export class TicketRepository implements ITicketRepository {
             }
         })
 
-        // atualiza o updatedAt do chamado para ordenar pela última interação
+        // a listagem é ordenada por updatedAt, que deve refletir a última mensagem
         await this.orm.ticket.update({ where: { id: ticketId }, data: { updatedAt: new Date() } })
 
         return message
@@ -94,7 +99,7 @@ export class TicketRepository implements ITicketRepository {
         })
     }
 
-    findAttachmentById(attachmentId: string) {
+    findAttachmentById(attachmentId: string): Promise<AttachmentWithOwnerDTO | null> {
         return this.orm.ticketAttachment.findUnique({
             where: { id: attachmentId },
             include: { message: { select: { ticket: { select: { userId: true } } } } }

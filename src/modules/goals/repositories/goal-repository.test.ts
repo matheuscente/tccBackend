@@ -8,7 +8,6 @@ import { makeDiscipline } from "../../../tests/factories/make-discipline";
 import { UserRepository } from "../../users/repositories/user.repository";
 import { CourseRepository } from "../../courses/repositories/course.repository";
 import { ModuleRepository } from "../../modules/repositories/module.repository";
-import { DisciplineRepository } from "../../disciplines/repositories/discipline.repository";
 import { GoalRepository } from "./goal.repository";
 
 describe("goal repository tests", () => {

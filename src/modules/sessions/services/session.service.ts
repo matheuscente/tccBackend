@@ -4,8 +4,7 @@ import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provide
 import type { SessionResponseDTO } from "../DTOs/session-response.DTO";
 import type { ISessionRepository } from "../interfaces/repositories/session-repository.interface";
 import type { ISessionService } from "../interfaces/services/session-service.interface";
-import { ValidationError } from "../../../shared/errors/validation-error";
-import type { Session } from "@prisma/client";
+import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import type { ValidateSessionResponseDTO } from "../DTOs/validate-session-response.DTO";
 import type { SessionWithUserDTO } from "../DTOs/session-with-user.DTO";
 
@@ -17,25 +16,20 @@ export class SessionService implements ISessionService {
     private readonly hash: IHashProvider,
   ) {}
 
+  // o refresh token enviado ao cliente é "<id da sessão>.<segredo>"; o banco guarda apenas o hash do segredo
   async createSession(userId: string): Promise<SessionResponseDTO> {
-    //SECRET KEY
     const secret = randomUUID();
 
-    //secret key hash
     const hashedSecret = await this.hash.hash(secret);
 
-    //refresh token duration
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
 
-    //create session in database
-    //The refresh token sent to the database is the secret hashed
     const session = await this.repository.create({
       userId,
       refreshToken: hashedSecret,
       expiresAt,
     });
 
-    //The refresh token sent to the client is session id and secret unhashed
     return {
       id: session.id,
       userId: session.userId,
@@ -45,41 +39,36 @@ export class SessionService implements ISessionService {
   }
 
   async refreshSession(refreshToken: string): Promise<SessionResponseDTO> {
-    //separates the parts of the refresh token coming from the client.
     const [sessionId, secret] = refreshToken.split(".");
 
     if (!sessionId || !secret)
-      throw new ValidationError("Refresh token inválido");
+      throw new AuthorizationError("Refresh token inválido");
 
     const session: SessionWithUserDTO | null = await this.repository.findByIdWithUser(sessionId);
     if (!session || !session.isValid)
-      throw new ValidationError("Sessão inválida");
+      throw new AuthorizationError("Sessão inválida");
 
-    if (session.user.deletedAt) throw new ValidationError("Usuário desativado")
+    if (session.user.deletedAt) throw new AuthorizationError("Usuário desativado")
 
-    //If the session expiration date is earlier than the current date, the session will be invalidated.
     if (session.expiresAt < new Date()) {
       await this.repository.invalidate(sessionId);
-      throw new ValidationError("Session expirada");
+      throw new AuthorizationError("Sessão expirada");
     }
 
-    //Compare client unhashed secret with database hashed secret
     const isMatch = await this.hash.compare(secret, session.refreshToken);
 
     if (!isMatch) {
-      // tolerância: o token anterior continua válido por alguns segundos após a rotação,
-      // evitando derrubar a sessão quando duas abas renovam juntas ou a resposta se perde
+      // o token anterior continua válido por alguns segundos após a rotação (abas simultâneas ou resposta perdida)
       const withinGrace = !!session.previousRefreshToken && !!session.rotatedAt &&
         Date.now() - session.rotatedAt.getTime() <= REFRESH_GRACE_MS;
 
       const isPrevious = withinGrace && await this.hash.compare(secret, session.previousRefreshToken!);
 
-      if (!isPrevious) throw new ValidationError("Refresh token inválido");
+      if (!isPrevious) throw new AuthorizationError("Refresh token inválido");
     }
 
     const newSecret = randomUUID();
 
-    //secret key hash
     const newHashedSecret = await this.hash.hash(newSecret);
 
     const newExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
@@ -116,9 +105,9 @@ export class SessionService implements ISessionService {
   async validateSession(sessionId: string): Promise<ValidateSessionResponseDTO> {
     const session = await this.repository.findByIdWithUser(sessionId)
 
-    if(!session || !session.isValid || session.expiresAt.getTime() < new Date().getTime()) throw new ValidationError("Sessão inválida ou não encontrada")
+    if(!session || !session.isValid || session.expiresAt.getTime() < new Date().getTime()) throw new AuthorizationError("Sessão inválida ou não encontrada")
     
-    if(session.user.deletedAt) throw new ValidationError("Usuário desativado")
+    if(session.user.deletedAt) throw new AuthorizationError("Usuário desativado")
 
       return {
         userId: session.user.id,

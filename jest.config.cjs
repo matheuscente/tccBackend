@@ -3,13 +3,10 @@ module.exports = {
   testEnvironment: 'node',
   maxWorkers: 1,
 
-  // 🔒 Limita onde o Jest procura testes
   roots: ['<rootDir>/src'],
 
-  // 🔎 Só arquivos de teste reais
   testMatch: ['**/*.test.ts'],
 
-  // 🚫 Ignora código gerado e dependências
   testPathIgnorePatterns: [
     '/node_modules/',
     '/.prisma/',
@@ -25,6 +22,5 @@ module.exports = {
 
   moduleFileExtensions: ['ts', 'js'],
 
-  // 🔕 evita conflitos com ESM
   extensionsToTreatAsEsm: [],
 };

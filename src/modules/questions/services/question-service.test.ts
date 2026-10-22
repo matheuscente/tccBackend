@@ -2,9 +2,11 @@ import { ForbiddenError } from "../../../shared/errors/forbidden.error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { IScopeService } from "../../../shared/scope/scope-service.interface";
+import type { IScopeService } from "../../../shared/scope/interfaces/scope-service.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IQuestionRepository } from "../interfaces/repositories/question-repository.interface";
+import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
+import type { IRepositories } from "../../transaction/interfaces/repositories.interface";
 import { makeQuestion, makeQuestionOption } from "../../../tests/factories/make-question";
 import { QuestionService } from "./question.service";
 
@@ -31,10 +33,14 @@ describe("QuestionService", () => {
     isWithin: jest.fn(),
   };
 
+  const transactionMock: jest.Mocked<ITransaction> = {
+    execute: jest.fn().mockImplementation(async (work) => work({ questionRepository: questionRepositoryMock } as unknown as IRepositories)),
+  };
+
   const adminAuthUser: AuthUserDTO = { id: "admin-id", role: "ADMIN", sessionId: "default" };
   const userAuthUser: AuthUserDTO = { id: "user-id", role: "USER", sessionId: "default" };
 
-  const service = new QuestionService(questionRepositoryMock, ownershipMock, scopeServiceMock);
+  const service = new QuestionService(questionRepositoryMock, ownershipMock, scopeServiceMock, transactionMock);
 
   const courseScope = { courseId: "course-id", moduleId: null, disciplineId: null };
 
@@ -247,6 +253,25 @@ describe("QuestionService", () => {
           { text: "Y", isCorrect: true, order: 1 },
         ],
       });
+    });
+
+    it("should replace the options inside a transaction", async () => {
+      const question = makeQuestion({ userId: userAuthUser.id });
+      questionRepositoryMock.findById.mockResolvedValue(question);
+      questionRepositoryMock.update.mockResolvedValue(question);
+
+      await service.update(userAuthUser, question.id, { options: validOptions });
+
+      expect(transactionMock.execute).toHaveBeenCalledTimes(1);
+      expect(questionRepositoryMock.update).toHaveBeenCalledTimes(1);
+    });
+
+    it("should propagate errors thrown inside the transaction", async () => {
+      const question = makeQuestion({ userId: userAuthUser.id });
+      questionRepositoryMock.findById.mockResolvedValue(question);
+      questionRepositoryMock.update.mockRejectedValueOnce(new Error("db error"));
+
+      await expect(service.update(userAuthUser, question.id, { options: validOptions })).rejects.toThrow("db error");
     });
 
     it("should only send informed fields", async () => {

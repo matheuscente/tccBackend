@@ -1,5 +1,6 @@
 import type { Ticket, TicketAttachment } from "@prisma/client";
-import type { TicketWithMessagesDTO, TicketWithSummaryDTO } from "../../modules/tickets/DTOs/ticket.DTO";
+import type { TicketWithMessagesDTO } from "../../modules/tickets/DTOs/ticket-with-messages.DTO";
+import type { TicketWithSummaryDTO } from "../../modules/tickets/DTOs/ticket-with-summary.DTO";
 import { randomUUID } from "node:crypto";
 
 export const makeTicket = (overrides?: Partial<Ticket>): Ticket => ({

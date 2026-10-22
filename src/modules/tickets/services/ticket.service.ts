@@ -5,27 +5,34 @@ import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import { ForbiddenError } from "../../../shared/errors/forbidden.error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { ValidationError } from "../../../shared/errors/validation-error";
-import type { IFileTokenService } from "../../../shared/file-token/file-token.service";
-import type { IStorageProvider } from "../../../shared/storage/storage-provider.interface";
-import type { AddTicketMessageDTO, AttachmentInputDTO, CreateTicketDTO, ResponseTicketDTO, ResponseTicketDetailDTO, TicketFilterDTO, TicketWithMessagesDTO, TicketWithSummaryDTO, UploadedImageDTO } from "../DTOs/ticket.DTO";
+import type { IFileTokenService } from "../../../shared/file-token/interfaces/file-token-service.interface";
+import type { IStorageProvider } from "../../../shared/storage/interfaces/storage-provider.interface";
+import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
+import type { UploadedFileDTO } from "../../files/DTOs/uploaded-file.DTO";
+import type { AddTicketMessageDTO } from "../DTOs/add-ticket-message.DTO";
+import type { AttachmentInputDTO } from "../DTOs/attachment-input.DTO";
+import type { CreateTicketDTO } from "../DTOs/create-ticket.DTO";
+import type { ResponseTicketDTO } from "../DTOs/response-ticket.DTO";
+import type { ResponseTicketDetailDTO } from "../DTOs/response-ticket-detail.DTO";
+import type { TicketFilterDTO } from "../DTOs/ticket-filter.DTO";
+import type { TicketWithMessagesDTO } from "../DTOs/ticket-with-messages.DTO";
+import type { TicketWithSummaryDTO } from "../DTOs/ticket-with-summary.DTO";
 import type { ITicketRepository } from "../interfaces/repositories/ticket-repository.interface";
 import type { ITicketService } from "../interfaces/services/ticket-service.interface";
 
 const MAX_IMAGES = 5
 
-/**
- * SAC: o usuário abre chamados com mensagens e imagens; o administrador responde pelo painel.
- * As imagens anexadas ao chamado são visíveis ao administrador (foram enviadas ao suporte).
- */
+// diferente de notas e arquivos, as imagens do chamado são visíveis ao administrador (foram enviadas ao suporte)
 export class TicketService implements ITicketService {
     constructor(
         private readonly ticketRepository: ITicketRepository,
         private readonly storage: IStorageProvider,
         private readonly fileTokenService: IFileTokenService,
-        private readonly publicApiUrl: string
+        private readonly publicApiUrl: string,
+        private readonly transaction: ITransaction
     ) { }
 
-    async create(authUser: AuthUserDTO, data: CreateTicketDTO, images: UploadedImageDTO[]): Promise<ResponseTicketDetailDTO> {
+    async create(authUser: AuthUserDTO, data: CreateTicketDTO, images: UploadedFileDTO[]): Promise<ResponseTicketDetailDTO> {
         const attachments = await this.storeImages(authUser.id, images)
 
         try {
@@ -44,7 +51,6 @@ export class TicketService implements ITicketService {
     }
 
     async findAll(authUser: AuthUserDTO, filter: TicketFilterDTO): Promise<ResponseTicketDTO[]> {
-        // usuário comum vê apenas os próprios chamados; o administrador vê todos
         const tickets = await this.ticketRepository.findAll({
             ...filter,
             ...(authUser.role === "ADMIN" ? {} : { userId: authUser.id })
@@ -62,7 +68,7 @@ export class TicketService implements ITicketService {
         return this.getDetail(ticketId)
     }
 
-    async addMessage(authUser: AuthUserDTO, ticketId: string, data: AddTicketMessageDTO, images: UploadedImageDTO[]): Promise<ResponseTicketDetailDTO> {
+    async addMessage(authUser: AuthUserDTO, ticketId: string, data: AddTicketMessageDTO, images: UploadedFileDTO[]): Promise<ResponseTicketDetailDTO> {
         const ticket = await this.ticketRepository.findById(ticketId)
         if (!ticket) throw new NotFoundError("Chamado não encontrado")
 
@@ -70,20 +76,22 @@ export class TicketService implements ITicketService {
 
         if (ticket.status === "CLOSED") throw new ValidationError("Este chamado está encerrado")
 
-        const attachments = await this.storeImages(ticket.userId, images)
-
-        try {
-            await this.ticketRepository.addMessage(ticket.id, authUser.id, data.message.trim(), attachments)
-        } catch (err) {
-            await this.removeImages(attachments)
-            throw err
-        }
-
         // resposta do suporte => ANSWERED; nova mensagem do usuário => volta para OPEN
         const isSupport = authUser.role === "ADMIN" && authUser.id !== ticket.userId
         const nextStatus: TicketStatus = isSupport ? "ANSWERED" : "OPEN"
 
-        if (ticket.status !== nextStatus) await this.ticketRepository.updateStatus(ticket.id, nextStatus)
+        const attachments = await this.storeImages(ticket.userId, images)
+
+        try {
+            await this.transaction.execute(async (repositories) => {
+                await repositories.ticketRepository.addMessage(ticket.id, authUser.id, data.message.trim(), attachments)
+
+                if (ticket.status !== nextStatus) await repositories.ticketRepository.updateStatus(ticket.id, nextStatus)
+            })
+        } catch (err) {
+            await this.removeImages(attachments)
+            throw err
+        }
 
         return this.getDetail(ticket.id)
     }
@@ -94,7 +102,6 @@ export class TicketService implements ITicketService {
 
         this.checkAccess(authUser, ticket.userId)
 
-        // o usuário pode apenas encerrar o próprio chamado; o administrador pode qualquer status
         if (authUser.role !== "ADMIN" && status !== "CLOSED") {
             throw new ForbiddenError("Você pode apenas encerrar o chamado")
         }
@@ -118,7 +125,7 @@ export class TicketService implements ITicketService {
         if (authUser.role !== "ADMIN" && authUser.id !== ownerId) throw new ForbiddenError("Ação não autorizada")
     }
 
-    private async storeImages(ownerId: string, images: UploadedImageDTO[]): Promise<AttachmentInputDTO[]> {
+    private async storeImages(ownerId: string, images: UploadedFileDTO[]): Promise<AttachmentInputDTO[]> {
         if (images.length > MAX_IMAGES) throw new ValidationError(`Envie no máximo ${MAX_IMAGES} imagens`)
 
         const stored: AttachmentInputDTO[] = []

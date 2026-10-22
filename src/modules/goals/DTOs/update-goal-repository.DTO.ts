@@ -1,4 +1,3 @@
-// UpdateGoalRepositoryDTO
 export interface UpdateGoalRepositoryDTO {
     title?: string
     targetMinutes?: number

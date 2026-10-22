@@ -6,7 +6,7 @@ export const loginAuthSchema = Joi.object().keys({
   .min(4)
   .required()
   .messages({
-    'string.required': ErrorMessages.required("username"),
+    'any.required': ErrorMessages.required("username"),
     'string.min': ErrorMessages.min("username"),
     'string.empty': ErrorMessages.empty("username"),
     "string.base": ErrorMessages.type("username", "um texto"),

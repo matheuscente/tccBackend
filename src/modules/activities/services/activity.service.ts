@@ -2,15 +2,25 @@ import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { IScopeService } from "../../../shared/scope/scope-service.interface";
-import type { ScopeFieldsDTO } from "../../../shared/scope/scope.DTO";
+import type { IScopeService } from "../../../shared/scope/interfaces/scope-service.interface";
+import type { ScopeFieldsDTO } from "../../../shared/scope/DTOs/scope-fields.DTO";
 import type { IQuestionRepository } from "../../questions/interfaces/repositories/question-repository.interface";
 import type { ResponseQuestionDTO } from "../../questions/DTOs/response-question.DTO";
 import { QuestionService } from "../../questions/services/question.service";
-import type { ActivityWithStatsDTO, AttemptWithAnswersDTO, CreateActivityDTO, ResponseActivityDTO, ResponseActivityDetailDTO, ResponseAttemptDTO, SubmitAttemptDTO, UpdateActivityDTO } from "../DTOs/activity.DTO";
+import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
+import type { ActivityWithStatsDTO } from "../DTOs/activity-with-stats.DTO";
+import type { AttemptWithActivityDTO } from "../DTOs/attempt-with-activity.DTO";
+import type { AttemptWithAnswersDTO } from "../DTOs/attempt-with-answers.DTO";
+import type { CreateActivityDTO } from "../DTOs/create-activity.DTO";
+import type { UpdateActivityDTO } from "../DTOs/update-activity.DTO";
+import type { SubmitAttemptDTO } from "../DTOs/submit-attempt.DTO";
+import type { ResponseActivityDTO } from "../DTOs/response-activity.DTO";
+import type { ResponseActivityDetailDTO } from "../DTOs/response-activity-detail.DTO";
+import type { ResponseActivityForAnsweringDTO } from "../DTOs/response-activity-for-answering.DTO";
+import type { ResponseAttemptDTO } from "../DTOs/response-attempt.DTO";
 import type { IActivityRepository } from "../interfaces/repositories/activity-repository.interface";
 import type { IActivityService } from "../interfaces/services/activity-service.interface";
-import type { Activity, ActivityAttempt } from "@prisma/client";
+import type { Activity } from "@prisma/client";
 
 export const MAX_QUESTIONS_PER_ACTIVITY = 100
 
@@ -19,7 +29,8 @@ export class ActivityService implements IActivityService {
         private readonly activityRepository: IActivityRepository,
         private readonly questionRepository: IQuestionRepository,
         private readonly ownership: IOwnershipService,
-        private readonly scopeService: IScopeService
+        private readonly scopeService: IScopeService,
+        private readonly transaction: ITransaction
     ) { }
 
     async create(authUser: AuthUserDTO, data: CreateActivityDTO): Promise<ResponseActivityDetailDTO> {
@@ -31,14 +42,18 @@ export class ActivityService implements IActivityService {
         const questionIds = data.questionIds ?? []
         await this.validateQuestions(questionIds, ownerId, scope)
 
-        const activity = await this.activityRepository.create({
-            userId: ownerId,
-            title: data.title.trim(),
-            description: data.description?.trim() || null,
-            ...scope
-        })
+        const activity = await this.transaction.execute(async (repositories) => {
+            const created = await repositories.activityRepository.create({
+                userId: ownerId,
+                title: data.title.trim(),
+                description: data.description?.trim() || null,
+                ...scope
+            })
 
-        await this.activityRepository.setQuestions(activity.id, questionIds)
+            await repositories.activityRepository.setQuestions(created.id, questionIds)
+
+            return created
+        })
 
         return this.getDetail(activity.id)
     }
@@ -76,7 +91,7 @@ export class ActivityService implements IActivityService {
 
         await this.validateQuestions(questionIds, activity.userId, activity)
 
-        await this.activityRepository.setQuestions(activity.id, questionIds)
+        await this.transaction.execute((repositories) => repositories.activityRepository.setQuestions(activity.id, questionIds))
 
         return this.getDetail(activity.id)
     }
@@ -84,7 +99,6 @@ export class ActivityService implements IActivityService {
     async softDelete(authUser: AuthUserDTO, activityId: string): Promise<void> {
         const activity = await this.activityRepository.findById(activityId)
 
-        // idempotente
         if (!activity) return
 
         this.ownership.validateOwnership(authUser, activity.userId)
@@ -92,11 +106,11 @@ export class ActivityService implements IActivityService {
         await this.activityRepository.softDelete(activityId)
     }
 
-    async getForAnswering(authUser: AuthUserDTO, activityId: string) {
+    async getForAnswering(authUser: AuthUserDTO, activityId: string): Promise<ResponseActivityForAnsweringDTO> {
         const activity = await this.activityRepository.findByIdWithQuestions(activityId)
         if (!activity) throw new NotFoundError("Atividade não encontrada")
 
-        // apenas o dono responde às próprias atividades
+        // apenas o dono responde às próprias atividades, nem o administrador
         this.ownership.validateStrictOwnership(authUser, activity.userId)
 
         if (activity.questions.length === 0) throw new ValidationError("A atividade não possui questões")
@@ -190,10 +204,7 @@ export class ActivityService implements IActivityService {
         return activity
     }
 
-    /**
-     * As questões precisam ser do mesmo dono e estar dentro do escopo da atividade
-     * (ex.: atividade de um curso aceita questões do curso, dos seus módulos e disciplinas).
-     */
+    // as questões precisam ser do mesmo dono e estar dentro do escopo da atividade (um curso aceita questões dos seus módulos e disciplinas)
     private async validateQuestions(questionIds: string[], ownerId: string, scope: ScopeFieldsDTO): Promise<void> {
         if (questionIds.length === 0) return
 
@@ -253,7 +264,7 @@ export class ActivityService implements IActivityService {
         }
     }
 
-    private mapAttempt(attempt: (ActivityAttempt & { activity: { id: string, title: string } }) | AttemptWithAnswersDTO): ResponseAttemptDTO {
+    private mapAttempt(attempt: AttemptWithActivityDTO | AttemptWithAnswersDTO): ResponseAttemptDTO {
         const base: ResponseAttemptDTO = {
             id: attempt.id,
             activityId: attempt.activityId,

@@ -28,9 +28,14 @@ export abstract class ErrorHandler {
                 return
             }
 
-            // violação de índice único (ex.: título repetido)
             if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
                 new ValidationError("Já existe um registro com esses dados").send(res)
+                return
+            }
+
+            // registro removido entre a leitura e a escrita (update/delete sem resultado)
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+                new NotFoundError("Registro não encontrado").send(res)
                 return
             }
 

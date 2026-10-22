@@ -1,6 +1,13 @@
 import type { Activity, ActivityAttempt, Prisma, PrismaClient } from "@prisma/client";
 import type { IActivityRepository } from "../interfaces/repositories/activity-repository.interface";
-import type { ActivityWithQuestionsDTO, ActivityWithStatsDTO, AttemptWithAnswersDTO, CreateActivityRepositoryDTO, CreateAttemptRepositoryDTO } from "../DTOs/activity.DTO";
+import type { ActivityWithQuestionsDTO } from "../DTOs/activity-with-questions.DTO";
+import type { ActivityWithStatsDTO } from "../DTOs/activity-with-stats.DTO";
+import type { AttemptWithActivityDTO } from "../DTOs/attempt-with-activity.DTO";
+import type { AttemptWithActivityScopeDTO } from "../DTOs/attempt-with-activity-scope.DTO";
+import type { AttemptWithAnswersDTO } from "../DTOs/attempt-with-answers.DTO";
+import type { CreateActivityRepositoryDTO } from "../DTOs/create-activity-repository.DTO";
+import type { CreateAttemptRepositoryDTO } from "../DTOs/create-attempt-repository.DTO";
+import type { UpdateActivityRepositoryDTO } from "../DTOs/update-activity-repository.DTO";
 
 const statsInclude = {
     _count: { select: { questions: { where: { question: { deletedAt: null } } }, attempts: true } },
@@ -46,7 +53,7 @@ export class ActivityRepository implements IActivityRepository {
         })
     }
 
-    update(activityId: string, data: Partial<Omit<CreateActivityRepositoryDTO, "userId">>): Promise<Activity> {
+    update(activityId: string, data: UpdateActivityRepositoryDTO): Promise<Activity> {
         return this.orm.activity.update({ where: { id: activityId }, data })
     }
 
@@ -90,7 +97,7 @@ export class ActivityRepository implements IActivityRepository {
         })
     }
 
-    findAttemptsByActivityId(activityId: string) {
+    findAttemptsByActivityId(activityId: string): Promise<AttemptWithActivityDTO[]> {
         return this.orm.activityAttempt.findMany({
             where: { activityId },
             include: { activity: { select: { id: true, title: true } } },
@@ -98,7 +105,7 @@ export class ActivityRepository implements IActivityRepository {
         })
     }
 
-    findAttemptsByUserId(userId: string, since?: Date) {
+    findAttemptsByUserId(userId: string, since?: Date): Promise<AttemptWithActivityScopeDTO[]> {
         return this.orm.activityAttempt.findMany({
             where: {
                 userId,

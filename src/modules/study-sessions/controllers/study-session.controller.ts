@@ -5,7 +5,8 @@ import type { UpdateStudySessionDTO } from "../DTOs/update-study-session.DTO";
 import type { IStudySessionController } from "../interfaces/controllers/study-session-controller.interface";
 import type { IStudySessionService } from "../interfaces/services/study-sessions-service.interface";
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
-import type { RegisterStudySessionDTO, StartStudySessionDTO } from "../DTOs/start-study-session.DTO";
+import type { StartStudySessionDTO } from "../DTOs/start-study-session.DTO";
+import type { RegisterStudySessionDTO } from "../DTOs/register-study-session.DTO";
 
 export class StudySessionController implements IStudySessionController {
 

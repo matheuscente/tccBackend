@@ -200,6 +200,16 @@ describe("user service tests", () => {
       expect(result?.id).toBe(user.id);
     });
 
+    it("should sanitize the username before searching (usernames are stored in lowercase)", async () => {
+      const user = makeUser({ username: "john_doe" });
+      repositoryMock.findByUsername.mockResolvedValue(user);
+
+      await service.findByUsername({ id: user.id, role: "USER", sessionId: "default" }, " John_Doe ");
+
+      expect(sanitizeMock.sanitizeUsername).toHaveBeenCalledWith(" John_Doe ");
+      expect(repositoryMock.findByUsername).toHaveBeenCalledWith("john_doe");
+    });
+
     it("should return null when authUser is not the owner and not ADMIN", async () => {
       const user = makeUser();
       const otherUser: AuthUserDTO = {

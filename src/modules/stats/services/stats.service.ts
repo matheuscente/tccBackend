@@ -9,8 +9,12 @@ import type { IDisciplineRepository } from "../../disciplines/interfaces/reposit
 import type { IGoalRepository } from "../../goals/interfaces/repositories/goal-respository.interface";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
 import type { IStudySessionRepository } from "../../study-sessions/interfaces/repositories/study-session-repository.interface";
-import type { GetStatsDTO, StatsQueryDTO } from "../DTOs/get-stats.DTO";
-import type { GoalProgressDTO, GoalProgressStatus, PerformanceDTO, StudySummaryDTO } from "../DTOs/stats-response.DTO";
+import type { GetStatsDTO } from "../DTOs/get-stats.DTO";
+import type { StatsQueryDTO } from "../DTOs/stats-query.DTO";
+import type { GoalProgressDTO } from "../DTOs/goal-progress.DTO";
+import type { GoalProgressStatus } from "../DTOs/goal-progress-status.DTO";
+import type { PerformanceDTO } from "../DTOs/performance.DTO";
+import type { StudySummaryDTO } from "../DTOs/study-summary.DTO";
 import type { StudyTimeByScopeDTO } from "../DTOs/study-time-by-scope.DTO";
 import type { StudyTimePerDayDTO } from "../DTOs/study-time-per-day.DTO";
 import type { IStatsService } from "../interfaces/services/stats-service.interface";
@@ -65,13 +69,13 @@ export class StatsService implements IStatsService {
         const totalMinutes = this.sumMinutes(sessions)
         const studiedDays = perDay.filter(day => day.minutes > 0).length
 
-        // dias seguidos com estudo, contando de trás para frente a partir do fim do período
+        // dias seguidos com estudo contados do fim do período para trás; hoje ainda sem estudo não quebra a sequência
         const todayKey = this.dayKey(this.dateUtils.getCurrentDate())
         let currentStreak = 0
         for (let index = perDay.length - 1; index >= 0; index--) {
             const day = perDay[index]!
             if (day.minutes > 0) currentStreak++
-            else if (index === perDay.length - 1 && day.date === todayKey) continue // hoje ainda pode não ter estudo
+            else if (index === perDay.length - 1 && day.date === todayKey) continue
             else break
         }
 
@@ -100,8 +104,13 @@ export class StatsService implements IStatsService {
     async getPerformance(authUser: AuthUserDTO, query: StatsQueryDTO): Promise<PerformanceDTO> {
         this.ownership.validateOwnership(authUser, query.userId)
 
-        const since = query.startDate ? this.dateUtils.dateFormat(query.startDate) : undefined
-        const until = query.endDate ? new Date(this.dateUtils.dateFormat(query.endDate).getTime() + DAY_MS) : undefined
+        // finishedAt é um instante real: os limites do período são convertidos para o início do dia no fuso do usuário
+        const since = query.startDate
+            ? this.dateUtils.startOfDayInTimeZone(this.dateUtils.dateFormat(query.startDate))
+            : undefined
+        const until = query.endDate
+            ? this.dateUtils.startOfDayInTimeZone(new Date(this.dateUtils.dateFormat(query.endDate).getTime() + DAY_MS))
+            : undefined
         const attempts = await this.activityRepository.findAttemptsByUserId(query.userId, since)
 
         // filtro hierárquico: um curso inclui as atividades dos seus módulos e disciplinas
@@ -216,7 +225,6 @@ export class StatsService implements IStatsService {
             }
         }
 
-        // TOTAL_BY_DATE e TOTAL_IN_PERIOD: soma do período (até hoje ou até a data final)
         const lastDay = end && end < today ? end : today
         const sessions = await this.getSessions({ ...scopeData, startDate: start, endDate: lastDay })
         const studied = this.sumMinutes(sessions)
@@ -260,9 +268,7 @@ export class StatsService implements IStatsService {
         return days
     }
 
-    /**
-     * Agrupa no nível abaixo do filtro: geral => cursos, curso => módulos, módulo => disciplinas.
-     */
+    // agrupa no nível abaixo do filtro: geral => cursos, curso => módulos, módulo => disciplinas
     private async byScope(sessions: StudySession[], data: GetStatsDTO): Promise<StudyTimeByScopeDTO[]> {
         if (sessions.length === 0) return []
 

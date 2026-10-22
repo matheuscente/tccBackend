@@ -1,14 +1,15 @@
 import { randomUUID } from "crypto";
 import type { IHashProvider } from "../../../../shared/hash/interfaces/hash-provider.interface";
-import type { IMailProvider } from "../../../../shared/mail/mail-provider.interface";
+import type { IMailProvider } from "../../../../shared/mail/interfaces/mail-provider.interface";
 import { ValidationError } from "../../../../shared/errors/validation-error";
 import type { IUserRepository } from "../../../users/interfaces/user-repository.interface";
 import type { ISessionService } from "../../../sessions/interfaces/services/session-service.interface";
-import type { ForgotPasswordDTO, ResetPasswordDTO } from "../../DTOs/password-reset.DTO";
+import type { ForgotPasswordDTO } from "../../DTOs/forgot-password.DTO";
+import type { ResetPasswordDTO } from "../../DTOs/reset-password.DTO";
 import type { IPasswordResetRepository } from "../../interfaces/password-reset/password-reset-repository.interface";
 import type { IPasswordResetService } from "../../interfaces/password-reset/password-reset-service.interface";
 
-const TOKEN_DURATION_MS = 1000 * 60 * 30 // 30 minutos
+const TOKEN_DURATION_MS = 1000 * 60 * 30
 
 const escapeHtml = (value: string) => value
     .replace(/&/g, "&amp;")
@@ -46,12 +47,17 @@ export class PasswordResetService implements IPasswordResetService {
 
         const link = `${this.frontendUrl}/reset-password?token=${encodeURIComponent(`${record.id}.${secret}`)}`
 
-        await this.mailProvider.send({
-            to: user.email,
-            subject: "Redefinição de senha - Organizador de Estudos",
-            text: `Olá, ${user.name}.\n\nRecebemos um pedido para redefinir sua senha. Acesse o link abaixo (válido por 30 minutos):\n${link}\n\nSe você não fez este pedido, ignore este e-mail.`,
-            html: `<p>Olá, ${escapeHtml(user.name)}.</p><p>Recebemos um pedido para redefinir sua senha. O link é válido por 30 minutos:</p><p><a href="${link}">Redefinir minha senha</a></p><p>Se você não fez este pedido, ignore este e-mail.</p>`
-        })
+        // falha no envio não muda a resposta: um erro só para e-mails cadastrados revelaria a conta
+        try {
+            await this.mailProvider.send({
+                to: user.email,
+                subject: "Redefinição de senha - Organizador de Estudos",
+                text: `Olá, ${user.name}.\n\nRecebemos um pedido para redefinir sua senha. Acesse o link abaixo (válido por 30 minutos):\n${link}\n\nSe você não fez este pedido, ignore este e-mail.`,
+                html: `<p>Olá, ${escapeHtml(user.name)}.</p><p>Recebemos um pedido para redefinir sua senha. O link é válido por 30 minutos:</p><p><a href="${link}">Redefinir minha senha</a></p><p>Se você não fez este pedido, ignore este e-mail.</p>`
+            })
+        } catch (err) {
+            console.error("Falha ao enviar o e-mail de redefinição de senha", err)
+        }
     }
 
     async resetPassword(data: ResetPasswordDTO): Promise<void> {
@@ -79,7 +85,6 @@ export class PasswordResetService implements IPasswordResetService {
 
         await this.userRepository.updatePassword(user.id, hashedPassword)
 
-        // encerra as sessões abertas por segurança
         await this.sessionService.invalidateAllByUserId(user.id)
     }
 }

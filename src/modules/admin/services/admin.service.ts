@@ -1,7 +1,9 @@
 import type { IDateConvert } from "../../../shared/convert/interfaces/date-convert.interface";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
-import type { AdminDashboardDTO, AdminUserOverviewDTO } from "../DTOs/admin.DTO";
-import type { IAdminRepository, IAdminService } from "../interfaces/admin-repository.interface";
+import type { AdminDashboardDTO } from "../DTOs/admin-dashboard.DTO";
+import type { AdminUserOverviewDTO } from "../DTOs/admin-user-overview.DTO";
+import type { IAdminRepository } from "../interfaces/repositories/admin-repository.interface";
+import type { IAdminService } from "../interfaces/services/admin-service.interface";
 
 export class AdminService implements IAdminService {
     constructor(

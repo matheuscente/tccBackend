@@ -15,4 +15,10 @@ export interface IUserController {
     update(req: Request<any, any, UpdateUserDTO, {id: string}>, res: Response, next: NextFunction): Promise<void>
     
     updatePassword(req: Request<any, any , {oldPassword: string, newPassword: string}, {id: string}>, res: Response, next: NextFunction): Promise<void>
+
+    me(req: Request, res: Response, next: NextFunction): Promise<void>
+
+    list(req: Request, res: Response, next: NextFunction): Promise<void>
+
+    updateRole(req: Request<{id: string}, any, {role: "ADMIN" | "USER"}>, res: Response, next: NextFunction): Promise<void>
 }

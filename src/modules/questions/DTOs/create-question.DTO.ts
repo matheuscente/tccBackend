@@ -1,9 +1,5 @@
 import type { QuestionType } from "@prisma/client"
-
-export interface QuestionOptionInputDTO {
-    text: string
-    isCorrect: boolean
-}
+import type { QuestionOptionInputDTO } from "./question-option-input.DTO"
 
 export interface CreateQuestionDTO {
     statement: string
@@ -14,10 +10,4 @@ export interface CreateQuestionDTO {
     moduleId?: string | null
     disciplineId?: string | null
     options: QuestionOptionInputDTO[]
-}
-
-export interface UpdateQuestionDTO {
-    statement?: string
-    explanation?: string | null
-    options?: QuestionOptionInputDTO[]
 }

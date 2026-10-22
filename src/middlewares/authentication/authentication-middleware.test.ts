@@ -3,13 +3,10 @@ import { authenticationMiddleware } from "./authentication.middleware";
 import { AuthorizationError } from "../../shared/errors/authorization.error";
 import type { IAccessTokenService } from "../../modules/auth/interfaces/access-token/access-token-service.interface";
 import type { ISessionService } from "../../modules/sessions/interfaces/services/session-service.interface";
-import { ValidationError } from "../../shared/errors/validation-error";
 
 
 describe("AuthenticationMiddleware tests", () => {
 
-        //função que cria o sistema que estamos testando
-        //ele mocka as dependencias necessárias, instancia o middleware e retorna o middleware e os mocks
     const makeSut = () => {
         const accessTokenServiceMock: jest.Mocked<IAccessTokenService> = {
             extractPayload: jest.fn(),
@@ -33,17 +30,14 @@ describe("AuthenticationMiddleware tests", () => {
         }
     }
 
-    //mock de request
     const requestMock = (authorization?: string) => ({
         headers: {
             authorization
         }
     }) as any
 
-    //mock de response
     const responseMock = () => ({})  as any
 
-    //mock de next
     const nextMock = jest.fn()  as any
 
     beforeEach(() => {
@@ -68,7 +62,6 @@ describe("AuthenticationMiddleware tests", () => {
             userRole: "USER"
          })
 
-         //atribui o header do request
          const req = requestMock("Bearer valid-access-token")
 
          await middleware(req, responseMock(), nextMock)
@@ -107,7 +100,6 @@ describe("AuthenticationMiddleware tests", () => {
             userRole: "USER"
          })
 
-         //atribui o header do request
          const req = requestMock("Bearer valid-access-token")
 
          await middleware(req, responseMock(), nextMock)
@@ -138,7 +130,6 @@ describe("AuthenticationMiddleware tests", () => {
 
          sessionServiceMock.validateSession.mockRejectedValue(new AuthorizationError("validateSession error"))
 
-         //atribui o header do request
          const req = requestMock("Bearer valid-access-token")
 
          await middleware(req, responseMock(), nextMock)
@@ -155,14 +146,13 @@ describe("AuthenticationMiddleware tests", () => {
 
     })
 
-    it("should throw an error because the access token is invalid.", async () => {
+    it("should respond 401 (AuthorizationError) when the access token is invalid or expired.", async () => {
         const sessionId = "session-id"
 
          const { middleware, accessTokenServiceMock, sessionServiceMock } = makeSut()
 
-         accessTokenServiceMock.extractPayload.mockImplementation(() => {throw new ValidationError("invalid token")})
+         accessTokenServiceMock.extractPayload.mockImplementation(() => {throw new Error("jwt expired")})
 
-         //atribui o header do request
          const req = requestMock("Bearer invalid-access-token")
 
          await middleware(req, responseMock(), nextMock)
@@ -174,7 +164,8 @@ describe("AuthenticationMiddleware tests", () => {
 
          expect(req.user).toBeUndefined()
 
-         expect(nextMock).toHaveBeenCalledWith(expect.any(ValidationError))
+         expect(nextMock).toHaveBeenCalledWith(expect.any(AuthorizationError))
+         expect((nextMock.mock.calls[0][0] as any).status).toBe(401)
 
     })
 
@@ -183,7 +174,6 @@ describe("AuthenticationMiddleware tests", () => {
 
          const { middleware, accessTokenServiceMock, sessionServiceMock } = makeSut()
 
-         //atribui o header do request
          const req = requestMock("Bearer")
 
          await middleware(req, responseMock(), nextMock)
@@ -203,7 +193,6 @@ describe("AuthenticationMiddleware tests", () => {
 
          const { middleware, accessTokenServiceMock, sessionServiceMock } = makeSut()
 
-         //atribui o header do request
          const req = requestMock("invalid requisition")
 
          await middleware(req, responseMock(), nextMock)
@@ -223,7 +212,6 @@ describe("AuthenticationMiddleware tests", () => {
 
          const { middleware, accessTokenServiceMock, sessionServiceMock } = makeSut()
 
-         //atribui o header do request
          const req = requestMock()
 
          await middleware(req, responseMock(), nextMock)

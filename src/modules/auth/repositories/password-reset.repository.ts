@@ -1,5 +1,5 @@
 import type { PasswordResetToken, Prisma, PrismaClient } from "@prisma/client";
-import type { CreatePasswordResetTokenDTO } from "../DTOs/password-reset.DTO";
+import type { CreatePasswordResetTokenDTO } from "../DTOs/create-password-reset-token.DTO";
 import type { IPasswordResetRepository } from "../interfaces/password-reset/password-reset-repository.interface";
 
 export class PasswordResetRepository implements IPasswordResetRepository {

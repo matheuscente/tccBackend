@@ -1,4 +1,5 @@
 import type { QuestionType } from "@prisma/client"
+import type { QuestionOptionRepositoryDTO } from "./question-option-repository.DTO"
 
 export interface CreateQuestionRepositoryDTO {
     userId: string
@@ -8,11 +9,5 @@ export interface CreateQuestionRepositoryDTO {
     courseId: string | null
     moduleId: string | null
     disciplineId: string | null
-    options: { text: string, isCorrect: boolean, order: number }[]
-}
-
-export interface UpdateQuestionRepositoryDTO {
-    statement?: string
-    explanation?: string | null
-    options?: { text: string, isCorrect: boolean, order: number }[]
+    options: QuestionOptionRepositoryDTO[]
 }

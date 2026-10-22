@@ -1,14 +1,19 @@
+import type { QuestionType } from "@prisma/client";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { IScopeService } from "../../../shared/scope/scope-service.interface";
-import type { CreateQuestionDTO, QuestionOptionInputDTO, UpdateQuestionDTO } from "../DTOs/create-question.DTO";
-import type { QuestionScopeFilterDTO, QuestionWithOptionsDTO } from "../DTOs/question-with-options.DTO";
+import type { IScopeService } from "../../../shared/scope/interfaces/scope-service.interface";
+import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
+import type { CreateQuestionDTO } from "../DTOs/create-question.DTO";
+import type { UpdateQuestionDTO } from "../DTOs/update-question.DTO";
+import type { QuestionOptionInputDTO } from "../DTOs/question-option-input.DTO";
+import type { QuestionOptionRepositoryDTO } from "../DTOs/question-option-repository.DTO";
+import type { QuestionScopeFilterDTO } from "../DTOs/question-scope-filter.DTO";
+import type { QuestionWithOptionsDTO } from "../DTOs/question-with-options.DTO";
 import type { ResponseQuestionDTO } from "../DTOs/response-question.DTO";
 import type { IQuestionRepository } from "../interfaces/repositories/question-repository.interface";
 import type { IQuestionService } from "../interfaces/services/question-service.interface";
-import type { QuestionType } from "@prisma/client";
 
 export const MIN_OPTIONS = 2
 export const MAX_OPTIONS = 6
@@ -17,7 +22,8 @@ export class QuestionService implements IQuestionService {
     constructor(
         private readonly questionRepository: IQuestionRepository,
         private readonly ownership: IOwnershipService,
-        private readonly scopeService: IScopeService
+        private readonly scopeService: IScopeService,
+        private readonly transaction: ITransaction
     ) { }
 
     async create(authUser: AuthUserDTO, data: CreateQuestionDTO): Promise<ResponseQuestionDTO> {
@@ -63,11 +69,13 @@ export class QuestionService implements IQuestionService {
 
         this.ownership.validateOwnership(authUser, question.userId)
 
-        const updated = await this.questionRepository.update(questionId, {
+        const options = data.options ? this.prepareOptions(question.type, data.options) : undefined
+
+        const updated = await this.transaction.execute((repositories) => repositories.questionRepository.update(questionId, {
             ...(data.statement !== undefined ? { statement: data.statement.trim() } : {}),
             ...(data.explanation !== undefined ? { explanation: data.explanation?.trim() || null } : {}),
-            ...(data.options ? { options: this.prepareOptions(question.type, data.options) } : {})
-        })
+            ...(options ? { options } : {})
+        }))
 
         return QuestionService.mapResponse(updated)
     }
@@ -75,7 +83,6 @@ export class QuestionService implements IQuestionService {
     async softDelete(authUser: AuthUserDTO, questionId: string): Promise<void> {
         const question = await this.questionRepository.findById(questionId)
 
-        // idempotente
         if (!question) return
 
         this.ownership.validateOwnership(authUser, question.userId)
@@ -83,13 +90,7 @@ export class QuestionService implements IQuestionService {
         await this.questionRepository.softDelete(questionId)
     }
 
-    /**
-     * Regras das alternativas:
-     * - verdadeiro/falso: exatamente 2 alternativas
-     * - múltipla escolha: de 2 a 6 alternativas
-     * - sempre exatamente uma alternativa correta e sem textos repetidos
-     */
-    private prepareOptions(type: QuestionType, options: QuestionOptionInputDTO[]) {
+    private prepareOptions(type: QuestionType, options: QuestionOptionInputDTO[]): QuestionOptionRepositoryDTO[] {
         if (!options || options.length < MIN_OPTIONS) throw new ValidationError(`Informe pelo menos ${MIN_OPTIONS} alternativas`)
 
         if (type === "TRUE_FALSE" && options.length !== 2) throw new ValidationError("Questões de verdadeiro ou falso devem ter exatamente 2 alternativas")

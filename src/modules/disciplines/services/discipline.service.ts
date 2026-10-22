@@ -21,7 +21,6 @@ export class DisciplineService implements IDisciplineService {
 
 
     async findAllByUserId(authUser: AuthUserDTO, targetUserId: string): Promise<ResponseDisciplineDTO[]> {
-        // Se não for admin, só pode buscar o próprio usuário
         this.ownership.validateOwnership(authUser, targetUserId);
 
         const disciplines = await this.disciplineRepository.findAllByUserId(targetUserId);
@@ -81,7 +80,6 @@ export class DisciplineService implements IDisciplineService {
                 ? await repositories.disciplineRepository.findById(disciplineId)
                 : await repositories.disciplineRepository.findByIdWithOwner(disciplineId, authUser.id)
 
-            //método Idempotente. Se discipline já não existe, retorna null
             if (!discipline) return;
 
             await repositories.scopedContentRepository.cleanupByDisciplineIds([disciplineId])

@@ -1,6 +1,7 @@
 import type { AuthUserDTO } from "../../../../shared/DTOs/auth-user.DTO"
-import type { CreateQuestionDTO, UpdateQuestionDTO } from "../../DTOs/create-question.DTO"
-import type { QuestionScopeFilterDTO } from "../../DTOs/question-with-options.DTO"
+import type { CreateQuestionDTO } from "../../DTOs/create-question.DTO"
+import type { UpdateQuestionDTO } from "../../DTOs/update-question.DTO"
+import type { QuestionScopeFilterDTO } from "../../DTOs/question-scope-filter.DTO"
 import type { ResponseQuestionDTO } from "../../DTOs/response-question.DTO"
 
 export interface IQuestionService {

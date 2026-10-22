@@ -1,4 +1,4 @@
-import type { Course, Discipline } from "@prisma/client";
+import type { Discipline } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 
 export const makeDiscipline = (overrides?: Partial<Discipline>): Discipline => ({

@@ -1,5 +1,6 @@
 import type { Session } from "@prisma/client";
-import type { CreateSessionDTO, UpdateSessionDTO } from "../../DTOs/create-session.DTO";
+import type { CreateSessionDTO } from "../../DTOs/create-session.DTO";
+import type { UpdateSessionDTO } from "../../DTOs/update-session.DTO";
 import type { SessionWithUserDTO } from "../../DTOs/session-with-user.DTO"
 
 export interface ISessionRepository {

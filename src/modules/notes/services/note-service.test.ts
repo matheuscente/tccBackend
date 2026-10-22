@@ -2,7 +2,7 @@ import { ForbiddenError } from "../../../shared/errors/forbidden.error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { IScopeService } from "../../../shared/scope/scope-service.interface";
+import type { IScopeService } from "../../../shared/scope/interfaces/scope-service.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { INoteRepository } from "../interfaces/repositories/note-repository.interface";
 import { makeNote } from "../../../tests/factories/make-note";
@@ -39,7 +39,6 @@ describe("NoteService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // mesma regra do OwnershipService real: apenas o próprio usuário, sem exceção para ADMIN
     ownershipMock.validateStrictOwnership.mockImplementation((user, ownerId) => {
       if (user.id !== ownerId) throw new ForbiddenError("Ação não autorizada");
     });

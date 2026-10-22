@@ -8,7 +8,7 @@ export const baseStudySessionFields = {
         .messages({
             "number.min": ErrorMessages.minNumber("minutos", "1 minuto"),
             "number.base": ErrorMessages.type("minutos", "um inteiro"),
-            "number.interger": ErrorMessages.type("minutos", "um inteiro")
+            "number.integer": ErrorMessages.type("minutos", "um inteiro")
         }),
         
     studiedAt: Joi.string()

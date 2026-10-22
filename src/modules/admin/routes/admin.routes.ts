@@ -6,11 +6,11 @@ import { requireRole } from "../../../middlewares/authorization/authorization.mi
 
 export const adminRoutes = express.Router()
 
-const controller = container.adminController
+const adminController = container.adminController
+const authentication = container.authenticationMiddleware
 
-// todas as rotas do painel exigem usuário autenticado com perfil ADMIN
-adminRoutes.use(container.authenticationMiddleware, requireRole("ADMIN"))
+adminRoutes.use(authentication, requireRole("ADMIN"))
 
-adminRoutes.get('/dashboard', controller.dashboard)
+adminRoutes.get('/dashboard', adminController.dashboard)
 
-adminRoutes.get('/users/:id/overview', RequestValidator.paramsValidator(FindByIdSchema), controller.userOverview)
+adminRoutes.get('/users/:id/overview', RequestValidator.paramsValidator(FindByIdSchema), adminController.userOverview)

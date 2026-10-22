@@ -1,5 +1,7 @@
-import type { CreateQuestionRepositoryDTO, UpdateQuestionRepositoryDTO } from "../../DTOs/create-question-repository.DTO"
-import type { QuestionScopeFilterDTO, QuestionWithOptionsDTO } from "../../DTOs/question-with-options.DTO"
+import type { CreateQuestionRepositoryDTO } from "../../DTOs/create-question-repository.DTO"
+import type { UpdateQuestionRepositoryDTO } from "../../DTOs/update-question-repository.DTO"
+import type { QuestionScopeFilterDTO } from "../../DTOs/question-scope-filter.DTO"
+import type { QuestionWithOptionsDTO } from "../../DTOs/question-with-options.DTO"
 
 export interface IQuestionRepository {
     create(data: CreateQuestionRepositoryDTO): Promise<QuestionWithOptionsDTO>

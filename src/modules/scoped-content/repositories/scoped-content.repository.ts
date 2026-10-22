@@ -1,5 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
-import type { IScopedContentRepository } from "../interfaces/scoped-content-repository.interface";
+import type { IScopedContentRepository } from "../interfaces/repositories/scoped-content-repository.interface";
 
 type ScopeFilter = {
     OR: Array<Record<string, unknown>>

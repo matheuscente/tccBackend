@@ -1,5 +1,6 @@
 import type { AuthUserDTO } from "../../../../shared/DTOs/auth-user.DTO";
-import type { RegisterStudySessionDTO, StartStudySessionDTO } from "../../DTOs/start-study-session.DTO";
+import type { StartStudySessionDTO } from "../../DTOs/start-study-session.DTO";
+import type { RegisterStudySessionDTO } from "../../DTOs/register-study-session.DTO";
 import type { ResponseStudySessionDTO } from "../../DTOs/response-study-session.DTO";
 import type { UpdateStudySessionDTO } from "../../DTOs/update-study-session.DTO";
 

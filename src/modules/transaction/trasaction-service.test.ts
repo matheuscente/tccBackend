@@ -9,9 +9,10 @@ import { DisciplineRepository } from "../disciplines/repositories/discipline.rep
 import { GoalRepository } from "../goals/repositories/goal.repository";
 import { StudySessionRepository } from "../study-sessions/repositories/study-session.repository";
 import { ScopedContentRepository } from "../scoped-content/repositories/scoped-content.repository";
+import { QuestionRepository } from "../questions/repositories/question.repository";
+import { ActivityRepository } from "../activities/repositories/activity.repository";
+import { TicketRepository } from "../tickets/repositories/ticket.repository";
 
-
-// mock de todos os repositórios para isolar a Transaction
 jest.mock("../modules/repositories/module.repository");
 jest.mock("../courses/repositories/course.repository");
 jest.mock("../users/repositories/user.repository");
@@ -20,11 +21,13 @@ jest.mock("../disciplines/repositories/discipline.repository")
 jest.mock("../goals/repositories/goal.repository");
 jest.mock("../study-sessions/repositories/study-session.repository");
 jest.mock("../scoped-content/repositories/scoped-content.repository");
+jest.mock("../questions/repositories/question.repository");
+jest.mock("../activities/repositories/activity.repository");
+jest.mock("../tickets/repositories/ticket.repository");
 
 
 describe("Transaction", () => {
 
-  // tx é o cliente Prisma simulado dentro da transação
   const txMock = {} as PrismaClient;
 
   const prismaMock = {
@@ -36,8 +39,6 @@ describe("Transaction", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // simula o comportamento real do $transaction:
-    // extrai o callback e o executa passando o txMock
     (prismaMock.$transaction as jest.Mock).mockImplementation(
       async (callback) => callback(txMock)
     );
@@ -77,6 +78,11 @@ describe("Transaction", () => {
 
       expect(StudySessionRepository).toHaveBeenCalledTimes(1);
       expect(StudySessionRepository).toHaveBeenCalledWith(txMock);
+
+      expect(ScopedContentRepository).toHaveBeenCalledWith(txMock);
+      expect(QuestionRepository).toHaveBeenCalledWith(txMock);
+      expect(ActivityRepository).toHaveBeenCalledWith(txMock);
+      expect(TicketRepository).toHaveBeenCalledWith(txMock);
     });
 
     it("should call the work callback with the correct repository shape", async () => {
@@ -94,7 +100,10 @@ describe("Transaction", () => {
           disciplineRepository: expect.any(DisciplineRepository),
           goalRepository: expect.any(GoalRepository),
           studySessionRepository:expect.any(StudySessionRepository),
-          scopedContentRepository: expect.any(ScopedContentRepository)
+          scopedContentRepository: expect.any(ScopedContentRepository),
+          questionRepository: expect.any(QuestionRepository),
+          activityRepository: expect.any(ActivityRepository),
+          ticketRepository: expect.any(TicketRepository)
         } satisfies Record<keyof IRepositories, unknown>)
       );
     });

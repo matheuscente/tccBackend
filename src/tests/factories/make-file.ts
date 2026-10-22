@@ -1,5 +1,5 @@
 import type { StoredFile } from "@prisma/client";
-import type { UploadedFileDTO } from "../../modules/files/DTOs/file.DTO";
+import type { UploadedFileDTO } from "../../modules/files/DTOs/uploaded-file.DTO";
 import { randomUUID } from "node:crypto";
 
 export const makeFile = (overrides?: Partial<StoredFile>): StoredFile => {

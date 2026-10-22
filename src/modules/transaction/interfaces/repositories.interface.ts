@@ -4,8 +4,11 @@ import type { IGoalRepository } from "../../goals/interfaces/repositories/goal-r
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface"
 import type { ISessionRepository } from "../../sessions/interfaces/repositories/session-repository.interface"
 import type { IStudySessionRepository } from "../../study-sessions/interfaces/repositories/study-session-repository.interface"
-import type { IScopedContentRepository } from "../../scoped-content/interfaces/scoped-content-repository.interface"
+import type { IScopedContentRepository } from "../../scoped-content/interfaces/repositories/scoped-content-repository.interface"
 import type { IUserRepository } from "../../users/interfaces/user-repository.interface"
+import type { IQuestionRepository } from "../../questions/interfaces/repositories/question-repository.interface"
+import type { IActivityRepository } from "../../activities/interfaces/repositories/activity-repository.interface"
+import type { ITicketRepository } from "../../tickets/interfaces/repositories/ticket-repository.interface"
 
 export interface IRepositories {
   courseRepository: ICourseRepository
@@ -15,5 +18,8 @@ export interface IRepositories {
   disciplineRepository: IDisciplineRepository,
   goalRepository: IGoalRepository,
   studySessionRepository: IStudySessionRepository,
-  scopedContentRepository: IScopedContentRepository
+  scopedContentRepository: IScopedContentRepository,
+  questionRepository: IQuestionRepository,
+  activityRepository: IActivityRepository,
+  ticketRepository: ITicketRepository
 }

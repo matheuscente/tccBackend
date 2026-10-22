@@ -2,8 +2,11 @@ import type { Note } from "@prisma/client";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { IScopeService } from "../../../shared/scope/scope-service.interface";
-import type { CreateNoteDTO, NoteFilterDTO, ResponseNoteDTO, UpdateNoteDTO } from "../DTOs/note.DTO";
+import type { IScopeService } from "../../../shared/scope/interfaces/scope-service.interface";
+import type { CreateNoteDTO } from "../DTOs/create-note.DTO";
+import type { UpdateNoteDTO } from "../DTOs/update-note.DTO";
+import type { NoteFilterDTO } from "../DTOs/note-filter.DTO";
+import type { ResponseNoteDTO } from "../DTOs/response-note.DTO";
 import type { INoteRepository } from "../interfaces/repositories/note-repository.interface";
 import type { INoteService } from "../interfaces/services/note-service.interface";
 
@@ -15,7 +18,7 @@ export class NoteService implements INoteService {
     ) { }
 
     async create(authUser: AuthUserDTO, data: CreateNoteDTO): Promise<ResponseNoteDTO> {
-        // notas são privadas: somente o próprio usuário cria e acessa (nem o administrador)
+        // notas são privadas: somente o próprio usuário cria e acessa, nem o administrador
         const ownerId = authUser.id
 
         const scope = this.scopeService.normalize(data)

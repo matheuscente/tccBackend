@@ -1,5 +1,6 @@
-import type { Prisma, PrismaClient, Session } from "@prisma/client";
-import type { CreateSessionDTO, UpdateSessionDTO } from "../../sessions/DTOs/create-session.DTO";
+import type { Prisma, PrismaClient } from "@prisma/client";
+import type { CreateSessionDTO } from "../DTOs/create-session.DTO";
+import type { UpdateSessionDTO } from "../DTOs/update-session.DTO";
 import type { ISessionRepository } from "../interfaces/repositories/session-repository.interface";
 import type { SessionWithUserDTO } from "../DTOs/session-with-user.DTO";
 

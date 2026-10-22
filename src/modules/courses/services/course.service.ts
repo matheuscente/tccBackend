@@ -51,7 +51,6 @@ export class CourseService implements ICourseService {
     authUser: AuthUserDTO,
     targetUserId: string,
   ): Promise<CourseResponseDTO[]> {
-    // Se não for admin, só pode buscar o próprio usuário
     this.ownership.validateOwnership(authUser, targetUserId);
 
     const courses = await this.courseRepository.findAllByUserId(targetUserId);
