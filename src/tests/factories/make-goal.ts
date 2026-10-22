@@ -1,5 +1,4 @@
 import type { Goal } from "@prisma/client";
-import type { CreateGoalRepositoryDTO } from "../../modules/goals/DTOs/create-goal-repository.DTO";
 import { randomUUID } from "node:crypto";
 
 export const makeGoal = (overrides?: Partial<Goal>): Goal => ({

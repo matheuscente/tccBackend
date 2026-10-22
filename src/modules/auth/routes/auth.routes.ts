@@ -2,8 +2,8 @@ import express from "express"
 import { RequestValidator } from "../../../middlewares/data-validator.middleware"
 import { container } from "../../../app/container-dependencies"
 import { loginAuthSchema } from "../validators/login.schema"
-import { forgotPasswordSchema, resetPasswordSchema } from "../validators/password-reset.schema"
-
+import { forgotPasswordSchema } from "../validators/forgot-password.schema"
+import { resetPasswordSchema } from "../validators/reset-password.schema"
 
 export const authRoutes = express.Router()
 

@@ -6,7 +6,7 @@ export const FindByIdSchema = Joi.object({
     .uuid({ version: "uuidv4" })
     .required()
     .messages({
-      "string.required": ErrorMessages.required("id")
+      "any.required": ErrorMessages.required("id")
     })
 })
   .prefs({ abortEarly: false })

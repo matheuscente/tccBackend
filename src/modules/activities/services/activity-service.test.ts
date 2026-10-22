@@ -2,10 +2,12 @@ import { ForbiddenError } from "../../../shared/errors/forbidden.error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { IScopeService } from "../../../shared/scope/scope-service.interface";
+import type { IScopeService } from "../../../shared/scope/interfaces/scope-service.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IQuestionRepository } from "../../questions/interfaces/repositories/question-repository.interface";
 import type { IActivityRepository } from "../interfaces/repositories/activity-repository.interface";
+import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
+import type { IRepositories } from "../../transaction/interfaces/repositories.interface";
 import type { Activity } from "@prisma/client";
 import { makeQuestion, makeQuestionOption } from "../../../tests/factories/make-question";
 import { makeActivity, makeActivityAttempt, makeActivityWithQuestions, makeActivityWithStats, makeAttemptWithAnswers } from "../../../tests/factories/make-activity";
@@ -49,14 +51,17 @@ describe("ActivityService", () => {
     isWithin: jest.fn(),
   };
 
+  const transactionMock: jest.Mocked<ITransaction> = {
+    execute: jest.fn().mockImplementation(async (work) => work({ activityRepository: activityRepositoryMock } as unknown as IRepositories)),
+  };
+
   const adminAuthUser: AuthUserDTO = { id: "admin-id", role: "ADMIN", sessionId: "default" };
   const userAuthUser: AuthUserDTO = { id: "user-id", role: "USER", sessionId: "default" };
 
-  const service = new ActivityService(activityRepositoryMock, questionRepositoryMock, ownershipMock, scopeServiceMock);
+  const service = new ActivityService(activityRepositoryMock, questionRepositoryMock, ownershipMock, scopeServiceMock, transactionMock);
 
   const courseScope = { courseId: "course-id", moduleId: null, disciplineId: null };
 
-  // simula o carregamento dos dados exibidos após criar/editar (getDetail)
   const mockDetail = (activity: Activity, questions = [makeQuestion()]) => {
     activityRepositoryMock.findByIdWithStats.mockResolvedValue(makeActivityWithStats({ ...activity, _count: { questions: questions.length, attempts: 0 } }));
     activityRepositoryMock.findByIdWithQuestions.mockResolvedValue(makeActivityWithQuestions(activity, questions));
@@ -100,6 +105,36 @@ describe("ActivityService", () => {
       expect(result.id).toBe(activity.id);
       expect(result.questionCount).toBe(2);
       expect(result.questions[0]!.options[0]).toHaveProperty("isCorrect");
+    });
+
+    it("should create the activity and attach the questions in the same transaction", async () => {
+      const activity = makeActivity({ userId: userAuthUser.id, ...courseScope });
+      const questions = [makeQuestion({ userId: userAuthUser.id })];
+      questionRepositoryMock.findManyByIds.mockResolvedValue(questions);
+      activityRepositoryMock.create.mockResolvedValue(activity);
+      mockDetail(activity, questions);
+
+      await service.create(userAuthUser, { title: "t", courseId: "course-id", questionIds: [questions[0]!.id] });
+
+      expect(transactionMock.execute).toHaveBeenCalledTimes(1);
+      expect(activityRepositoryMock.create).toHaveBeenCalledTimes(1);
+      expect(activityRepositoryMock.setQuestions).toHaveBeenCalledTimes(1);
+    });
+
+    it("should propagate the error and not load the detail when attaching questions fails", async () => {
+      const activity = makeActivity({ userId: userAuthUser.id, ...courseScope });
+      const questions = [makeQuestion({ userId: userAuthUser.id })];
+      questionRepositoryMock.findManyByIds.mockResolvedValue(questions);
+      activityRepositoryMock.create.mockResolvedValue(activity);
+      activityRepositoryMock.setQuestions.mockRejectedValueOnce(new Error("db error"));
+
+      await expect(service.create(userAuthUser, { title: "t", courseId: "course-id", questionIds: [questions[0]!.id] })).rejects.toThrow("db error");
+      expect(activityRepositoryMock.findByIdWithStats).not.toHaveBeenCalled();
+    });
+
+    it("should not open a transaction when the questions are invalid", async () => {
+      await expect(service.create(userAuthUser, { title: "t", courseId: "course-id", questionIds: ["q1", "q1"] })).rejects.toThrow(ValidationError);
+      expect(transactionMock.execute).not.toHaveBeenCalled();
     });
 
     it("should create an activity without questions", async () => {
@@ -287,6 +322,17 @@ describe("ActivityService", () => {
       expect(scopeServiceMock.resolveOwned).toHaveBeenCalledWith(question, "owner-id");
       expect(scopeServiceMock.isWithin).toHaveBeenCalledWith(expect.anything(), activity);
       expect(activityRepositoryMock.setQuestions).toHaveBeenCalledWith(activity.id, [question.id]);
+    });
+
+    it("should replace the questions inside a transaction", async () => {
+      const activity = makeActivity({ userId: userAuthUser.id, ...courseScope });
+      activityRepositoryMock.findById.mockResolvedValue(activity);
+      mockDetail(activity, []);
+
+      await service.setQuestions(userAuthUser, activity.id, []);
+
+      expect(transactionMock.execute).toHaveBeenCalledTimes(1);
+      expect(activityRepositoryMock.setQuestions).toHaveBeenCalledWith(activity.id, []);
     });
 
     it("should allow clearing the questions", async () => {

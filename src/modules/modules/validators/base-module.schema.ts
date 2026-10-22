@@ -7,7 +7,7 @@ export const baseModuleFields = {
         .max(100)
          .messages({
                     "string.min": ErrorMessages.min("título"),
-                    "string.max": ErrorMessages.min("título"),
+                    "string.max": ErrorMessages.max("título"),
                     "string.empty": ErrorMessages.empty("título"),
                     "string.base": ErrorMessages.type("título", "um texto"),
         
@@ -18,7 +18,7 @@ export const baseModuleFields = {
         .max(500)
         .messages({
             "string.min": ErrorMessages.min("descrição"),
-            "string.max": ErrorMessages.min("descrição"),
+            "string.max": ErrorMessages.max("descrição"),
             "string.empty": ErrorMessages.empty("descrição"),
             "string.base": ErrorMessages.type("descrição", "um texto"),
         }),

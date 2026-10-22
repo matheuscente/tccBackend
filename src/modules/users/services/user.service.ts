@@ -13,7 +13,8 @@ import type { ITransaction } from "../../transaction/interfaces/transaction.inte
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IDateConvert } from "../../../shared/convert/interfaces/date-convert.interface";
-import type { ListUsersQueryDTO, PaginatedUsersDTO } from "../DTOs/list-users-query.dto";
+import type { ListUsersQueryDTO } from "../DTOs/list-users-query.dto";
+import type { PaginatedUsersDTO } from "../DTOs/paginated-users.dto";
 import type { UserRole } from "../types/user-role.type";
 import { ForbiddenError } from "../../../shared/errors/forbidden.error";
 
@@ -103,11 +104,10 @@ export class UserService implements IUserService {
 
   async findByUsername(authUser: AuthUserDTO, username: string): Promise<UserResponseDTO | null> {
 
-    const user = await this.repository.findByUsername(username);
+    const user = await this.repository.findByUsername(this.sanitize.sanitizeUsername(username));
     if (!user) return null;
 
-
-    //não uso ownership.validateOwnership aqui para evitar falha de segurança
+    // retorna null (404) em vez de 403 para não revelar quais nomes de usuário existem
     if (authUser.role !== "ADMIN" && authUser.id !== user.id) {
       return null;
     }
@@ -118,10 +118,8 @@ export class UserService implements IUserService {
   async update(authUser: AuthUserDTO, id: string, data: UpdateUserDTO): Promise<UserResponseDTO> {
     const user: UserResponseDTO | null = await this.findById(authUser, id);
 
-    //validações
     if (!user) throw new NotFoundError("Usuário não encontrado");
 
-    //não válido owner aqui pois findById já faz isso
 
 
     if (data.username) {
@@ -142,7 +140,6 @@ export class UserService implements IUserService {
     }
 
     if (data.birthDate) {
-      //transforma o birthDate em date, sempre virá como string, pois é validado no middlware.
       data.birthDate = this.dateUtils.dateFormat(data.birthDate);
 
       if(!this.isValidBirthDate(data.birthDate)) throw new ValidationError('Data de nascimento maior que a data atual')

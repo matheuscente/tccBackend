@@ -1,6 +1,6 @@
 import { ValidationError } from "../../../../shared/errors/validation-error";
 import type { IHashProvider } from "../../../../shared/hash/interfaces/hash-provider.interface";
-import type { IMailProvider } from "../../../../shared/mail/mail-provider.interface";
+import type { IMailProvider } from "../../../../shared/mail/interfaces/mail-provider.interface";
 import type { IUserRepository } from "../../../users/interfaces/user-repository.interface";
 import type { ISessionService } from "../../../sessions/interfaces/services/session-service.interface";
 import type { IPasswordResetRepository } from "../../interfaces/password-reset/password-reset-repository.interface";
@@ -86,7 +86,6 @@ describe("PasswordResetService", () => {
       expect(passwordResetRepositoryMock.invalidateAllByUserId.mock.invocationCallOrder[0])
         .toBeLessThan(passwordResetRepositoryMock.create.mock.invocationCallOrder[0]!);
 
-      // apenas o hash do segredo é salvo
       const secret = hashMock.hash.mock.calls[0]![0];
       expect(secret).toMatch(/^[0-9a-f-]{36}$/);
       const createData = passwordResetRepositoryMock.create.mock.calls[0]![0];
@@ -115,12 +114,16 @@ describe("PasswordResetService", () => {
       expect(mailProviderMock.send).not.toHaveBeenCalled();
     });
 
-    it("should propagate mail provider errors", async () => {
+    it("should not reveal the account when the mail provider fails", async () => {
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
       userRepositoryMock.findByEmail.mockResolvedValue(makeUser());
       passwordResetRepositoryMock.create.mockResolvedValue(makeToken());
       mailProviderMock.send.mockRejectedValueOnce(new Error("smtp error"));
 
-      await expect(service.requestReset({ email: "a@test.com" })).rejects.toThrow("smtp error");
+      await expect(service.requestReset({ email: "a@test.com" })).resolves.toBeUndefined();
+      expect(consoleSpy).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
     });
   });
 

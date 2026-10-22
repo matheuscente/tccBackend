@@ -7,12 +7,12 @@ import type { IOwnershipService } from "../../../shared/ownership/ownership-serv
 import type { ICourseRepository } from "../../courses/interfaces/repositories/course-repository.interface";
 import type { IDisciplineRepository } from "../../disciplines/interfaces/repositories/discipline-repository.interface";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
-import type { RegisterStudySessionDTO, StartStudySessionDTO } from "../DTOs/start-study-session.DTO";
+import type { StartStudySessionDTO } from "../DTOs/start-study-session.DTO";
+import type { RegisterStudySessionDTO } from "../DTOs/register-study-session.DTO";
 import type { ResponseStudySessionDTO } from "../DTOs/response-study-session.DTO";
 import type { UpdateStudySessionDTO } from "../DTOs/update-study-session.DTO";
 import type { IStudySessionRepository } from "../interfaces/repositories/study-session-repository.interface";
 import type { IStudySessionService } from "../interfaces/services/study-sessions-service.interface";
-import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import type { IDateConvert } from "../../../shared/convert/interfaces/date-convert.interface";
 
 export class StudySessionService implements IStudySessionService {
@@ -127,7 +127,6 @@ async finish(authUser: AuthUserDTO, studySessionId: string): Promise<ResponseStu
     }
 
     async findAllByUserId(authUser: AuthUserDTO, targetUserId: string): Promise<ResponseStudySessionDTO[]> {
-        // Se não for admin, só pode buscar o próprio usuário
         this.ownership.validateOwnership(authUser, targetUserId);
 
         const studySessions = await this.studySessionRepository.findAllByUserId(targetUserId);
@@ -162,7 +161,6 @@ async finish(authUser: AuthUserDTO, studySessionId: string): Promise<ResponseStu
     async delete(authUser: AuthUserDTO, studySessionId: string): Promise<void> {
         const studySession = await this.getAccessibleSession(authUser, studySessionId)
 
-        //método Idempotente. Se studySession já não existe, retorna null
         if (!studySession) return;
 
         await this.studySessionRepository.delete(studySessionId);

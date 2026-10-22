@@ -1,5 +1,8 @@
 import type { AuthUserDTO } from "../../../../shared/DTOs/auth-user.DTO"
-import type { CreateNoteDTO, NoteFilterDTO, ResponseNoteDTO, UpdateNoteDTO } from "../../DTOs/note.DTO"
+import type { CreateNoteDTO } from "../../DTOs/create-note.DTO"
+import type { UpdateNoteDTO } from "../../DTOs/update-note.DTO"
+import type { NoteFilterDTO } from "../../DTOs/note-filter.DTO"
+import type { ResponseNoteDTO } from "../../DTOs/response-note.DTO"
 
 export interface INoteService {
     create(authUser: AuthUserDTO, data: CreateNoteDTO): Promise<ResponseNoteDTO>

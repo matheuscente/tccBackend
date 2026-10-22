@@ -1,7 +1,9 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import type { IQuestionRepository } from "../interfaces/repositories/question-repository.interface";
-import type { CreateQuestionRepositoryDTO, UpdateQuestionRepositoryDTO } from "../DTOs/create-question-repository.DTO";
-import type { QuestionScopeFilterDTO, QuestionWithOptionsDTO } from "../DTOs/question-with-options.DTO";
+import type { CreateQuestionRepositoryDTO } from "../DTOs/create-question-repository.DTO";
+import type { UpdateQuestionRepositoryDTO } from "../DTOs/update-question-repository.DTO";
+import type { QuestionScopeFilterDTO } from "../DTOs/question-scope-filter.DTO";
+import type { QuestionWithOptionsDTO } from "../DTOs/question-with-options.DTO";
 
 const includeOptions = { options: { orderBy: { order: "asc" } } } as const
 
@@ -51,7 +53,7 @@ export class QuestionRepository implements IQuestionRepository {
         const { options, ...fields } = data
 
         if (options) {
-            // as alternativas são recriadas: respostas antigas ficam com selectedOptionId = null
+            // alternativas são recriadas: respostas de tentativas antigas ficam com selectedOptionId = null
             await this.orm.questionOption.deleteMany({ where: { questionId } })
         }
 
@@ -72,9 +74,7 @@ export class QuestionRepository implements IQuestionRepository {
         })
     }
 
-    /**
-     * Filtro hierárquico: um curso inclui as questões dos seus módulos e disciplinas.
-     */
+    // filtro hierárquico: um curso inclui as questões dos seus módulos e disciplinas
     private scopeWhere(filter: QuestionScopeFilterDTO): Prisma.QuestionWhereInput {
         if (filter.disciplineId) return { disciplineId: filter.disciplineId }
 

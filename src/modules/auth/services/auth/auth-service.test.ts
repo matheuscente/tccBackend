@@ -43,6 +43,7 @@ describe(("authService teste"), ()=> {
         dateFormat: jest.fn(),
         getCurrentDate: jest.fn(),
         normalize: jest.fn(),
+        startOfDayInTimeZone: jest.fn(),
   }
 
     const accessTokenMock: jest.Mocked<IAccessTokenService> = {
@@ -212,6 +213,29 @@ describe(("authService teste"), ()=> {
           expect(dateConvertMock.dateToSeconds).not.toHaveBeenCalled()
 
           expect(accessTokenMock.generateAccessToken).not.toHaveBeenCalled()
+        })
+
+        it("should find the user case-insensitively (usernames are stored in lowercase)", async () => {
+          hashMock.compare.mockResolvedValue(true)
+          userRepositoryMock.findByUsername.mockResolvedValue(user)
+          sessionServiceMock.createSession.mockResolvedValue(session)
+          accessTokenMock.generateAccessToken.mockReturnValue("accessToken")
+
+          await service.login({ username: "  Test_User ", password: "test" })
+
+          expect(userRepositoryMock.findByUsername).toHaveBeenCalledWith("test_user")
+        })
+
+        it("should find the user by e-mail case-insensitively", async () => {
+          hashMock.compare.mockResolvedValue(true)
+          userRepositoryMock.findByEmail.mockResolvedValue(user)
+          sessionServiceMock.createSession.mockResolvedValue(session)
+          accessTokenMock.generateAccessToken.mockReturnValue("accessToken")
+
+          await service.login({ username: "User@Mail.com", password: "test" })
+
+          expect(userRepositoryMock.findByEmail).toHaveBeenCalledWith("user@mail.com")
+          expect(userRepositoryMock.findByUsername).not.toHaveBeenCalled()
         })
 
         it("should throw an error for username invalid.", async () => {

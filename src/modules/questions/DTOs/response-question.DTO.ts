@@ -1,11 +1,5 @@
 import type { QuestionType } from "@prisma/client"
-
-export interface ResponseQuestionOptionDTO {
-    id: string
-    text: string
-    order: number
-    isCorrect?: boolean
-}
+import type { ResponseQuestionOptionDTO } from "./response-question-option.DTO"
 
 export interface ResponseQuestionDTO {
     id: string

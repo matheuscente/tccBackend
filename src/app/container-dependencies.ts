@@ -28,14 +28,13 @@ import { GoalController } from "../modules/goals/controllers/goal.controller"
 import { StudySessionService } from "../modules/study-sessions/services/study-session.service"
 import { StudySessionRepository } from "../modules/study-sessions/repositories/study-session.repository"
 import { StudySessionController } from "../modules/study-sessions/controllers/study-session.controller"
-
 import { env } from "../config/env"
-import { ScopeService } from "../shared/scope/scope.service"
-import { FileTokenService } from "../shared/file-token/file-token.service"
+import { ScopeService } from "../shared/scope/services/scope.service"
+import { FileTokenService } from "../shared/file-token/services/file-token.service"
 import { createStorageProvider } from "../shared/storage/storage.factory"
-import { ConsoleMailProvider } from "../shared/mail/console-mail.provider"
-import { SmtpMailProvider } from "../shared/mail/smtp-mail.provider"
-import type { IMailProvider } from "../shared/mail/mail-provider.interface"
+import { ConsoleMailProvider } from "../shared/mail/providers/console-mail.provider"
+import { SmtpMailProvider } from "../shared/mail/providers/smtp-mail.provider"
+import type { IMailProvider } from "../shared/mail/interfaces/mail-provider.interface"
 import { PasswordResetRepository } from "../modules/auth/repositories/password-reset.repository"
 import { PasswordResetService } from "../modules/auth/services/password-reset/password-reset.service"
 import { QuestionRepository } from "../modules/questions/repositories/question.repository"
@@ -71,7 +70,6 @@ const createMailProvider = (): IMailProvider => env.smtp.host
   : new ConsoleMailProvider()
 
 class AppContainer {
-     // shared singletons
   hashProvider = new HashProvider(10)
   sanitizeUtils = new SanitizeUtils()
   dateConvert = new DateConvert(env.timeZone)
@@ -81,8 +79,6 @@ class AppContainer {
   storageProvider = createStorageProvider()
   mailProvider = createMailProvider()
 
-
-  // repositories
   userRepository = new UserRepository(prisma)
   sessionRepository = new SessionRepository(prisma)
   moduleRepository = new ModuleRepository(prisma)
@@ -98,16 +94,15 @@ class AppContainer {
   ticketRepository = new TicketRepository(prisma)
   adminRepository = new AdminRepository(prisma)
 
-  // services
-    ownerService = new OwnershipService(this.userRepository)
+  ownerService = new OwnershipService(this.userRepository)
 
-    scopeService = new ScopeService(
+  scopeService = new ScopeService(
     this.courseRpository,
     this.moduleRepository,
     this.disciplineRepository
   )
 
-    sessionService = new SessionService(
+  sessionService = new SessionService(
     this.sessionRepository,
     this.hashProvider
   )
@@ -179,13 +174,19 @@ class AppContainer {
     env.frontendUrl
   )
 
-  questionService = new QuestionService(this.questionRepository, this.ownerService, this.scopeService)
+  questionService = new QuestionService(
+    this.questionRepository,
+    this.ownerService,
+    this.scopeService,
+    this.transaction
+  )
 
   activityService = new ActivityService(
     this.activityRepository,
     this.questionRepository,
     this.ownerService,
-    this.scopeService
+    this.scopeService,
+    this.transaction
   )
 
   noteService = new NoteService(this.noteRepository, this.ownerService, this.scopeService)
@@ -203,7 +204,8 @@ class AppContainer {
     this.ticketRepository,
     this.storageProvider,
     this.fileTokenService,
-    env.publicApiUrl
+    env.publicApiUrl,
+    this.transaction
   )
 
   statsService = new StatsService(
@@ -219,13 +221,11 @@ class AppContainer {
 
   adminService = new AdminService(this.adminRepository, this.dateConvert)
 
-  //middlewares
   authenticationMiddleware = authenticationMiddleware(
     this.accessTokenService,
     this.sessionService
   )
 
-  // controllers
   userController = new UserController(this.userService)
   authController = new AuthController(this.authService, this.passwordResetService, env.cookieSecure)
   courseController = new CourseController(this.courseService)

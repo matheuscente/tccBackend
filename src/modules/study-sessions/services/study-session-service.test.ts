@@ -86,6 +86,7 @@ describe("StudySessionService", () => {
     dateFormat: jest.fn(),
     getCurrentDate: jest.fn(),
     normalize: jest.fn(),
+    startOfDayInTimeZone: jest.fn(),
   };
 
   const adminAuthUser: AuthUserDTO = { id: "admin-id", role: "ADMIN", sessionId: "default" };

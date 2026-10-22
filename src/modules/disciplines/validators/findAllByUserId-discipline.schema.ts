@@ -6,7 +6,7 @@ export const findAllByUserIdSchema = Joi.object().keys({
     userId: baseDisciplineFields.userId
     .required()
     .messages({
-            "any.required": ErrorMessages.required("moduleId")
+            "any.required": ErrorMessages.required("userId")
         })
 
 }).prefs({ abortEarly: false }).unknown(false).required()

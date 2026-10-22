@@ -26,7 +26,7 @@ export const baseGoalFields = {
             "number.min": ErrorMessages.minNumber("tempo da meta", "1 minuto"),
             "number.max": ErrorMessages.maxNumber("tempo da meta", "2 anos"),
             "number.base": ErrorMessages.type("tempo da meta", "um inteiro"),
-            "number.interger": ErrorMessages.type("tempo da meta", "um inteiro")
+            "number.integer": ErrorMessages.type("tempo da meta", "um inteiro")
         }),
 
     startDate: Joi.string()

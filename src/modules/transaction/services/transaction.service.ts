@@ -9,6 +9,9 @@ import { DisciplineRepository } from "../../disciplines/repositories/discipline.
 import { GoalRepository } from "../../goals/repositories/goal.repository"
 import { ScopedContentRepository } from "../../scoped-content/repositories/scoped-content.repository"
 import { StudySessionRepository } from "../../study-sessions/repositories/study-session.repository"
+import { QuestionRepository } from "../../questions/repositories/question.repository"
+import { ActivityRepository } from "../../activities/repositories/activity.repository"
+import { TicketRepository } from "../../tickets/repositories/ticket.repository"
 
 export class Trasanction implements ITransaction {
   constructor(private readonly prisma: PrismaClient) {}
@@ -24,6 +27,9 @@ export class Trasanction implements ITransaction {
       const goalRepository = new GoalRepository(tx)
       const studySessionRepository = new StudySessionRepository(tx)
       const scopedContentRepository = new ScopedContentRepository(tx)
+      const questionRepository = new QuestionRepository(tx)
+      const activityRepository = new ActivityRepository(tx)
+      const ticketRepository = new TicketRepository(tx)
 
       const repositories: IRepositories = {
         moduleRepository,
@@ -33,7 +39,10 @@ export class Trasanction implements ITransaction {
         disciplineRepository,
         goalRepository,
         studySessionRepository,
-        scopedContentRepository
+        scopedContentRepository,
+        questionRepository,
+        activityRepository,
+        ticketRepository
       }
 
       return work(repositories)

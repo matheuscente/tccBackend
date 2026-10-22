@@ -1,8 +1,5 @@
 import { celebrate, Joi, Segments } from "celebrate";
 
-
-// Centraliza validações HTTP usando Celebrate/Joi
-
 export abstract class RequestValidator {
 
     static bodyValidator(schema: Joi.ObjectSchema) {

@@ -2,10 +2,12 @@ import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import { ForbiddenError } from "../../../shared/errors/forbidden.error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { ValidationError } from "../../../shared/errors/validation-error";
-import type { IStorageProvider } from "../../../shared/storage/storage-provider.interface";
-import type { IFileTokenService } from "../../../shared/file-token/file-token.service";
+import type { IStorageProvider } from "../../../shared/storage/interfaces/storage-provider.interface";
+import type { IFileTokenService } from "../../../shared/file-token/interfaces/file-token-service.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { ITicketRepository } from "../interfaces/repositories/ticket-repository.interface";
+import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
+import type { IRepositories } from "../../transaction/interfaces/repositories.interface";
 import type { Ticket, TicketMessage } from "@prisma/client";
 import { makeUploadedFile } from "../../../tests/factories/make-file";
 import { makeTicket, makeTicketAttachment, makeTicketWithMessages, makeTicketWithSummary } from "../../../tests/factories/make-ticket";
@@ -36,16 +38,19 @@ describe("TicketService", () => {
     verify: jest.fn(),
   };
 
+  const transactionMock: jest.Mocked<ITransaction> = {
+    execute: jest.fn().mockImplementation(async (work) => work({ ticketRepository: ticketRepositoryMock } as unknown as IRepositories)),
+  };
+
   const adminAuthUser: AuthUserDTO = { id: "admin-id", role: "ADMIN", sessionId: "default" };
   const userAuthUser: AuthUserDTO = { id: "user-id", role: "USER", sessionId: "default" };
 
   const publicApiUrl = "http://api.test";
 
-  const service = new TicketService(ticketRepositoryMock, storageMock, fileTokenServiceMock, publicApiUrl);
+  const service = new TicketService(ticketRepositoryMock, storageMock, fileTokenServiceMock, publicApiUrl, transactionMock);
 
   const makeImage = (name = "print.png") => makeUploadedFile({ originalname: name, mimetype: "image/png", size: 10 });
 
-  // getDetail: carrega o chamado com mensagens após qualquer alteração
   const mockDetail = (ticket: Ticket) => {
     ticketRepositoryMock.findByIdWithMessages.mockResolvedValue(makeTicketWithMessages(ticket));
   };
@@ -292,6 +297,29 @@ describe("TicketService", () => {
 
       expect(storageMock.delete).toHaveBeenCalledWith(storageMock.put.mock.calls[0]![0]);
       expect(ticketRepositoryMock.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it("should save the message and the new status in the same transaction", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "OPEN" });
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      mockDetail(ticket);
+
+      await service.addMessage(adminAuthUser, ticket.id, { message: "answer" }, []);
+
+      expect(transactionMock.execute).toHaveBeenCalledTimes(1);
+      expect(ticketRepositoryMock.addMessage).toHaveBeenCalledTimes(1);
+      expect(ticketRepositoryMock.updateStatus).toHaveBeenCalledWith(ticket.id, "ANSWERED");
+    });
+
+    it("should remove stored images when the status update fails", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "OPEN" });
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      ticketRepositoryMock.updateStatus.mockRejectedValueOnce(new Error("db error"));
+
+      await expect(service.addMessage(adminAuthUser, ticket.id, { message: "m" }, [makeImage()])).rejects.toThrow("db error");
+
+      expect(storageMock.delete).toHaveBeenCalledWith(storageMock.put.mock.calls[0]![0]);
+      expect(ticketRepositoryMock.findByIdWithMessages).not.toHaveBeenCalled();
     });
 
     it("should throw ForbiddenError when USER writes on another user's ticket", async () => {

@@ -13,7 +13,6 @@ import type { ICourseRepository } from "../../courses/interfaces/repositories/co
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
 import type { IDisciplineRepository } from "../../disciplines/interfaces/repositories/discipline-repository.interface";
 import { ValidationError } from "../../../shared/errors/validation-error";
-import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import type { IDateConvert } from "../../../shared/convert/interfaces/date-convert.interface";
 
 export class GoalService implements IGoalService {
@@ -86,7 +85,6 @@ export class GoalService implements IGoalService {
     }
 
     async findAllByUserId(authUser: AuthUserDTO, targetUserId: string): Promise<ResponseGoalDTO[]> {
-        // Se não for admin, só pode buscar o próprio usuário
         this.ownership.validateOwnership(authUser, targetUserId);
 
         const goals = await this.goalRepository.findAllByUserId(targetUserId);
@@ -102,8 +100,6 @@ export class GoalService implements IGoalService {
 
         if (!goal) throw new NotFoundError("Meta não encontrada");
 
-        //verifica se a data final é válida e se é maior que a data inicial
-        //se undefined, manter valor do banco
         let endDate = goal.endDate;
 
         if (data.endDate !== undefined) {
@@ -136,7 +132,6 @@ export class GoalService implements IGoalService {
             ? await this.goalRepository.findById(goalId)
             : await this.goalRepository.findByIdWithOwner(goalId, authUser.id)
 
-        //método Idempotente. Se goal já não existe, retorna null
         if (!goal) return;
 
         await this.goalRepository.delete(goalId);

@@ -1,6 +1,6 @@
 import type { Session, User } from "@prisma/client";
 import { prismaTests } from "../../../lib/prisma-tests";
-import type { CreateSessionDTO } from "..//../sessions/DTOs/create-session.DTO";
+import type { CreateSessionDTO } from "../DTOs/create-session.DTO";
 import { SessionRepository } from "./session.repository";
 import { UserRepository } from "../../users/repositories/user.repository";
 import { makeSession } from "../../../tests/factories/make-session";
@@ -42,31 +42,22 @@ describe("SessionRepository tests", () => {
 
       const sessionReturns = await repository.create(createdSession);
 
-      //integrity test
       expect(sessionReturns).not.toBeNull();
 
-      //isValid test
       expect(sessionReturns?.isValid).toBe(true);
 
-      //createdAt test
       expect(sessionReturns).toHaveProperty("createdAt");
 
-      //createdAt test
       expect(sessionReturns?.createdAt).not.toBe(null);
 
-      //refreshToken test
       expect(sessionReturns?.refreshToken).toEqual(createdSession.refreshToken);
 
-      //expiresAt test
       expect(sessionReturns?.expiresAt).toEqual(createdSession.expiresAt);
 
-      //userId test
       expect(sessionReturns?.userId).toEqual(createdSession.userId);
 
-      //id test
       expect(sessionReturns?.id).toBeDefined();
 
-      //updatedAt test
       expect(sessionReturns?.updatedAt).not.toBe(null);
       expect(sessionReturns?.updatedAt).toBeInstanceOf(Date);
     });

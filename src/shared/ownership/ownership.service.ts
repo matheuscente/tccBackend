@@ -2,10 +2,10 @@ import { ForbiddenError } from "../errors/forbidden.error";
 import type { User } from "@prisma/client";
 import type { AuthUserDTO } from "../../shared/DTOs/auth-user.DTO";
 import type { IUserRepository } from "../../modules/users/interfaces/user-repository.interface";
-import { AuthorizationError } from "../errors/authorization.error";
 import { NotFoundError } from "../errors/not-found-error";
+import type { IOwnershipService } from "./ownership-service.interface";
 
-export class OwnershipService {
+export class OwnershipService implements IOwnershipService {
     constructor(
         private readonly userRepository: IUserRepository
     ) { }

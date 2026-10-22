@@ -2,7 +2,7 @@ import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provide
 import type { ISessionRepository } from "../interfaces/repositories/session-repository.interface";
 import { SessionService } from "./session.service";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
-import { ValidationError } from "../../../shared/errors/validation-error";
+import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import { makeSession } from "../../../tests/factories/make-session";
 import type { SessionWithUserDTO } from "../DTOs/session-with-user.DTO";
 import type { Session } from "@prisma/client";
@@ -69,7 +69,6 @@ describe("Session service test", () => {
       expect(session).toHaveProperty("id");
       expect(session).toHaveProperty("userId");
 
-      //ensures that the hash was called with exactly the value passed to it.
       const hashValue = hashMock.hash.mock.calls[0]![0];
 
       expect(secret).toBe(hashValue);
@@ -174,7 +173,6 @@ describe("Session service test", () => {
 
     it("should refresh session successfully", async () => {
       repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithActiveUser(session));
-      //To avoid mocking the internal method, mock the repository's create method for the return value of createSession.
       repositoryMock.update.mockResolvedValue();
       hashMock.hash.mockResolvedValue("123");
       hashMock.compare.mockResolvedValue(true);
@@ -210,7 +208,7 @@ describe("Session service test", () => {
 
       await expect(refreshedSession).rejects.toThrow("Refresh token inválido");
 
-      await expect(refreshedSession).rejects.toBeInstanceOf(ValidationError);
+      await expect(refreshedSession).rejects.toBeInstanceOf(AuthorizationError);
 
       expect(repositoryMock.findByIdWithUser).not.toHaveBeenCalled();
 
@@ -228,7 +226,7 @@ describe("Session service test", () => {
 
       await expect(refreshedSession).rejects.toThrow("Sessão inválida");
 
-      await expect(refreshedSession).rejects.toBeInstanceOf(ValidationError);
+      await expect(refreshedSession).rejects.toBeInstanceOf(AuthorizationError);
 
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
@@ -253,7 +251,7 @@ describe("Session service test", () => {
 
       await expect(refreshedSession).rejects.toThrow("Sessão inválida");
 
-      await expect(refreshedSession).rejects.toBeInstanceOf(ValidationError);
+      await expect(refreshedSession).rejects.toBeInstanceOf(AuthorizationError);
 
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
@@ -277,9 +275,9 @@ describe("Session service test", () => {
 
       const refreshedSession = service.refreshSession(refreshToken);
 
-      await expect(refreshedSession).rejects.toThrow("Session expirada");
+      await expect(refreshedSession).rejects.toThrow("Sessão expirada");
 
-      await expect(refreshedSession).rejects.toBeInstanceOf(ValidationError);
+      await expect(refreshedSession).rejects.toBeInstanceOf(AuthorizationError);
 
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
@@ -299,7 +297,7 @@ describe("Session service test", () => {
 
       await expect(refreshedSession).rejects.toThrow("Refresh token inválido");
 
-      await expect(refreshedSession).rejects.toBeInstanceOf(ValidationError);
+      await expect(refreshedSession).rejects.toBeInstanceOf(AuthorizationError);
 
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
@@ -347,7 +345,7 @@ describe("Session service test", () => {
       repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithActiveUser(rotated));
       hashMock.compare.mockResolvedValue(false);
 
-      await expect(service.refreshSession(refreshToken)).rejects.toBeInstanceOf(ValidationError);
+      await expect(service.refreshSession(refreshToken)).rejects.toBeInstanceOf(AuthorizationError);
       expect(hashMock.compare).toHaveBeenCalledTimes(1);
       expect(repositoryMock.update).not.toHaveBeenCalled();
     });
@@ -423,7 +421,7 @@ describe("Session service test", () => {
   const promise = service.refreshSession(refreshToken)
 
   await expect(promise).rejects.toThrow("Usuário desativado")
-  await expect(promise).rejects.toBeInstanceOf(ValidationError)
+  await expect(promise).rejects.toBeInstanceOf(AuthorizationError)
 
   expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1)
   expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId)
@@ -491,7 +489,7 @@ describe("Session service test", () => {
       await expect(userSessionData).rejects.toThrow(
         "Sessão inválida ou não encontrada",
       );
-      await expect(userSessionData).rejects.toBeInstanceOf(ValidationError);
+      await expect(userSessionData).rejects.toBeInstanceOf(AuthorizationError);
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
     });
@@ -514,7 +512,7 @@ describe("Session service test", () => {
       await expect(userSessionData).rejects.toThrow(
         "Sessão inválida ou não encontrada",
       );
-      await expect(userSessionData).rejects.toBeInstanceOf(ValidationError);
+      await expect(userSessionData).rejects.toBeInstanceOf(AuthorizationError);
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
     });
@@ -539,7 +537,7 @@ describe("Session service test", () => {
       await expect(userSessionData).rejects.toThrow(
         "Sessão inválida ou não encontrada",
       );
-      await expect(userSessionData).rejects.toBeInstanceOf(ValidationError);
+      await expect(userSessionData).rejects.toBeInstanceOf(AuthorizationError);
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
       expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
 

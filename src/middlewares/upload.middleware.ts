@@ -2,9 +2,6 @@ import multer from "multer";
 import { env } from "../config/env";
 import { ValidationError } from "../shared/errors/validation-error";
 
-/**
- * Upload em memória; o service envia o buffer para o armazenamento (B2 ou disco).
- */
 export const fileUpload = multer({
     storage: multer.memoryStorage(),
     defParamCharset: "utf8",

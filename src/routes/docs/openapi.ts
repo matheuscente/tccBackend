@@ -1,7 +1,3 @@
-/**
- * Documentação OpenAPI (Swagger) da API.
- * Acesse em http://localhost:3000/api/v1/docs
- */
 type Schema = Record<string, unknown>
 
 const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` })
@@ -48,9 +44,6 @@ const scopeQuery = [
 
 const secured = { security: [{ bearerAuth: [] }] }
 
-/**
- * Gera as rotas CRUD padrão de um recurso (/id/:id, /user/:userId, POST /, PATCH /:id, DELETE /:id).
- */
 const crud = (tag: string, entity: string, create: Schema, update: Schema, withScopeQuery = false) => ({
     [`/${tag}/id/{id}`]: {
         get: { tags: [tag], summary: `Busca ${entity} por id`, ...secured, parameters: [idParam], responses: { 200: ok(ref(entity)), ...errors } }

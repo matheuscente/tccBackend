@@ -21,7 +21,6 @@ export class ModuleService implements IModuleService {
 
 
     async findAllByUserId(authUser: AuthUserDTO, targetUserId: string): Promise<ResponseModuleDTO[]> {
-        // Se não for admin, só pode buscar o próprio usuário
         this.ownership.validateOwnership(authUser, targetUserId);
 
         const modules = await this.moduleRepository.findAllByUserId(targetUserId);
@@ -83,7 +82,6 @@ export class ModuleService implements IModuleService {
                 ? await repositories.moduleRepository.findById(moduleId)
                 : await repositories.moduleRepository.findByIdWithOwner(moduleId, authUser.id)
 
-            //método Idempotente. Se module já não existe, retorna null
             if (!module) return;
 
             await repositories.scopedContentRepository.cleanupByModuleIds([moduleId])

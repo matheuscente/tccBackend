@@ -1,7 +1,6 @@
 import type { Module, Prisma, PrismaClient } from "@prisma/client";
 import type { IModuleRepository } from "../interfaces/repositories/module-repository.interface";
 import type { CreateModuleDTO } from "../DTOs/create-module.dto";
-import type { IDisciplineRepository } from "../../disciplines/interfaces/repositories/discipline-repository.interface";
 import type { ModuleWithCourseDTO } from "../DTOs/module-with-course.DTO";
 
 export class ModuleRepository implements IModuleRepository {

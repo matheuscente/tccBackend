@@ -1,5 +1,7 @@
 import type { Prisma, PrismaClient, StoredFile } from "@prisma/client";
-import type { CreateFileRepositoryDTO, FileFilterDTO } from "../DTOs/file.DTO";
+import type { CreateFileRepositoryDTO } from "../DTOs/create-file-repository.DTO";
+import type { UpdateFileRepositoryDTO } from "../DTOs/update-file-repository.DTO";
+import type { FileFilterDTO } from "../DTOs/file-filter.DTO";
 import type { IFileRepository } from "../interfaces/repositories/file-repository.interface";
 
 export class FileRepository implements IFileRepository {
@@ -24,7 +26,7 @@ export class FileRepository implements IFileRepository {
         })
     }
 
-    update(fileId: string, data: Partial<Pick<StoredFile, "originalName" | "courseId" | "moduleId" | "disciplineId">>): Promise<StoredFile> {
+    update(fileId: string, data: UpdateFileRepositoryDTO): Promise<StoredFile> {
         return this.orm.storedFile.update({ where: { id: fileId }, data })
     }
 
@@ -37,6 +39,7 @@ export class FileRepository implements IFileRepository {
         return result._sum.size ?? 0
     }
 
+    // filtro hierárquico: um curso inclui os arquivos dos seus módulos e disciplinas
     private scopeWhere(filter: FileFilterDTO): Prisma.StoredFileWhereInput {
         if (filter.disciplineId) return { disciplineId: filter.disciplineId }
         if (filter.moduleId) return { OR: [{ moduleId: filter.moduleId }, { discipline: { moduleId: filter.moduleId } }] }

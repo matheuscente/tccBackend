@@ -2,20 +2,22 @@ import express from "express"
 import { RequestValidator } from "../../../middlewares/data-validator.middleware"
 import { container } from "../../../app/container-dependencies"
 import { FindByIdSchema } from "../../../shared/schemas/find-by-id.schema"
-import { scopeQuerySchema, userIdParamSchema } from "../../../shared/schemas/scope-fields.schema"
-import { createQuestionSchema, updateQuestionSchema } from "../validators/question.schema"
+import { createQuestionSchema } from "../validators/create-question.schema"
+import { updateQuestionSchema } from "../validators/update-question.schema"
+import { findAllByUserIdQuestionSchema } from "../validators/findAllByUserId-question.schema"
+import { filterQuestionSchema } from "../validators/filter-question.schema"
 
 export const questionRoutes = express.Router()
 
-const controller = container.questionController
+const questionController = container.questionController
 const authentication = container.authenticationMiddleware
 
-questionRoutes.get('/id/:id', RequestValidator.paramsValidator(FindByIdSchema), authentication, controller.findById)
+questionRoutes.get('/id/:id', RequestValidator.paramsValidator(FindByIdSchema), authentication, questionController.findById)
 
-questionRoutes.get('/user/:userId', RequestValidator.paramsValidator(userIdParamSchema), RequestValidator.queryValidator(scopeQuerySchema), authentication, controller.findAllByUserId)
+questionRoutes.get('/user/:userId', RequestValidator.paramsValidator(findAllByUserIdQuestionSchema), RequestValidator.queryValidator(filterQuestionSchema), authentication, questionController.findAllByUserId)
 
-questionRoutes.post('/', RequestValidator.bodyValidator(createQuestionSchema), authentication, controller.create)
+questionRoutes.post('/', RequestValidator.bodyValidator(createQuestionSchema), authentication, questionController.create)
 
-questionRoutes.patch('/:id', RequestValidator.paramsValidator(FindByIdSchema), RequestValidator.bodyValidator(updateQuestionSchema), authentication, controller.update)
+questionRoutes.patch('/:id', RequestValidator.paramsValidator(FindByIdSchema), RequestValidator.bodyValidator(updateQuestionSchema), authentication, questionController.update)
 
-questionRoutes.delete('/:id', RequestValidator.paramsValidator(FindByIdSchema), authentication, controller.softDelete)
+questionRoutes.delete('/:id', RequestValidator.paramsValidator(FindByIdSchema), authentication, questionController.softDelete)

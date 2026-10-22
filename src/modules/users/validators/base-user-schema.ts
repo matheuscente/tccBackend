@@ -6,8 +6,8 @@ export const baseUserFields = {
     .min(5)
     .max(50)
     .messages({
-        'string.required': ErrorMessages.required("nome"),
         'string.min': ErrorMessages.min("nome"),
+        'string.max': ErrorMessages.max("nome"),
         'string.empty': ErrorMessages.empty("nome"),
         "string.base": ErrorMessages.type("nome", "um texto")
     }),

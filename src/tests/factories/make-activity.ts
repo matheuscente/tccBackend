@@ -1,5 +1,8 @@
-import type { Activity, ActivityAttempt } from "@prisma/client";
-import type { ActivityWithQuestionsDTO, ActivityWithStatsDTO, AttemptWithAnswersDTO } from "../../modules/activities/DTOs/activity.DTO";
+import type { Activity } from "@prisma/client";
+import type { ActivityWithQuestionsDTO } from "../../modules/activities/DTOs/activity-with-questions.DTO";
+import type { ActivityWithStatsDTO } from "../../modules/activities/DTOs/activity-with-stats.DTO";
+import type { AttemptWithActivityDTO } from "../../modules/activities/DTOs/attempt-with-activity.DTO";
+import type { AttemptWithAnswersDTO } from "../../modules/activities/DTOs/attempt-with-answers.DTO";
 import type { QuestionWithOptionsDTO } from "../../modules/questions/DTOs/question-with-options.DTO";
 import { randomUUID } from "node:crypto";
 
@@ -33,8 +36,8 @@ export const makeActivityWithQuestions = (
 });
 
 export const makeActivityAttempt = (
-  overrides?: Partial<ActivityAttempt & { activity: { id: string, title: string } }>
-): ActivityAttempt & { activity: { id: string, title: string } } => {
+  overrides?: Partial<AttemptWithActivityDTO>
+): AttemptWithActivityDTO => {
   const activityId = overrides?.activityId ?? randomUUID();
 
   return {

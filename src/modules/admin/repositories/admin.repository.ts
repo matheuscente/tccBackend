@@ -1,12 +1,10 @@
 import type { Prisma, PrismaClient, TicketStatus } from "@prisma/client";
-import type { AdminDashboardDTO, AdminUserOverviewDTO } from "../DTOs/admin.DTO";
-import type { IAdminRepository } from "../interfaces/admin-repository.interface";
+import type { AdminDashboardDTO } from "../DTOs/admin-dashboard.DTO";
+import type { AdminUserOverviewDTO } from "../DTOs/admin-user-overview.DTO";
+import type { IAdminRepository } from "../interfaces/repositories/admin-repository.interface";
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-/**
- * Consultas agregadas para o painel administrativo.
- */
 export class AdminRepository implements IAdminRepository {
     constructor(private readonly orm: PrismaClient | Prisma.TransactionClient) { }
 
