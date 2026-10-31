@@ -243,7 +243,7 @@ O "dia" de cada sessão segue o fuso `APP_TIMEZONE` (padrão `America/Sao_Paulo`
 4. `GET /activities/attempts/:id` devolve a correção completa (alternativa marcada, correta e explicação).
 
 ### Bloco de notas
-CRUD de notas com título, conteúdo e vínculo opcional a um escopo. Privadas ao dono.
+CRUD de notas com título, conteúdo (o frontend exibe em Markdown) e vínculo opcional a um escopo. Privadas ao dono. O campo opcional `position` define a ordem no modo estudo; sem ele, vale a data de criação.
 
 ### Arquivos (upload, download e streaming)
 
@@ -252,7 +252,7 @@ sequenceDiagram
     participant F as Frontend
     participant API
     participant B2 as B2 (ou simulador)
-    F->>API: POST /files (multipart: file + escopo)
+    F->>API: POST /files (multipart: file + escopo + position opcional)
     API->>B2: PutObject users/<userId>/<uuid>.<ext>
     API-->>F: metadados do arquivo
     F->>API: GET /files/:id/access (Bearer)
@@ -265,6 +265,7 @@ sequenceDiagram
 - Limite por arquivo: `MAX_FILE_SIZE_MB` (padrão 100 MB). Cota por usuário: 2 GB.
 - `<video>`, `<img>` e `<iframe>` não enviam o header `Authorization`, por isso a visualização usa links temporários assinados (`FILE_TOKEN_SECRET`).
 - O suporte a `Range` permite avançar e voltar vídeos sem baixar o arquivo inteiro.
+- `position` (opcional, também no `PATCH`) é a ordem manual no modo estudo; o multipart envia texto e o Joi converte para número.
 
 ### Suporte (SAC)
 1. O aluno abre um chamado (`POST /tickets`, multipart) com assunto, categoria, mensagem e até 5 imagens (PNG/JPG/GIF/WEBP, 5 MB cada).
