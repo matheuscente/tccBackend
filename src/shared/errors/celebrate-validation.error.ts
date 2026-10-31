@@ -1,6 +1,6 @@
 import { isCelebrateError } from "celebrate";
 import { ValidationError } from "./validation-error";
-import type { HttpItemResponseError } from "./interfaces/http-item-response-error.dto";
+import type { HttpItemResponseError } from "./DTOs/http-item-response-error.dto";
 
 class CelebrateValidationError extends ValidationError {
   constructor(err: Error) {

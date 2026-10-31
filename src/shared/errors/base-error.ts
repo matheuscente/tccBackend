@@ -1,6 +1,6 @@
 import type { Response } from "express";
-import type { HttpResponseError } from "./interfaces/http-response-error.dto";
-import type { HttpItemResponseError } from "./interfaces/http-item-response-error.dto";
+import type { HttpResponseError } from "./DTOs/http-response-error.dto";
+import type { HttpItemResponseError } from "./DTOs/http-item-response-error.dto";
 
 export abstract class ErrorBase extends Error {
     private errors: HttpItemResponseError[]

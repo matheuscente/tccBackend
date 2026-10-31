@@ -1,10 +1,10 @@
 import type { Course } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
-import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
+import type { ISanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { CourseResponseDTO } from "../DTOs/course-response.DTO";
 import type { CreateCourseDTO } from "../DTOs/create-course.DTO";
 import type { ICourseRepository } from "../interfaces/repositories/course-repository.interface";
-import type { ICourseService } from "../interfaces/services/courses-service-interface";
+import type { ICourseService } from "../interfaces/services/course-service.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO"
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
@@ -12,7 +12,7 @@ import type { IOwnershipService } from "../../../shared/ownership/ownership-serv
 export class CourseService implements ICourseService {
   constructor(
     private readonly courseRepository: ICourseRepository,
-    private readonly sanitize: Isanitize,
+    private readonly sanitize: ISanitize,
     private readonly transaction: ITransaction,
     private readonly ownership: IOwnershipService
   ) { }

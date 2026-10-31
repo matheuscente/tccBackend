@@ -3,13 +3,13 @@ import { prismaTests } from "../../../lib/prisma-tests";
 import { makeUser } from "../../../tests/factories/make-user";
 import { makeCourse } from "../../../tests/factories/make-course";
 import { UserRepository } from "../../users/repositories/user.repository";
-import { Trasanction } from "../../transaction/services/transaction.service";
+import { TransactionService } from "../../transaction/services/transaction.service";
 import { ActivityRepository } from "./activity.repository";
 
 describe("ActivityRepository (transactional writes)", () => {
   const userRepository = new UserRepository(prismaTests);
   const repository = new ActivityRepository(prismaTests);
-  const transaction = new Trasanction(prismaTests);
+  const transaction = new TransactionService(prismaTests);
 
   let user: User;
   let course: Course;

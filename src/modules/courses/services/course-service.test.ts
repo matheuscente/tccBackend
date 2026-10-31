@@ -1,7 +1,7 @@
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
+import type { ISanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import { makeCourse } from "../../../tests/factories/make-course";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
@@ -21,7 +21,7 @@ describe("CourseService", () => {
     softDeleteAllByUserId: jest.fn(),
   };
 
-  const sanitizeMock: jest.Mocked<Isanitize> = {
+  const sanitizeMock: jest.Mocked<ISanitize> = {
     removeAccents: jest.fn(),
     sanitizeName: jest.fn(),
     sanitizeUsername: jest.fn(),

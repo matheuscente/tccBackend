@@ -1,6 +1,6 @@
 import type { Discipline } from "@prisma/client"
 import type { CreateDisciplineDTO } from "../../DTOs/create-discipline.DTO"
-import type { DisciplineWithCourseDTO } from "../../DTOs/discipline-with-course-DTO"
+import type { DisciplineWithCourseDTO } from "../../DTOs/discipline-with-course.DTO"
 
 export interface IDisciplineRepository {
     findById(disciplineId: string): Promise<Discipline | null>

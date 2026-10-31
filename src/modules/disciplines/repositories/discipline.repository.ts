@@ -1,7 +1,7 @@
 import type { Discipline, Prisma, PrismaClient } from "@prisma/client"
 import type { IDisciplineRepository } from "../interfaces/repositories/discipline-repository.interface"
 import type { CreateDisciplineDTO } from "../DTOs/create-discipline.DTO"
-import type { DisciplineWithCourseDTO } from "../DTOs/discipline-with-course-DTO"
+import type { DisciplineWithCourseDTO } from "../DTOs/discipline-with-course.DTO"
 
 export class DisciplineRepository implements IDisciplineRepository {
     constructor(

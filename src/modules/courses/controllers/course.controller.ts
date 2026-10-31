@@ -3,7 +3,7 @@ import { httpSuccessResponse } from "../../../shared/controller/httpSuccessRespo
 import type { Request, Response, NextFunction } from "express";
 import type { CreateCourseDTO } from "../DTOs/create-course.DTO";
 import type { ICourseController } from "../interfaces/controllers/course-controller.interface";
-import type { ICourseService } from "../interfaces/services/courses-service-interface";
+import type { ICourseService } from "../interfaces/services/course-service.interface";
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
 
 export class CourseController implements ICourseController {

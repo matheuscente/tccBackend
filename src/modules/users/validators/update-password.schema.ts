@@ -1,5 +1,5 @@
 import { Joi } from "celebrate";
-import { baseUserFields } from "./base-user-schema";
+import { baseUserFields } from "./base-user.schema";
 
 export const UpdateUserPasswordSchema = Joi.object().keys({
     

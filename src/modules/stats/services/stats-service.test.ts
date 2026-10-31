@@ -6,7 +6,7 @@ import type { IStudySessionRepository } from "../../study-sessions/interfaces/re
 import type { ICourseRepository } from "../../courses/interfaces/repositories/course-repository.interface";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
 import type { IDisciplineRepository } from "../../disciplines/interfaces/repositories/discipline-repository.interface";
-import type { IGoalRepository } from "../../goals/interfaces/repositories/goal-respository.interface";
+import type { IGoalRepository } from "../../goals/interfaces/repositories/goal-repository.interface";
 import type { IActivityRepository } from "../../activities/interfaces/repositories/activity-repository.interface";
 import { DateConvert } from "../../../shared/convert/utils/date-convert.utils";
 import { makeStudySession } from "../../../tests/factories/make-study-session";

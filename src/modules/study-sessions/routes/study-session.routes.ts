@@ -5,7 +5,7 @@ import { createStudySessionSchema } from "../validators/create-study-session.sch
 import { registerStudySessionSchema } from "../validators/register-study-session.schema"
 import { updateStudySessionSchema } from "../validators/update-study-session.schema"
 import { FindByIdSchema } from "../../../shared/schemas/find-by-id.schema"
-import { findAllByUserIdStudySessionSchema } from "../validators/findAllByuserId-study-session.schema"
+import { findAllByUserIdStudySessionSchema } from "../validators/findAllByUserId-study-session.schema"
 
 
 export const studySessionRoutes = express.Router()

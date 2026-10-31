@@ -1,6 +1,6 @@
 import type { Goal, Prisma, PrismaClient } from "@prisma/client";
 import type { CreateGoalRepositoryDTO } from "../DTOs/create-goal-repository.DTO";
-import type { IGoalRepository } from "../interfaces/repositories/goal-respository.interface";
+import type { IGoalRepository } from "../interfaces/repositories/goal-repository.interface";
 import type { UpdateGoalRepositoryDTO } from "../DTOs/update-goal-repository.DTO";
 
 export class GoalRepository implements IGoalRepository {

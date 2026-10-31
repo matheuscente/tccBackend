@@ -2,11 +2,11 @@ import { ForbiddenError } from "../../../shared/errors/forbidden.error";
 import type { Goal } from "@prisma/client";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
+import type { ISanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { CreateGoalDTO } from "../DTOs/create-goal.DTO";
 import type { ResponseGoalDTO } from "../DTOs/response-goal.DTO";
 import type { UpdateGoalDTO } from "../DTOs/update-goal.DTO";
-import type { IGoalRepository } from "../interfaces/repositories/goal-respository.interface";
+import type { IGoalRepository } from "../interfaces/repositories/goal-repository.interface";
 import type { IGoalService } from "../interfaces/services/goal-service.interface";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { ICourseRepository } from "../../courses/interfaces/repositories/course-repository.interface";
@@ -18,7 +18,7 @@ import type { IDateConvert } from "../../../shared/convert/interfaces/date-conve
 export class GoalService implements IGoalService {
     constructor(
         private readonly goalRepository: IGoalRepository,
-        private readonly sanitize: Isanitize,
+        private readonly sanitize: ISanitize,
         private readonly ownership: IOwnershipService,
         private readonly courseRepository: ICourseRepository,
         private readonly disciplineRepository: IDisciplineRepository,

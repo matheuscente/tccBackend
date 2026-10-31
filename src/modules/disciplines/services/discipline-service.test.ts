@@ -1,7 +1,7 @@
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
+import type { ISanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IDisciplineRepository } from "../interfaces/repositories/discipline-repository.interface";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
@@ -10,7 +10,7 @@ import { DisciplineService } from "./discipline.service";
 import { makeDiscipline } from "../../../tests/factories/make-discipline";
 import { makeModule } from "../../../tests/factories/make-module";
 import { makeCourse } from "../../../tests/factories/make-course";
-import type { DisciplineWithCourseDTO } from "../DTOs/discipline-with-course-DTO";
+import type { DisciplineWithCourseDTO } from "../DTOs/discipline-with-course.DTO";
 
 describe("DisciplineService", () => {
 
@@ -40,7 +40,7 @@ describe("DisciplineService", () => {
     softDeleteAllByCourseIds: jest.fn(),
   };
 
-  const sanitizeMock: jest.Mocked<Isanitize> = {
+  const sanitizeMock: jest.Mocked<ISanitize> = {
     removeAccents: jest.fn(),
     sanitizeName: jest.fn(),
     sanitizeUsername: jest.fn(),

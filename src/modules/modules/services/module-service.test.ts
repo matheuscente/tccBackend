@@ -1,7 +1,7 @@
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
+import type { ISanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { ICourseRepository } from "../../courses/interfaces/repositories/course-repository.interface";
 import type { IModuleRepository } from "../interfaces/repositories/module-repository.interface";
@@ -37,7 +37,7 @@ describe("ModuleService", () => {
     softDeleteAllByUserId: jest.fn(),
   };
 
-  const sanitizeMock: jest.Mocked<Isanitize> = {
+  const sanitizeMock: jest.Mocked<ISanitize> = {
     removeAccents: jest.fn(),
     sanitizeName: jest.fn(),
     sanitizeUsername: jest.fn(),

@@ -2,9 +2,9 @@ import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { ValidationError } from "../../../shared/errors/validation-error";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
+import type { ISanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
-import type { IGoalRepository } from "../interfaces/repositories/goal-respository.interface";
+import type { IGoalRepository } from "../interfaces/repositories/goal-repository.interface";
 import type { ICourseRepository } from "../../courses/interfaces/repositories/course-repository.interface";
 import type { IModuleRepository } from "../../modules/interfaces/repositories/module-repository.interface";
 import type { IDisciplineRepository } from "../../disciplines/interfaces/repositories/discipline-repository.interface";
@@ -66,7 +66,7 @@ describe("GoalService", () => {
     softDeleteAllByModuleIds: jest.fn(),
   };
 
-  const sanitizeMock: jest.Mocked<Isanitize> = {
+  const sanitizeMock: jest.Mocked<ISanitize> = {
     removeAccents: jest.fn(),
     sanitizeName: jest.fn(),
     sanitizeUsername: jest.fn(),

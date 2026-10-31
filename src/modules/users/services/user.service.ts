@@ -8,7 +8,7 @@ import type { User } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provider.interface";
 import { InternalServerError } from "../../../shared/errors/internal-server-error";
-import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
+import type { ISanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
@@ -22,7 +22,7 @@ export class UserService implements IUserService {
   constructor(
     private repository: IUserRepository,
     private hasher: IHashProvider,
-    private sanitize: Isanitize,
+    private sanitize: ISanitize,
     private transaction: ITransaction,
     private readonly ownership: IOwnershipService,
     private readonly dateUtils: IDateConvert

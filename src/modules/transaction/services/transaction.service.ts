@@ -13,7 +13,7 @@ import { QuestionRepository } from "../../questions/repositories/question.reposi
 import { ActivityRepository } from "../../activities/repositories/activity.repository"
 import { TicketRepository } from "../../tickets/repositories/ticket.repository"
 
-export class Trasanction implements ITransaction {
+export class TransactionService implements ITransaction {
   constructor(private readonly prisma: PrismaClient) {}
 
   async execute<T>(work: (repositories: IRepositories) => Promise<T>): Promise<T> {

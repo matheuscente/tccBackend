@@ -5,7 +5,7 @@ import { ValidationError } from "../../../shared/errors/validation-error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import type { UpdateUserDTO } from "../DTOs/update-user.dto";
-import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
+import type { ISanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import { makeUser } from "../../../tests/factories/make-user";
 import type { ISessionRepository } from "../../sessions/interfaces/repositories/session-repository.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
@@ -13,12 +13,12 @@ import type { IModuleRepository } from "../../modules/interfaces/repositories/mo
 import type { ICourseRepository } from "../../courses/interfaces/repositories/course-repository.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
-import type { IGoalRepository } from "../../goals/interfaces/repositories/goal-respository.interface";
+import type { IGoalRepository } from "../../goals/interfaces/repositories/goal-repository.interface";
 import type { IStudySessionRepository } from "../../study-sessions/interfaces/repositories/study-session-repository.interface";
 import { DateConvert } from "../../../shared/convert/utils/date-convert.utils";
 
 describe("user service tests", () => {
-  const sanitizeMock: jest.Mocked<Isanitize> = {
+  const sanitizeMock: jest.Mocked<ISanitize> = {
     sanitizeUsername: jest.fn(),
     sanitizeName: jest.fn(),
     removeAccents: jest.fn(),

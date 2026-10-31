@@ -1,6 +1,6 @@
 import type { Module } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
-import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
+import type { ISanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
 import type { CreateModuleDTO } from "../DTOs/create-module.dto";
@@ -14,7 +14,7 @@ export class ModuleService implements IModuleService {
     constructor(
         private readonly moduleRepository: IModuleRepository,
         private readonly courseRepository: ICourseRepository,
-        private readonly sanitize: Isanitize,
+        private readonly sanitize: ISanitize,
         private readonly ownership: IOwnershipService,
         private readonly transaction: ITransaction
     ) { }

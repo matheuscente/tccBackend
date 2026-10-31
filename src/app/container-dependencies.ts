@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma"
 import { authenticationMiddleware } from "../middlewares/authentication/authentication.middleware"
-import { AuthController } from "../modules/auth/controllers/auth-controller"
+import { AuthController } from "../modules/auth/controllers/auth.controller"
 import { AccessTokenService } from "../modules/auth/services/access-token/access-token.service"
 import { AuthService } from "../modules/auth/services/auth/auth.service"
 import { CourseController } from "../modules/courses/controllers/course.controller"
@@ -14,7 +14,7 @@ import { UserService } from "../modules/users/services/user.service"
 import { DateConvert } from "../shared/convert/utils/date-convert.utils"
 import { HashProvider } from "../shared/hash/provider/hash.provider"
 import { SanitizeUtils } from "../shared/sanitize/utils/sanitize.utils"
-import { Trasanction } from "../modules/transaction/services/transaction.service"
+import { TransactionService } from "../modules/transaction/services/transaction.service"
 import { ModuleRepository } from "../modules/modules/repositories/module.repository"
 import { ModuleController } from "../modules/modules/controllers/module.controller"
 import { ModuleService } from "../modules/modules/services/module.service"
@@ -74,7 +74,7 @@ class AppContainer {
   sanitizeUtils = new SanitizeUtils()
   dateConvert = new DateConvert(env.timeZone)
   accessTokenService = new AccessTokenService(env.jwtSecret)
-  transaction = new Trasanction(prisma)
+  transaction = new TransactionService(prisma)
   fileTokenService = new FileTokenService(env.fileTokenSecret)
   storageProvider = createStorageProvider()
   mailProvider = createMailProvider()

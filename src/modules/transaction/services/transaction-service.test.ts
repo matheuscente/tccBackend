@@ -1,29 +1,29 @@
 import type { PrismaClient } from "@prisma/client";
-import { Trasanction } from "./services/transaction.service";
-import { ModuleRepository } from "../modules/repositories/module.repository"
-import { CourseRepository } from "../courses/repositories/course.repository";
-import { UserRepository } from "../users/repositories/user.repository";
-import { SessionRepository } from "../sessions/repositories/session.repository";
-import type { IRepositories } from "./interfaces/repositories.interface";
-import { DisciplineRepository } from "../disciplines/repositories/discipline.repository";
-import { GoalRepository } from "../goals/repositories/goal.repository";
-import { StudySessionRepository } from "../study-sessions/repositories/study-session.repository";
-import { ScopedContentRepository } from "../scoped-content/repositories/scoped-content.repository";
-import { QuestionRepository } from "../questions/repositories/question.repository";
-import { ActivityRepository } from "../activities/repositories/activity.repository";
-import { TicketRepository } from "../tickets/repositories/ticket.repository";
+import { TransactionService } from "./transaction.service";
+import { ModuleRepository } from "../../modules/repositories/module.repository"
+import { CourseRepository } from "../../courses/repositories/course.repository";
+import { UserRepository } from "../../users/repositories/user.repository";
+import { SessionRepository } from "../../sessions/repositories/session.repository";
+import type { IRepositories } from "../interfaces/repositories.interface";
+import { DisciplineRepository } from "../../disciplines/repositories/discipline.repository";
+import { GoalRepository } from "../../goals/repositories/goal.repository";
+import { StudySessionRepository } from "../../study-sessions/repositories/study-session.repository";
+import { ScopedContentRepository } from "../../scoped-content/repositories/scoped-content.repository";
+import { QuestionRepository } from "../../questions/repositories/question.repository";
+import { ActivityRepository } from "../../activities/repositories/activity.repository";
+import { TicketRepository } from "../../tickets/repositories/ticket.repository";
 
-jest.mock("../modules/repositories/module.repository");
-jest.mock("../courses/repositories/course.repository");
-jest.mock("../users/repositories/user.repository");
-jest.mock("../sessions/repositories/session.repository");
-jest.mock("../disciplines/repositories/discipline.repository")
-jest.mock("../goals/repositories/goal.repository");
-jest.mock("../study-sessions/repositories/study-session.repository");
-jest.mock("../scoped-content/repositories/scoped-content.repository");
-jest.mock("../questions/repositories/question.repository");
-jest.mock("../activities/repositories/activity.repository");
-jest.mock("../tickets/repositories/ticket.repository");
+jest.mock("../../modules/repositories/module.repository");
+jest.mock("../../courses/repositories/course.repository");
+jest.mock("../../users/repositories/user.repository");
+jest.mock("../../sessions/repositories/session.repository");
+jest.mock("../../disciplines/repositories/discipline.repository")
+jest.mock("../../goals/repositories/goal.repository");
+jest.mock("../../study-sessions/repositories/study-session.repository");
+jest.mock("../../scoped-content/repositories/scoped-content.repository");
+jest.mock("../../questions/repositories/question.repository");
+jest.mock("../../activities/repositories/activity.repository");
+jest.mock("../../tickets/repositories/ticket.repository");
 
 
 describe("Transaction", () => {
@@ -34,7 +34,7 @@ describe("Transaction", () => {
     $transaction: jest.fn(),
   } as unknown as jest.Mocked<PrismaClient>;
 
-  const transaction = new Trasanction(prismaMock);
+  const transaction = new TransactionService(prismaMock);
 
   beforeEach(() => {
     jest.clearAllMocks();

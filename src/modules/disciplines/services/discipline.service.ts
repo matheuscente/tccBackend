@@ -1,6 +1,6 @@
 import type { Discipline } from "@prisma/client";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
-import type { Isanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
+import type { ISanitize } from "../../../shared/sanitize/interfaces/sanitize.interface";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
 import type { CreateDisciplineDTO } from "../DTOs/create-discipline.DTO";
@@ -14,7 +14,7 @@ export class DisciplineService implements IDisciplineService {
     constructor(
         private readonly disciplineRepository: IDisciplineRepository,
         private readonly moduleRepository: IModuleRepository,
-        private readonly sanitize: Isanitize,
+        private readonly sanitize: ISanitize,
         private readonly ownership: IOwnershipService,
         private readonly transaction: ITransaction
     ) { }

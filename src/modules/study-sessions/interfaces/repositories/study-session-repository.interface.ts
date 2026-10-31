@@ -1,5 +1,5 @@
 import type { StudySession } from "@prisma/client"
-import type { CreateStudySessionRepositoryDTO } from "../../DTOs/start-study-session-repository-DTO"
+import type { CreateStudySessionRepositoryDTO } from "../../DTOs/start-study-session-repository.DTO"
 import type { UpdateStudySessionDTO } from "../../DTOs/update-study-session.DTO"
 
 export interface IStudySessionRepository {
