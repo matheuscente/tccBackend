@@ -12,6 +12,7 @@ export const makeFile = (overrides?: Partial<StoredFile>): StoredFile => {
     mimeType: "application/pdf",
     size: 1024,
     storageKey: `users/${userId}/${randomUUID()}.pdf`,
+    position: null,
     courseId: null,
     moduleId: null,
     disciplineId: null,

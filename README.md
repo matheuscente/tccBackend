@@ -297,6 +297,8 @@ A lista completa, com exemplos de corpo, está no Swagger (`/api/v1/docs`). Resu
 | tickets | `GET /tickets`, `POST /tickets`, `GET /tickets/id/:id`, `POST /tickets/:id/messages`, `PATCH /tickets/:id/status`, `GET /tickets/attachments/:id/content` |
 | admin | `GET /admin/dashboard`, `GET /admin/users/:id/overview` |
 
+Notas e arquivos aceitam `position` (número, opcional) no `POST` e no `PATCH`. É a ordem manual usada no modo estudo do frontend; sem ela, vale a data de criação. Migração: `20261031120000_study_position`.
+
 ---
 
 ## 8. Testes

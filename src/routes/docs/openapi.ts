@@ -127,7 +127,7 @@ export const openApiDocument = {
                 properties: { id: uuid, activityId: uuid, correctCount: { type: "integer" }, totalQuestions: { type: "integer" }, score: { type: "number" }, startedAt: { type: "string" }, finishedAt: { type: "string" } }
             },
             Note: { type: "object", properties: { id: uuid, title: { type: "string" }, content: { type: "string" }, ...scopeProps } },
-            File: { type: "object", properties: { id: uuid, originalName: { type: "string" }, mimeType: { type: "string" }, size: { type: "integer" }, ...scopeProps } },
+            File: { type: "object", properties: { id: uuid, originalName: { type: "string" }, mimeType: { type: "string" }, size: { type: "integer" }, position: { type: "number", nullable: true }, ...scopeProps } },
             Ticket: {
                 type: "object",
                 properties: {
@@ -209,12 +209,12 @@ export const openApiDocument = {
         },
         "/activities/attempts/{id}": { get: { tags: ["activities"], summary: "Detalhe de uma tentativa com correção", ...secured, parameters: [idParam], responses: { 200: ok(ref("Attempt")), ...errors } } },
 
-        ...crud("notes", "Note", { type: "object", properties: { title: { type: "string" }, content: { type: "string" }, ...scopeProps } }, { type: "object", properties: { title: { type: "string" }, content: { type: "string" } } }, true),
+        ...crud("notes", "Note", { type: "object", properties: { title: { type: "string" }, content: { type: "string" }, position: { type: "number" }, ...scopeProps } }, { type: "object", properties: { title: { type: "string" }, content: { type: "string" }, position: { type: "number" } } }, true),
 
         "/files": {
             post: {
                 tags: ["files"], summary: "Envia um arquivo (multipart, campo 'file')", ...secured,
-                requestBody: body({ type: "object", properties: { file: { type: "string", format: "binary" }, ...scopeProps } }, "multipart/form-data"),
+                requestBody: body({ type: "object", properties: { file: { type: "string", format: "binary" }, position: { type: "number" }, ...scopeProps } }, "multipart/form-data"),
                 responses: { 201: ok(ref("File")), ...errors }
             }
         },
@@ -223,7 +223,7 @@ export const openApiDocument = {
         "/files/{id}/access": { get: { tags: ["files"], summary: "Gera links temporários de visualização (streaming) e download", ...secured, parameters: [idParam], responses: { 200: { description: "viewUrl e downloadUrl" }, ...errors } } },
         "/files/{id}/content": { get: { tags: ["files"], summary: "Conteúdo do arquivo (suporta Range)", parameters: [idParam, { name: "token", in: "query", required: true, schema: { type: "string" } }, { name: "download", in: "query", schema: { type: "string", enum: ["1"] } }], responses: { 200: { description: "Arquivo" }, 206: { description: "Parte do arquivo" }, ...errors } } },
         "/files/{id}": {
-            patch: { tags: ["files"], summary: "Renomeia ou move o arquivo", ...secured, parameters: [idParam], requestBody: body({ type: "object", properties: { originalName: { type: "string" }, ...scopeProps } }), responses: { 200: ok(ref("File")), ...errors } },
+            patch: { tags: ["files"], summary: "Renomeia ou move o arquivo", ...secured, parameters: [idParam], requestBody: body({ type: "object", properties: { originalName: { type: "string" }, position: { type: "number" }, ...scopeProps } }), responses: { 200: ok(ref("File")), ...errors } },
             delete: { tags: ["files"], summary: "Remove o arquivo", ...secured, parameters: [idParam], responses: { 204: { description: "Removido" } } }
         },
 

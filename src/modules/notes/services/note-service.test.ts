@@ -63,6 +63,7 @@ describe("NoteService", () => {
         userId: userAuthUser.id,
         title: "my note",
         content: "text",
+        position: null,
         ...emptyScope,
         courseId: "course-id",
       });
@@ -70,6 +71,7 @@ describe("NoteService", () => {
         id: note.id,
         title: note.title,
         content: note.content,
+        position: note.position,
         courseId: note.courseId,
         moduleId: note.moduleId,
         disciplineId: note.disciplineId,
@@ -83,7 +85,16 @@ describe("NoteService", () => {
 
       await service.create(userAuthUser, { title: "t" });
 
-      expect(noteRepositoryMock.create).toHaveBeenCalledWith({ userId: userAuthUser.id, title: "t", content: "", ...emptyScope });
+      expect(noteRepositoryMock.create).toHaveBeenCalledWith({ userId: userAuthUser.id, title: "t", content: "", position: null, ...emptyScope });
+    });
+
+    it("should save the manual position when informed", async () => {
+      noteRepositoryMock.create.mockResolvedValue(makeNote({ position: 1500.5 }));
+
+      const result = await service.create(userAuthUser, { title: "t", position: 1500.5 });
+
+      expect(noteRepositoryMock.create).toHaveBeenCalledWith(expect.objectContaining({ position: 1500.5 }));
+      expect(result.position).toBe(1500.5);
     });
 
     it("should ignore userId and always create the note for the authenticated user (even ADMIN)", async () => {

@@ -3,7 +3,7 @@ import { httpSuccessResponse } from "../../../shared/controller/httpSuccessRespo
 import { AuthorizationError } from "../../../shared/errors/authorization.error";
 import type { IStorageProvider } from "../../../shared/storage/interfaces/storage-provider.interface";
 import { streamFile } from "../../../shared/storage/utils/stream-file.util";
-import type { FileScopeDTO } from "../DTOs/file-scope.DTO";
+import type { UploadFileDTO } from "../DTOs/upload-file.DTO";
 import type { UpdateFileDTO } from "../DTOs/update-file.DTO";
 import type { FileFilterDTO } from "../DTOs/file-filter.DTO";
 import type { IFileController } from "../interfaces/controllers/file-controller.interface";
@@ -16,14 +16,14 @@ export class FileController implements IFileController {
         private readonly storage: IStorageProvider
     ) { }
 
-    upload = async (req: Request<any, any, FileScopeDTO>, res: Response, next: NextFunction): Promise<void> => {
+    upload = async (req: Request<any, any, UploadFileDTO>, res: Response, next: NextFunction): Promise<void> => {
         try {
             const authUser = req.user
-            const scope = req.body ?? {}
+            const data = req.body ?? {}
 
             if (!authUser) throw new AuthorizationError("Usuário não autenticado")
 
-            const file = await this.service.upload(authUser, req.file, scope)
+            const file = await this.service.upload(authUser, req.file, data)
 
             res.status(201).json(httpSuccessResponse(201, file))
 

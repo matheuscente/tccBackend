@@ -92,6 +92,7 @@ describe("FileService", () => {
         mimeType: "application/pdf",
         size: 500,
         storageKey,
+        position: null,
         ...emptyScope,
         courseId: "course-id",
       });
@@ -100,6 +101,7 @@ describe("FileService", () => {
         originalName: stored.originalName,
         mimeType: stored.mimeType,
         size: stored.size,
+        position: stored.position,
         courseId: stored.courseId,
         moduleId: stored.moduleId,
         disciplineId: stored.disciplineId,
@@ -118,6 +120,15 @@ describe("FileService", () => {
         mimeType: "application/octet-stream",
       }));
       expect(storageMock.put).toHaveBeenCalledWith(expect.stringMatching(/\.txt$/), expect.any(Buffer), "application/octet-stream");
+    });
+
+    it("should convert the position sent by multipart to number", async () => {
+      fileRepositoryMock.create.mockResolvedValue(makeFile({ position: 42 }));
+
+      const result = await service.upload(userAuthUser, makeUploadedFile(), { position: "42" as unknown as number });
+
+      expect(fileRepositoryMock.create).toHaveBeenCalledWith(expect.objectContaining({ position: 42 }));
+      expect(result.position).toBe(42);
     });
 
     it("should use a default name when the sanitized name is empty", async () => {

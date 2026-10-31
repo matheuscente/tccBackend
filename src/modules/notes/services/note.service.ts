@@ -28,6 +28,7 @@ export class NoteService implements INoteService {
             userId: ownerId,
             title: data.title.trim(),
             content: data.content ?? "",
+            position: data.position ?? null,
             ...scope
         })
 
@@ -64,6 +65,7 @@ export class NoteService implements INoteService {
         const updated = await this.noteRepository.update(noteId, {
             ...(data.title !== undefined ? { title: data.title.trim() } : {}),
             ...(data.content !== undefined ? { content: data.content } : {}),
+            ...(data.position !== undefined ? { position: data.position } : {}),
             ...(scope ?? {})
         })
 
@@ -84,6 +86,7 @@ export class NoteService implements INoteService {
             id: note.id,
             title: note.title,
             content: note.content,
+            position: note.position,
             courseId: note.courseId,
             moduleId: note.moduleId,
             disciplineId: note.disciplineId,

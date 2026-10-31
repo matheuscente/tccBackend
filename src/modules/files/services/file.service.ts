@@ -10,7 +10,7 @@ import type { IStorageProvider } from "../../../shared/storage/interfaces/storag
 import type { IFileTokenService } from "../../../shared/file-token/interfaces/file-token-service.interface";
 import type { FileAccessDTO } from "../DTOs/file-access.DTO";
 import type { FileFilterDTO } from "../DTOs/file-filter.DTO";
-import type { FileScopeDTO } from "../DTOs/file-scope.DTO";
+import type { UploadFileDTO } from "../DTOs/upload-file.DTO";
 import type { ResponseFileDTO } from "../DTOs/response-file.DTO";
 import type { UpdateFileDTO } from "../DTOs/update-file.DTO";
 import type { UploadedFileDTO } from "../DTOs/uploaded-file.DTO";
@@ -30,11 +30,11 @@ export class FileService implements IFileService {
         private readonly publicApiUrl: string
     ) { }
 
-    async upload(authUser: AuthUserDTO, file: UploadedFileDTO | undefined, scopeInput: FileScopeDTO): Promise<ResponseFileDTO> {
+    async upload(authUser: AuthUserDTO, file: UploadedFileDTO | undefined, input: UploadFileDTO): Promise<ResponseFileDTO> {
         if (!file) throw new ValidationError("Selecione um arquivo para enviar")
         if (file.size === 0) throw new ValidationError("O arquivo está vazio")
 
-        const scope = this.scopeService.normalize(scopeInput)
+        const scope = this.scopeService.normalize(input)
         await this.scopeService.resolveOwned(scope, authUser.id)
 
         const used = await this.fileRepository.sumSizeByUserId(authUser.id)
@@ -54,6 +54,7 @@ export class FileService implements IFileService {
                 mimeType,
                 size: file.size,
                 storageKey,
+                position: input.position !== undefined ? Number(input.position) : null,
                 ...scope
             })
 
@@ -85,6 +86,7 @@ export class FileService implements IFileService {
 
         const updated = await this.fileRepository.update(file.id, {
             ...(data.originalName ? { originalName: this.sanitizeName(data.originalName) } : {}),
+            ...(data.position !== undefined ? { position: data.position } : {}),
             ...(scope ?? {})
         })
 
@@ -143,6 +145,7 @@ export class FileService implements IFileService {
             originalName: file.originalName,
             mimeType: file.mimeType,
             size: file.size,
+            position: file.position,
             courseId: file.courseId,
             moduleId: file.moduleId,
             disciplineId: file.disciplineId,

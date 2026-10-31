@@ -3,6 +3,8 @@ import { baseFileFields } from "./base-file.schema"
 
 // multipart envia strings: "" significa sem escopo
 export const uploadFileSchema = Joi.object().keys({
+    position: baseFileFields.position.empty(""),
+
     courseId: baseFileFields.courseId.allow(null).empty(""),
 
     moduleId: baseFileFields.moduleId.allow(null).empty(""),

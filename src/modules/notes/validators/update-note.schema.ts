@@ -6,6 +6,8 @@ export const updateNoteSchema = Joi.object().keys({
 
     content: baseNoteFields.content,
 
+    position: baseNoteFields.position,
+
     courseId: baseNoteFields.courseId.allow(null),
 
     moduleId: baseNoteFields.moduleId.allow(null),

@@ -311,6 +311,8 @@ model Note {
   userId       String
   title        String
   content      String    @default("")
+  // ordem manual no modo estudo; sem valor, vale a data de criação
+  position     Float?
   courseId     String?
   moduleId     String?
   disciplineId String?
@@ -334,6 +336,7 @@ model StoredFile {
   mimeType     String
   size         Int
   storageKey   String   @unique
+  position     Float?
   courseId     String?
   moduleId     String?
   disciplineId String?

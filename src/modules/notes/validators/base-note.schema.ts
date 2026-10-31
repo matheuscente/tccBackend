@@ -19,6 +19,9 @@ export const baseNoteFields = {
             "string.max": "A nota pode ter no máximo 100.000 caracteres."
         }),
 
+    position: Joi.number()
+        .messages({ "number.base": ErrorMessages.type("posição", "um número") }),
+
     search: Joi.string().trim().max(100).allow(""),
 
     userId: uuidField("userId"),

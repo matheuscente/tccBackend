@@ -1,10 +1,10 @@
 import type { NextFunction, Request, Response } from "express"
-import type { FileScopeDTO } from "../../DTOs/file-scope.DTO"
+import type { UploadFileDTO } from "../../DTOs/upload-file.DTO"
 import type { UpdateFileDTO } from "../../DTOs/update-file.DTO"
 import type { FileFilterDTO } from "../../DTOs/file-filter.DTO"
 
 export interface IFileController {
-    upload(req: Request<any, any, FileScopeDTO>, res: Response, next: NextFunction): Promise<void>
+    upload(req: Request<any, any, UploadFileDTO>, res: Response, next: NextFunction): Promise<void>
 
     findById(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void>
 

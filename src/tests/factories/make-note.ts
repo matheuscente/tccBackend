@@ -6,6 +6,7 @@ export const makeNote = (overrides?: Partial<Note>): Note => ({
   userId: randomUUID(),
   title: `note ${randomUUID()}`,
   content: "content",
+  position: null,
   courseId: null,
   moduleId: null,
   disciplineId: null,

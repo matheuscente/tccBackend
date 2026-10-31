@@ -6,6 +6,8 @@ export const baseFileFields = {
 
     token: Joi.string().max(2000),
 
+    position: Joi.number(),
+
     download: Joi.string().valid("1"),
 
     search: Joi.string().trim().max(100).allow(""),
