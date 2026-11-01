@@ -1,5 +1,6 @@
 import { Joi } from "celebrate"
 import { ErrorMessages } from "../../../shared/errorMessages/errorMessages"
+import { uuidField } from "../../../shared/schemas/uuid-field.schema"
 
 export const baseTicketFields = {
     subject: Joi.string()
@@ -34,6 +35,11 @@ export const baseTicketFields = {
         .messages({
             "any.only": ErrorMessages.predefinedValues("status")
         }),
+
+    keepInProgress: Joi.boolean()
+        .messages({ "boolean.base": ErrorMessages.type("manter em atendimento", "verdadeiro ou falso") }),
+
+    adminId: uuidField("administrador"),
 
     search: Joi.string().trim().max(100).allow(""),
 

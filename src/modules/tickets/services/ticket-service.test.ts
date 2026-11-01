@@ -7,6 +7,8 @@ import type { IFileTokenService } from "../../../shared/file-token/interfaces/fi
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { ITicketRepository } from "../interfaces/repositories/ticket-repository.interface";
 import type { ITransaction } from "../../transaction/interfaces/transaction.interface";
+import type { IUserRepository } from "../../users/interfaces/user-repository.interface";
+import { makeUser } from "../../../tests/factories/make-user";
 import type { IRepositories } from "../../transaction/interfaces/repositories.interface";
 import type { Ticket, TicketMessage } from "@prisma/client";
 import { makeUploadedFile } from "../../../tests/factories/make-file";
@@ -21,7 +23,8 @@ describe("TicketService", () => {
     findByIdWithMessages: jest.fn(),
     findAll: jest.fn(),
     addMessage: jest.fn(),
-    updateStatus: jest.fn(),
+    update: jest.fn(),
+    addEvent: jest.fn(),
     findAttachmentById: jest.fn(),
     countByStatus: jest.fn(),
   };
@@ -42,12 +45,15 @@ describe("TicketService", () => {
     execute: jest.fn().mockImplementation(async (work) => work({ ticketRepository: ticketRepositoryMock } as unknown as IRepositories)),
   };
 
+  const userRepositoryMock = { findById: jest.fn() } as unknown as jest.Mocked<IUserRepository>;
+
   const adminAuthUser: AuthUserDTO = { id: "admin-id", role: "ADMIN", sessionId: "default" };
   const userAuthUser: AuthUserDTO = { id: "user-id", role: "USER", sessionId: "default" };
 
   const publicApiUrl = "http://api.test";
 
-  const service = new TicketService(ticketRepositoryMock, storageMock, fileTokenServiceMock, publicApiUrl, transactionMock);
+  const service = new TicketService(ticketRepositoryMock, storageMock, fileTokenServiceMock, publicApiUrl, transactionMock, userRepositoryMock);
+  const otherAdmin: AuthUserDTO = { id: "other-admin-id", role: "ADMIN", sessionId: "default" };
 
   const makeImage = (name = "print.png") => makeUploadedFile({ originalname: name, mimetype: "image/png", size: 10 });
 
@@ -129,12 +135,25 @@ describe("TicketService", () => {
       expect(ticketRepositoryMock.findAll).toHaveBeenCalledWith({ status: "OPEN", userId: userAuthUser.id });
     });
 
-    it("should let ADMIN see all tickets", async () => {
+    it("should let ADMIN see all tickets except the ones in progress with another admin", async () => {
       ticketRepositoryMock.findAll.mockResolvedValue([]);
 
       await service.findAll(adminAuthUser, { search: "abc" });
 
-      expect(ticketRepositoryMock.findAll).toHaveBeenCalledWith({ search: "abc" });
+      expect(ticketRepositoryMock.findAll).toHaveBeenCalledWith({ search: "abc", visibleToAdminId: adminAuthUser.id });
+    });
+
+    it("should map who is attending and who closed the ticket", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "CLOSED", closedById: adminAuthUser.id });
+      ticketRepositoryMock.findAll.mockResolvedValue([
+        makeTicketWithSummary(ticket, { closedBy: { id: adminAuthUser.id, name: "Admin" } }),
+        makeTicketWithSummary(makeTicket({ userId: userAuthUser.id, status: "IN_PROGRESS", assignedToId: adminAuthUser.id }), { assignedTo: { id: adminAuthUser.id, name: "Admin" } }),
+      ]);
+
+      const [closed, attending] = await service.findAll(adminAuthUser, {});
+
+      expect(closed!.closedBy).toEqual({ id: adminAuthUser.id, name: "Admin", bySupport: true });
+      expect(attending!.assignedTo).toEqual({ id: adminAuthUser.id, name: "Admin" });
     });
 
     it("should map the summary with the last message info", async () => {
@@ -191,12 +210,49 @@ describe("TicketService", () => {
       expect(result.messages[0]!.attachments[0]).not.toHaveProperty("storageKey");
     });
 
-    it("should let ADMIN see any ticket", async () => {
-      const ticket = makeTicket({ userId: userAuthUser.id });
+    it.each(["OPEN", "ANSWERED", "CLOSED"] as const)("should let any ADMIN see a %s ticket", async (status) => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status, assignedToId: null });
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      mockDetail(ticket);
+
+      await expect(service.findById(otherAdmin, ticket.id)).resolves.toEqual(expect.objectContaining({ id: ticket.id }));
+    });
+
+    it("should let only the assigned ADMIN see a ticket in progress", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "IN_PROGRESS", assignedToId: adminAuthUser.id });
       ticketRepositoryMock.findById.mockResolvedValue(ticket);
       mockDetail(ticket);
 
       await expect(service.findById(adminAuthUser, ticket.id)).resolves.toEqual(expect.objectContaining({ id: ticket.id }));
+      await expect(service.findById(otherAdmin, ticket.id)).rejects.toThrow("Este chamado está em atendimento por outro administrador");
+    });
+
+    it("should let the owner see their ticket while it is in progress", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "IN_PROGRESS", assignedToId: adminAuthUser.id });
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      mockDetail(ticket);
+
+      await expect(service.findById(userAuthUser, ticket.id)).resolves.toEqual(expect.objectContaining({ id: ticket.id }));
+    });
+
+    it("should map events and the closer", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "CLOSED", closedById: userAuthUser.id });
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      ticketRepositoryMock.findByIdWithMessages.mockResolvedValue(makeTicketWithMessages(ticket, {
+        closedBy: { id: userAuthUser.id, name: "Aluno" },
+        events: [{
+          id: "event-id", ticketId: ticket.id, actorId: adminAuthUser.id, type: "TRANSFERRED", status: null, targetId: "other-admin-id",
+          createdAt: new Date("2026-01-01T00:00:00Z"), actor: { id: adminAuthUser.id, name: "Admin" }, target: { id: "other-admin-id", name: "Outro" },
+        }],
+      }));
+
+      const result = await service.findById(userAuthUser, ticket.id);
+
+      expect(result.closedBy).toEqual({ id: userAuthUser.id, name: "Aluno", bySupport: false });
+      expect(result.events).toEqual([{
+        id: "event-id", type: "TRANSFERRED", status: null, actor: { id: adminAuthUser.id, name: "Admin" },
+        target: { id: "other-admin-id", name: "Outro" }, createdAt: "2026-01-01T00:00:00.000Z",
+      }]);
     });
 
     it("should throw ForbiddenError when USER accesses another user's ticket", async () => {
@@ -222,7 +278,7 @@ describe("TicketService", () => {
       await service.addMessage(adminAuthUser, ticket.id, { message: " reply " }, []);
 
       expect(ticketRepositoryMock.addMessage).toHaveBeenCalledWith(ticket.id, adminAuthUser.id, "reply", []);
-      expect(ticketRepositoryMock.updateStatus).toHaveBeenCalledWith(ticket.id, "ANSWERED");
+      expect(ticketRepositoryMock.update).toHaveBeenCalledWith(ticket.id, { status: "ANSWERED", assignedToId: null });
     });
 
     it("should set status back to OPEN when the user replies", async () => {
@@ -232,17 +288,55 @@ describe("TicketService", () => {
 
       await service.addMessage(userAuthUser, ticket.id, { message: "thanks" }, []);
 
-      expect(ticketRepositoryMock.updateStatus).toHaveBeenCalledWith(ticket.id, "OPEN");
+      expect(ticketRepositoryMock.update).toHaveBeenCalledWith(ticket.id, { status: "OPEN", assignedToId: null });
     });
 
-    it("should set status back to OPEN when the user replies to an IN_PROGRESS ticket", async () => {
-      const ticket = makeTicket({ userId: userAuthUser.id, status: "IN_PROGRESS" });
+    it("should keep the ticket in progress with the same admin when the user replies", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "IN_PROGRESS", assignedToId: adminAuthUser.id });
       ticketRepositoryMock.findById.mockResolvedValue(ticket);
       mockDetail(ticket);
 
       await service.addMessage(userAuthUser, ticket.id, { message: "any news?" }, []);
 
-      expect(ticketRepositoryMock.updateStatus).toHaveBeenCalledWith(ticket.id, "OPEN");
+      expect(ticketRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should release the ticket as ANSWERED when the assigned admin replies", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "IN_PROGRESS", assignedToId: adminAuthUser.id });
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      mockDetail(ticket);
+
+      await service.addMessage(adminAuthUser, ticket.id, { message: "done" }, []);
+
+      expect(ticketRepositoryMock.update).toHaveBeenCalledWith(ticket.id, { status: "ANSWERED", assignedToId: null });
+    });
+
+    it("should keep the ticket in progress when the assigned admin asks to", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "IN_PROGRESS", assignedToId: adminAuthUser.id });
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      mockDetail(ticket);
+
+      await service.addMessage(adminAuthUser, ticket.id, { message: "checking", keepInProgress: true }, []);
+
+      expect(ticketRepositoryMock.addMessage).toHaveBeenCalled();
+      expect(ticketRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should ignore keepInProgress when the ticket is not in progress", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "OPEN" });
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      mockDetail(ticket);
+
+      await service.addMessage(adminAuthUser, ticket.id, { message: "answer", keepInProgress: true }, []);
+
+      expect(ticketRepositoryMock.update).toHaveBeenCalledWith(ticket.id, { status: "ANSWERED", assignedToId: null });
+    });
+
+    it("should not let another admin write on a ticket in progress", async () => {
+      ticketRepositoryMock.findById.mockResolvedValue(makeTicket({ userId: userAuthUser.id, status: "IN_PROGRESS", assignedToId: adminAuthUser.id }));
+
+      await expect(service.addMessage(otherAdmin, "id", { message: "m" }, [])).rejects.toThrow(ForbiddenError);
+      expect(ticketRepositoryMock.addMessage).not.toHaveBeenCalled();
     });
 
     it("should not update status when it does not change", async () => {
@@ -252,7 +346,7 @@ describe("TicketService", () => {
 
       await service.addMessage(userAuthUser, ticket.id, { message: "more info" }, []);
 
-      expect(ticketRepositoryMock.updateStatus).not.toHaveBeenCalled();
+      expect(ticketRepositoryMock.update).not.toHaveBeenCalled();
     });
 
     it("should treat an ADMIN replying to their own ticket as the user (OPEN)", async () => {
@@ -262,7 +356,7 @@ describe("TicketService", () => {
 
       await service.addMessage(adminAuthUser, ticket.id, { message: "m" }, []);
 
-      expect(ticketRepositoryMock.updateStatus).toHaveBeenCalledWith(ticket.id, "OPEN");
+      expect(ticketRepositoryMock.update).toHaveBeenCalledWith(ticket.id, { status: "OPEN", assignedToId: null });
     });
 
     it("should reject messages on a closed ticket", async () => {
@@ -272,7 +366,7 @@ describe("TicketService", () => {
       await expect(service.addMessage(adminAuthUser, "id", { message: "m" }, [])).rejects.toThrow(ValidationError);
       expect(storageMock.put).not.toHaveBeenCalled();
       expect(ticketRepositoryMock.addMessage).not.toHaveBeenCalled();
-      expect(ticketRepositoryMock.updateStatus).not.toHaveBeenCalled();
+      expect(ticketRepositoryMock.update).not.toHaveBeenCalled();
     });
 
     it("should store images under the ticket owner's folder", async () => {
@@ -296,7 +390,7 @@ describe("TicketService", () => {
       await expect(service.addMessage(adminAuthUser, ticket.id, { message: "m" }, [makeImage()])).rejects.toThrow("db error");
 
       expect(storageMock.delete).toHaveBeenCalledWith(storageMock.put.mock.calls[0]![0]);
-      expect(ticketRepositoryMock.updateStatus).not.toHaveBeenCalled();
+      expect(ticketRepositoryMock.update).not.toHaveBeenCalled();
     });
 
     it("should save the message and the new status in the same transaction", async () => {
@@ -308,13 +402,13 @@ describe("TicketService", () => {
 
       expect(transactionMock.execute).toHaveBeenCalledTimes(1);
       expect(ticketRepositoryMock.addMessage).toHaveBeenCalledTimes(1);
-      expect(ticketRepositoryMock.updateStatus).toHaveBeenCalledWith(ticket.id, "ANSWERED");
+      expect(ticketRepositoryMock.update).toHaveBeenCalledWith(ticket.id, { status: "ANSWERED", assignedToId: null });
     });
 
     it("should remove stored images when the status update fails", async () => {
       const ticket = makeTicket({ userId: userAuthUser.id, status: "OPEN" });
       ticketRepositoryMock.findById.mockResolvedValue(ticket);
-      ticketRepositoryMock.updateStatus.mockRejectedValueOnce(new Error("db error"));
+      ticketRepositoryMock.update.mockRejectedValueOnce(new Error("db error"));
 
       await expect(service.addMessage(adminAuthUser, ticket.id, { message: "m" }, [makeImage()])).rejects.toThrow("db error");
 
@@ -337,54 +431,159 @@ describe("TicketService", () => {
   });
 
   describe("updateStatus", () => {
-    it("should let the user close their own ticket", async () => {
+    it("should let the user close their own ticket and record who closed it", async () => {
       const ticket = makeTicket({ userId: userAuthUser.id, status: "ANSWERED" });
       ticketRepositoryMock.findById.mockResolvedValue(ticket);
       mockDetail(ticket);
 
       await service.updateStatus(userAuthUser, ticket.id, "CLOSED");
 
-      expect(ticketRepositoryMock.updateStatus).toHaveBeenCalledWith(ticket.id, "CLOSED");
+      expect(ticketRepositoryMock.update).toHaveBeenCalledWith(ticket.id, {
+        status: "CLOSED", assignedToId: null, closedAt: expect.any(Date), closedById: userAuthUser.id,
+      });
+      expect(ticketRepositoryMock.addEvent).toHaveBeenCalledWith({ ticketId: ticket.id, actorId: userAuthUser.id, type: "STATUS_CHANGED", status: "CLOSED" });
     });
 
     it.each(["OPEN", "IN_PROGRESS", "ANSWERED"] as const)("should not let the user set status %s", async (status) => {
-      ticketRepositoryMock.findById.mockResolvedValue(makeTicket({ userId: userAuthUser.id, status: "CLOSED" }));
+      ticketRepositoryMock.findById.mockResolvedValue(makeTicket({ userId: userAuthUser.id, status: "OPEN" }));
 
       await expect(service.updateStatus(userAuthUser, "id", status)).rejects.toThrow("Você pode apenas encerrar o chamado");
-      expect(ticketRepositoryMock.updateStatus).not.toHaveBeenCalled();
+      expect(ticketRepositoryMock.update).not.toHaveBeenCalled();
     });
 
-    it.each(["OPEN", "IN_PROGRESS", "ANSWERED", "CLOSED"] as const)("should let ADMIN set status %s", async (status) => {
-      const ticket = makeTicket({ userId: userAuthUser.id, status: status === "OPEN" ? "CLOSED" : "OPEN" });
+    it("should tell the user the ticket is already closed", async () => {
+      ticketRepositoryMock.findById.mockResolvedValue(makeTicket({ userId: userAuthUser.id, status: "CLOSED" }));
+
+      await expect(service.updateStatus(userAuthUser, "id", "CLOSED")).rejects.toThrow("Este chamado já está encerrado");
+    });
+
+    it.each([
+      ["ANSWERED", "OPEN"], ["ANSWERED", "IN_PROGRESS"], ["ANSWERED", "CLOSED"],
+      ["OPEN", "ANSWERED"], ["CLOSED", "OPEN"], ["IN_PROGRESS", "ANSWERED"],
+    ] as const)("should let ADMIN change %s to %s", async (from, to) => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: from, assignedToId: from === "IN_PROGRESS" ? adminAuthUser.id : null });
       ticketRepositoryMock.findById.mockResolvedValue(ticket);
       mockDetail(ticket);
 
-      await service.updateStatus(adminAuthUser, ticket.id, status);
+      await service.updateStatus(adminAuthUser, ticket.id, to);
 
-      expect(ticketRepositoryMock.updateStatus).toHaveBeenCalledWith(ticket.id, status);
+      expect(ticketRepositoryMock.update).toHaveBeenCalledWith(ticket.id, expect.objectContaining({ status: to }));
+    });
+
+    it("should assign the ticket to the admin when it goes to IN_PROGRESS", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "OPEN" });
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      mockDetail(ticket);
+
+      await service.updateStatus(adminAuthUser, ticket.id, "IN_PROGRESS");
+
+      expect(ticketRepositoryMock.update).toHaveBeenCalledWith(ticket.id, { status: "IN_PROGRESS", assignedToId: adminAuthUser.id, closedAt: null, closedById: null });
+      expect(ticketRepositoryMock.addEvent).toHaveBeenCalledWith({ ticketId: ticket.id, actorId: adminAuthUser.id, type: "ASSIGNED", status: "IN_PROGRESS" });
+    });
+
+    it("should release the ticket when the admin moves it out of IN_PROGRESS", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "IN_PROGRESS", assignedToId: adminAuthUser.id });
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      mockDetail(ticket);
+
+      await service.updateStatus(adminAuthUser, ticket.id, "OPEN");
+
+      expect(ticketRepositoryMock.update).toHaveBeenCalledWith(ticket.id, { status: "OPEN", assignedToId: null, closedAt: null, closedById: null });
+    });
+
+    it("should record the admin as the one who closed the ticket", async () => {
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "ANSWERED" });
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      mockDetail(ticket);
+
+      await service.updateStatus(adminAuthUser, ticket.id, "CLOSED");
+
+      expect(ticketRepositoryMock.update).toHaveBeenCalledWith(ticket.id, expect.objectContaining({ closedById: adminAuthUser.id, closedAt: expect.any(Date) }));
+    });
+
+    it("should not let another admin change a ticket in progress", async () => {
+      ticketRepositoryMock.findById.mockResolvedValue(makeTicket({ userId: userAuthUser.id, status: "IN_PROGRESS", assignedToId: adminAuthUser.id }));
+
+      await expect(service.updateStatus(otherAdmin, "id", "IN_PROGRESS")).rejects.toThrow(ForbiddenError);
+      expect(ticketRepositoryMock.update).not.toHaveBeenCalled();
     });
 
     it("should not update when status is unchanged", async () => {
-      const ticket = makeTicket({ userId: userAuthUser.id, status: "CLOSED" });
+      const ticket = makeTicket({ userId: userAuthUser.id, status: "OPEN" });
       ticketRepositoryMock.findById.mockResolvedValue(ticket);
       mockDetail(ticket);
 
-      await service.updateStatus(userAuthUser, ticket.id, "CLOSED");
+      await service.updateStatus(adminAuthUser, ticket.id, "OPEN");
 
-      expect(ticketRepositoryMock.updateStatus).not.toHaveBeenCalled();
+      expect(ticketRepositoryMock.update).not.toHaveBeenCalled();
+      expect(ticketRepositoryMock.addEvent).not.toHaveBeenCalled();
     });
 
     it("should throw ForbiddenError when USER closes another user's ticket", async () => {
       ticketRepositoryMock.findById.mockResolvedValue(makeTicket({ userId: "other-user" }));
 
       await expect(service.updateStatus(userAuthUser, "id", "CLOSED")).rejects.toThrow(ForbiddenError);
-      expect(ticketRepositoryMock.updateStatus).not.toHaveBeenCalled();
+      expect(ticketRepositoryMock.update).not.toHaveBeenCalled();
     });
 
     it("should throw NotFoundError when ticket does not exist", async () => {
       ticketRepositoryMock.findById.mockResolvedValue(null);
 
       await expect(service.updateStatus(adminAuthUser, "missing", "OPEN")).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe("transfer", () => {
+    const attending = () => makeTicket({ userId: userAuthUser.id, status: "IN_PROGRESS", assignedToId: adminAuthUser.id });
+
+    it("should transfer the ticket to another admin and record the event", async () => {
+      const ticket = attending();
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      userRepositoryMock.findById.mockResolvedValue(makeUser({ id: otherAdmin.id, role: "ADMIN" }));
+      mockDetail(ticket);
+
+      await service.transfer(adminAuthUser, ticket.id, { adminId: otherAdmin.id });
+
+      expect(ticketRepositoryMock.update).toHaveBeenCalledWith(ticket.id, { assignedToId: otherAdmin.id });
+      expect(ticketRepositoryMock.addEvent).toHaveBeenCalledWith({ ticketId: ticket.id, actorId: adminAuthUser.id, type: "TRANSFERRED", targetId: otherAdmin.id });
+    });
+
+    it.each(["OPEN", "ANSWERED", "CLOSED"] as const)("should not transfer a %s ticket", async (status) => {
+      ticketRepositoryMock.findById.mockResolvedValue(makeTicket({ userId: userAuthUser.id, status }));
+
+      await expect(service.transfer(adminAuthUser, "id", { adminId: otherAdmin.id })).rejects.toThrow("Só o administrador que está atendendo o chamado pode transferi-lo");
+    });
+
+    it("should not let another admin transfer the ticket", async () => {
+      ticketRepositoryMock.findById.mockResolvedValue(attending());
+
+      await expect(service.transfer(otherAdmin, "id", { adminId: otherAdmin.id })).rejects.toThrow(ForbiddenError);
+    });
+
+    it("should not transfer to the same admin", async () => {
+      ticketRepositoryMock.findById.mockResolvedValue(attending());
+
+      await expect(service.transfer(adminAuthUser, "id", { adminId: adminAuthUser.id })).rejects.toThrow("Escolha outro administrador para transferir");
+    });
+
+    it.each([
+      ["a USER", makeUser({ id: "target-id", role: "USER" })],
+      ["a deleted admin", makeUser({ id: "target-id", role: "ADMIN", deletedAt: new Date() })],
+      ["a missing user", null],
+    ])("should not transfer to %s", async (_, target) => {
+      ticketRepositoryMock.findById.mockResolvedValue(attending());
+      userRepositoryMock.findById.mockResolvedValue(target);
+
+      await expect(service.transfer(adminAuthUser, "id", { adminId: "target-id" })).rejects.toThrow("Administrador não encontrado");
+      expect(ticketRepositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should not transfer to the ticket owner", async () => {
+      const ticket = makeTicket({ userId: otherAdmin.id, status: "IN_PROGRESS", assignedToId: adminAuthUser.id });
+      ticketRepositoryMock.findById.mockResolvedValue(ticket);
+      userRepositoryMock.findById.mockResolvedValue(makeUser({ id: otherAdmin.id, role: "ADMIN" }));
+
+      await expect(service.transfer(adminAuthUser, ticket.id, { adminId: otherAdmin.id })).rejects.toThrow("O chamado não pode ser transferido para quem o abriu");
     });
   });
 

@@ -132,7 +132,10 @@ export const openApiDocument = {
                 type: "object",
                 properties: {
                     id: uuid, subject: { type: "string" }, category: { type: "string", enum: ["DOUBT", "PROBLEM", "SUGGESTION"] },
-                    status: { type: "string", enum: ["OPEN", "IN_PROGRESS", "ANSWERED", "CLOSED"] }
+                    status: { type: "string", enum: ["OPEN", "IN_PROGRESS", "ANSWERED", "CLOSED"] },
+                    assignedTo: { type: "object", nullable: true, description: "Admin com o chamado em atendimento" },
+                    closedBy: { type: "object", nullable: true, description: "Quem encerrou ({ id, name, bySupport })" },
+                    events: { type: "array", description: "Histórico: ASSIGNED, TRANSFERRED, STATUS_CHANGED", items: { type: "object" } }
                 }
             }
         }
@@ -228,7 +231,7 @@ export const openApiDocument = {
         },
 
         "/tickets": {
-            get: { tags: ["tickets"], summary: "Lista chamados (usuário: os seus; admin: todos)", ...secured, parameters: [{ name: "status", in: "query", schema: { type: "string" } }, { name: "search", in: "query", schema: { type: "string" } }], responses: { 200: ok(ref("Ticket")), ...errors } },
+            get: { tags: ["tickets"], summary: "Lista chamados (usuário: os seus; admin: todos, menos os em atendimento por outro admin)", ...secured, parameters: [{ name: "status", in: "query", schema: { type: "string" } }, { name: "search", in: "query", schema: { type: "string" } }], responses: { 200: ok(ref("Ticket")), ...errors } },
             post: {
                 tags: ["tickets"], summary: "Abre um chamado (multipart, até 5 imagens no campo 'images')", ...secured,
                 requestBody: body({ type: "object", properties: { subject: { type: "string" }, category: { type: "string" }, message: { type: "string" }, images: { type: "array", items: { type: "string", format: "binary" } } } }, "multipart/form-data"),
@@ -236,13 +239,15 @@ export const openApiDocument = {
             }
         },
         "/tickets/id/{id}": { get: { tags: ["tickets"], summary: "Chamado com mensagens", ...secured, parameters: [idParam], responses: { 200: ok(ref("Ticket")), ...errors } } },
-        "/tickets/{id}/messages": { post: { tags: ["tickets"], summary: "Responde o chamado", ...secured, parameters: [idParam], requestBody: body({ type: "object", properties: { message: { type: "string" }, images: { type: "array", items: { type: "string", format: "binary" } } } }, "multipart/form-data"), responses: { 201: ok(ref("Ticket")), ...errors } } },
-        "/tickets/{id}/status": { patch: { tags: ["tickets"], summary: "Altera o status (usuário só pode encerrar)", ...secured, parameters: [idParam], requestBody: body({ type: "object", properties: { status: { type: "string" } } }), responses: { 200: ok(ref("Ticket")), ...errors } } },
+        "/tickets/{id}/messages": { post: { tags: ["tickets"], summary: "Responde o chamado", ...secured, parameters: [idParam], requestBody: body({ type: "object", properties: { message: { type: "string" }, keepInProgress: { type: "boolean", description: "Admin responsável: mantém o chamado em atendimento" }, images: { type: "array", items: { type: "string", format: "binary" } } } }, "multipart/form-data"), responses: { 201: ok(ref("Ticket")), ...errors } } },
+        "/tickets/{id}/status": { patch: { tags: ["tickets"], summary: "Altera o status (usuário só pode encerrar; IN_PROGRESS atribui o chamado ao admin; os demais status liberam o chamado)", ...secured, parameters: [idParam], requestBody: body({ type: "object", properties: { status: { type: "string" } } }), responses: { 200: ok(ref("Ticket")), ...errors } } },
 
         "/stats/summary": { get: { tags: ["stats"], summary: "Resumo de estudo no período (por dia e por escopo)", ...secured, parameters: [{ name: "userId", in: "query", schema: uuid }, { name: "startDate", in: "query", schema: date }, { name: "endDate", in: "query", schema: date }, ...scopeQuery.slice(0, 3)], responses: { 200: { description: "Resumo" }, ...errors } } },
         "/stats/goals": { get: { tags: ["stats"], summary: "Progresso das metas", ...secured, parameters: [{ name: "userId", in: "query", schema: uuid }], responses: { 200: { description: "Progresso" }, ...errors } } },
         "/stats/performance": { get: { tags: ["stats"], summary: "Rendimento nas atividades avaliativas", ...secured, parameters: [{ name: "userId", in: "query", schema: uuid }, { name: "startDate", in: "query", schema: date }, ...scopeQuery.slice(0, 3)], responses: { 200: { description: "Rendimento" }, ...errors } } },
 
+        "/tickets/{id}/transfer": { patch: { tags: ["tickets"], summary: "Transfere o chamado em atendimento para outro admin (só o admin responsável)", ...secured, parameters: [idParam], requestBody: body({ type: "object", required: ["adminId"], properties: { adminId: uuid } }), responses: { 200: ok(ref("Ticket")), ...errors } } },
+        "/admin/admins": { get: { tags: ["admin"], summary: "Administradores ativos (destino de transferência de chamados)", ...secured, responses: { 200: { description: "Lista de administradores" }, ...errors } } },
         "/admin/dashboard": { get: { tags: ["admin"], summary: "Indicadores gerais do sistema", ...secured, responses: { 200: { description: "Painel" }, ...errors } } },
         "/admin/users/{id}/overview": { get: { tags: ["admin"], summary: "Visão geral de um usuário (sem acesso a arquivos e notas)", ...secured, parameters: [idParam], responses: { 200: { description: "Resumo do usuário" }, ...errors } } }
     }

@@ -13,4 +13,6 @@ adminRoutes.use(authentication, requireRole("ADMIN"))
 
 adminRoutes.get('/dashboard', adminController.dashboard)
 
+adminRoutes.get('/admins', adminController.admins)
+
 adminRoutes.get('/users/:id/overview', RequestValidator.paramsValidator(FindByIdSchema), adminController.userOverview)

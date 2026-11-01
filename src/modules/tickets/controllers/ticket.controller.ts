@@ -7,6 +7,7 @@ import type { UploadedFileDTO } from "../../files/DTOs/uploaded-file.DTO";
 import type { CreateTicketDTO } from "../DTOs/create-ticket.DTO";
 import type { AddTicketMessageDTO } from "../DTOs/add-ticket-message.DTO";
 import type { UpdateTicketStatusDTO } from "../DTOs/update-ticket-status.DTO";
+import type { TransferTicketDTO } from "../DTOs/transfer-ticket.DTO";
 import type { TicketFilterDTO } from "../DTOs/ticket-filter.DTO";
 import type { ITicketController } from "../interfaces/controllers/ticket-controller.interface";
 import type { ITicketService } from "../interfaces/services/ticket-service.interface";
@@ -94,6 +95,22 @@ export class TicketController implements ITicketController {
             if (!authUser) throw new AuthorizationError("Usuário não autenticado")
 
             const ticket = await this.service.updateStatus(authUser, id, status)
+
+            res.status(200).json(httpSuccessResponse(200, ticket))
+
+        } catch (err) {
+            next(err)
+        }
+    }
+
+    transfer = async (req: Request<{ id: string }, any, TransferTicketDTO>, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const authUser = req.user
+            const { id } = req.params
+
+            if (!authUser) throw new AuthorizationError("Usuário não autenticado")
+
+            const ticket = await this.service.transfer(authUser, id, req.body)
 
             res.status(200).json(httpSuccessResponse(200, ticket))
 

@@ -12,6 +12,8 @@ export const makeTicket = (overrides?: Partial<Ticket>): Ticket => ({
   createdAt: new Date(),
   updatedAt: new Date(),
   closedAt: null,
+  assignedToId: null,
+  closedById: null,
   ...overrides
 });
 
@@ -29,13 +31,18 @@ export const makeTicketAttachment = (overrides?: Partial<TicketAttachment>): Tic
 export const makeTicketWithMessages = (ticket: Ticket, overrides?: Partial<TicketWithMessagesDTO>): TicketWithMessagesDTO => ({
   ...ticket,
   user: { id: ticket.userId, name: "test", username: "test", email: "test@test.com" },
+  assignedTo: null,
+  closedBy: null,
   messages: [],
+  events: [],
   ...overrides
 });
 
 export const makeTicketWithSummary = (ticket: Ticket, overrides?: Partial<TicketWithSummaryDTO>): TicketWithSummaryDTO => ({
   ...ticket,
   user: { id: ticket.userId, name: "test", username: "test" },
+  assignedTo: null,
+  closedBy: null,
   _count: { messages: 0 },
   messages: [],
   ...overrides

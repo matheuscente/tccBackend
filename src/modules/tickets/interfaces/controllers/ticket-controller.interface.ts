@@ -3,6 +3,7 @@ import type { CreateTicketDTO } from "../../DTOs/create-ticket.DTO"
 import type { AddTicketMessageDTO } from "../../DTOs/add-ticket-message.DTO"
 import type { UpdateTicketStatusDTO } from "../../DTOs/update-ticket-status.DTO"
 import type { TicketFilterDTO } from "../../DTOs/ticket-filter.DTO"
+import type { TransferTicketDTO } from "../../DTOs/transfer-ticket.DTO"
 
 export interface ITicketController {
     create(req: Request<any, any, CreateTicketDTO>, res: Response, next: NextFunction): Promise<void>
@@ -14,6 +15,8 @@ export interface ITicketController {
     addMessage(req: Request<{ id: string }, any, AddTicketMessageDTO>, res: Response, next: NextFunction): Promise<void>
 
     updateStatus(req: Request<{ id: string }, any, UpdateTicketStatusDTO>, res: Response, next: NextFunction): Promise<void>
+
+    transfer(req: Request<{ id: string }, any, TransferTicketDTO>, res: Response, next: NextFunction): Promise<void>
 
     attachmentContent(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void>
 }

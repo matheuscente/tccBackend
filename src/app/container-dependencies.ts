@@ -205,7 +205,8 @@ class AppContainer {
     this.storageProvider,
     this.fileTokenService,
     env.publicApiUrl,
-    this.transaction
+    this.transaction,
+    this.userRepository
   )
 
   statsService = new StatsService(

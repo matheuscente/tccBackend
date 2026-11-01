@@ -8,6 +8,8 @@ import { addMessageTicketSchema } from "../validators/add-message-ticket.schema"
 import { updateStatusTicketSchema } from "../validators/update-status-ticket.schema"
 import { filterTicketSchema } from "../validators/filter-ticket.schema"
 import { attachmentContentTicketSchema } from "../validators/attachment-content-ticket.schema"
+import { transferTicketSchema } from "../validators/transfer-ticket.schema"
+import { requireRole } from "../../../middlewares/authorization/authorization.middleware"
 
 export const ticketRoutes = express.Router()
 
@@ -25,3 +27,5 @@ ticketRoutes.post('/', authentication, imageUpload.array("images", 5), RequestVa
 ticketRoutes.post('/:id/messages', RequestValidator.paramsValidator(FindByIdSchema), authentication, imageUpload.array("images", 5), RequestValidator.bodyValidator(addMessageTicketSchema), ticketController.addMessage)
 
 ticketRoutes.patch('/:id/status', RequestValidator.paramsValidator(FindByIdSchema), RequestValidator.bodyValidator(updateStatusTicketSchema), authentication, ticketController.updateStatus)
+
+ticketRoutes.patch('/:id/transfer', RequestValidator.paramsValidator(FindByIdSchema), RequestValidator.bodyValidator(transferTicketSchema), authentication, requireRole("ADMIN"), ticketController.transfer)

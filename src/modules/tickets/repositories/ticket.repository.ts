@@ -1,7 +1,9 @@
-import type { Prisma, PrismaClient, Ticket, TicketMessage, TicketStatus } from "@prisma/client";
+import type { Prisma, PrismaClient, Ticket, TicketEvent, TicketMessage, TicketStatus } from "@prisma/client";
 import type { AttachmentInputDTO } from "../DTOs/attachment-input.DTO";
 import type { AttachmentWithOwnerDTO } from "../DTOs/attachment-with-owner.DTO";
 import type { CreateTicketRepositoryDTO } from "../DTOs/create-ticket-repository.DTO";
+import type { CreateTicketEventRepositoryDTO } from "../DTOs/create-ticket-event-repository.DTO";
+import type { UpdateTicketRepositoryDTO } from "../DTOs/update-ticket-repository.DTO";
 import type { TicketRepositoryFilterDTO } from "../DTOs/ticket-repository-filter.DTO";
 import type { TicketWithMessagesDTO } from "../DTOs/ticket-with-messages.DTO";
 import type { TicketWithSummaryDTO } from "../DTOs/ticket-with-summary.DTO";
@@ -36,6 +38,15 @@ export class TicketRepository implements ITicketRepository {
             where: { id: ticketId },
             include: {
                 user: { select: { id: true, name: true, username: true, email: true } },
+                assignedTo: { select: { id: true, name: true } },
+                closedBy: { select: { id: true, name: true } },
+                events: {
+                    orderBy: { createdAt: "asc" },
+                    include: {
+                        actor: { select: { id: true, name: true } },
+                        target: { select: { id: true, name: true } }
+                    }
+                },
                 messages: {
                     orderBy: { createdAt: "asc" },
                     include: {
@@ -52,16 +63,27 @@ export class TicketRepository implements ITicketRepository {
             where: {
                 ...(filter.userId ? { userId: filter.userId } : {}),
                 ...(filter.status ? { status: filter.status } : {}),
-                ...(filter.search ? {
-                    OR: [
-                        { subject: { contains: filter.search, mode: "insensitive" } },
-                        { user: { name: { contains: filter.search, mode: "insensitive" } } },
-                        { user: { username: { contains: filter.search, mode: "insensitive" } } }
-                    ]
-                } : {})
+                AND: [
+                    ...(filter.search ? [{
+                        OR: [
+                            { subject: { contains: filter.search, mode: "insensitive" as const } },
+                            { user: { name: { contains: filter.search, mode: "insensitive" as const } } },
+                            { user: { username: { contains: filter.search, mode: "insensitive" as const } } }
+                        ]
+                    }] : []),
+                    ...(filter.visibleToAdminId ? [{
+                        OR: [
+                            { status: { not: "IN_PROGRESS" as const } },
+                            { assignedToId: filter.visibleToAdminId },
+                            { userId: filter.visibleToAdminId }
+                        ]
+                    }] : [])
+                ]
             },
             include: {
                 user: { select: { id: true, name: true, username: true } },
+                assignedTo: { select: { id: true, name: true } },
+                closedBy: { select: { id: true, name: true } },
                 _count: { select: { messages: true } },
                 messages: {
                     orderBy: { createdAt: "desc" },
@@ -89,14 +111,12 @@ export class TicketRepository implements ITicketRepository {
         return message
     }
 
-    updateStatus(ticketId: string, status: TicketStatus): Promise<Ticket> {
-        return this.orm.ticket.update({
-            where: { id: ticketId },
-            data: {
-                status,
-                closedAt: status === "CLOSED" ? new Date() : null
-            }
-        })
+    update(ticketId: string, data: UpdateTicketRepositoryDTO): Promise<Ticket> {
+        return this.orm.ticket.update({ where: { id: ticketId }, data })
+    }
+
+    addEvent(data: CreateTicketEventRepositoryDTO): Promise<TicketEvent> {
+        return this.orm.ticketEvent.create({ data })
     }
 
     findAttachmentById(attachmentId: string): Promise<AttachmentWithOwnerDTO | null> {

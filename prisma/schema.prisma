@@ -38,8 +38,12 @@ model User {
   activityAttempts    ActivityAttempt[]
   notes               Note[]
   files               StoredFile[]
-  tickets             Ticket[]
+  tickets             Ticket[]              @relation("TicketOwner")
+  assignedTickets     Ticket[]              @relation("TicketAssignee")
+  closedTickets       Ticket[]              @relation("TicketCloser")
   ticketMessages      TicketMessage[]
+  ticketEvents        TicketEvent[]         @relation("TicketEventActor")
+  ticketEventTargets  TicketEvent[]         @relation("TicketEventTarget")
 
   @@index([username])
   @@index([email])
@@ -360,12 +364,19 @@ model Ticket {
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
   closedAt  DateTime?
+  // administrador que está com o chamado em atendimento (só vale enquanto o status é IN_PROGRESS)
+  assignedToId String?
+  closedById   String?
 
-  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages TicketMessage[]
+  user       User            @relation("TicketOwner", fields: [userId], references: [id], onDelete: Cascade)
+  assignedTo User?           @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  closedBy   User?           @relation("TicketCloser", fields: [closedById], references: [id], onDelete: SetNull)
+  messages   TicketMessage[]
+  events     TicketEvent[]
 
   @@index([userId])
   @@index([status])
+  @@index([assignedToId])
   @@map("tickets")
 }
 
@@ -382,6 +393,24 @@ model TicketMessage {
 
   @@index([ticketId])
   @@map("ticket_messages")
+}
+
+// histórico de atendimento: troca de status, recebimento e transferência
+model TicketEvent {
+  id        String          @id @default(uuid())
+  ticketId  String
+  actorId   String
+  type      TicketEventType
+  status    TicketStatus?
+  targetId  String?
+  createdAt DateTime        @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor  User   @relation("TicketEventActor", fields: [actorId], references: [id], onDelete: Cascade)
+  target User?  @relation("TicketEventTarget", fields: [targetId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@map("ticket_events")
 }
 
 model TicketAttachment {
@@ -408,6 +437,12 @@ enum TicketCategory {
   DOUBT
   PROBLEM
   SUGGESTION
+}
+
+enum TicketEventType {
+  STATUS_CHANGED
+  ASSIGNED
+  TRANSFERRED
 }
 
 enum TicketStatus {

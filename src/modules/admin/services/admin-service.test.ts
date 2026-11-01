@@ -11,6 +11,7 @@ describe("AdminService", () => {
   const adminRepositoryMock: jest.Mocked<IAdminRepository> = {
     getDashboard: jest.fn(),
     getUserOverview: jest.fn(),
+    findAdmins: jest.fn(),
   };
 
   const dateUtilsMock: jest.Mocked<IDateConvert> = {
@@ -46,6 +47,15 @@ describe("AdminService", () => {
       adminRepositoryMock.getDashboard.mockRejectedValue(new Error("falha no banco"));
 
       await expect(service.getDashboard()).rejects.toThrow("falha no banco");
+    });
+  });
+
+  describe("listAdmins", () => {
+    it("deve listar os administradores ativos", async () => {
+      const admins = [{ id: "a", name: "Ana", username: "ana" }];
+      adminRepositoryMock.findAdmins.mockResolvedValue(admins);
+
+      await expect(service.listAdmins()).resolves.toBe(admins);
     });
   });
 

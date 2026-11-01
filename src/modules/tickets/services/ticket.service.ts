@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import path from "path";
-import type { TicketAttachment, TicketStatus } from "@prisma/client";
+import type { Ticket, TicketAttachment, TicketStatus } from "@prisma/client";
 import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import { ForbiddenError } from "../../../shared/errors/forbidden.error";
 import { NotFoundError } from "../../../shared/errors/not-found-error";
@@ -18,6 +18,9 @@ import type { TicketFilterDTO } from "../DTOs/ticket-filter.DTO";
 import type { TicketWithMessagesDTO } from "../DTOs/ticket-with-messages.DTO";
 import type { TicketWithSummaryDTO } from "../DTOs/ticket-with-summary.DTO";
 import type { ITicketRepository } from "../interfaces/repositories/ticket-repository.interface";
+import type { IUserRepository } from "../../users/interfaces/user-repository.interface";
+import type { TransferTicketDTO } from "../DTOs/transfer-ticket.DTO";
+import type { UpdateTicketRepositoryDTO } from "../DTOs/update-ticket-repository.DTO";
 import type { ITicketService } from "../interfaces/services/ticket-service.interface";
 
 const MAX_IMAGES = 5
@@ -29,7 +32,8 @@ export class TicketService implements ITicketService {
         private readonly storage: IStorageProvider,
         private readonly fileTokenService: IFileTokenService,
         private readonly publicApiUrl: string,
-        private readonly transaction: ITransaction
+        private readonly transaction: ITransaction,
+        private readonly userRepository: IUserRepository
     ) { }
 
     async create(authUser: AuthUserDTO, data: CreateTicketDTO, images: UploadedFileDTO[]): Promise<ResponseTicketDetailDTO> {
@@ -53,7 +57,7 @@ export class TicketService implements ITicketService {
     async findAll(authUser: AuthUserDTO, filter: TicketFilterDTO): Promise<ResponseTicketDTO[]> {
         const tickets = await this.ticketRepository.findAll({
             ...filter,
-            ...(authUser.role === "ADMIN" ? {} : { userId: authUser.id })
+            ...(authUser.role === "ADMIN" ? { visibleToAdminId: authUser.id } : { userId: authUser.id })
         })
 
         return tickets.map(ticket => this.mapSummary(ticket))
@@ -63,7 +67,7 @@ export class TicketService implements ITicketService {
         const ticket = await this.ticketRepository.findById(ticketId)
         if (!ticket) throw new NotFoundError("Chamado não encontrado")
 
-        this.checkAccess(authUser, ticket.userId)
+        this.checkAccess(authUser, ticket)
 
         return this.getDetail(ticketId)
     }
@@ -72,13 +76,17 @@ export class TicketService implements ITicketService {
         const ticket = await this.ticketRepository.findById(ticketId)
         if (!ticket) throw new NotFoundError("Chamado não encontrado")
 
-        this.checkAccess(authUser, ticket.userId)
+        this.checkAccess(authUser, ticket)
 
         if (ticket.status === "CLOSED") throw new ValidationError("Este chamado está encerrado")
 
-        // resposta do suporte => ANSWERED; nova mensagem do usuário => volta para OPEN
-        const isSupport = authUser.role === "ADMIN" && authUser.id !== ticket.userId
-        const nextStatus: TicketStatus = isSupport ? "ANSWERED" : "OPEN"
+        // suporte: responde (ANSWERED, libera o chamado) ou continua em atendimento;
+        // usuário: volta para OPEN, a não ser que o chamado esteja em atendimento (continua com o mesmo administrador)
+        const inProgress = ticket.status === "IN_PROGRESS"
+        const nextStatus: TicketStatus = this.isSupport(authUser, ticket)
+            ? (inProgress && data.keepInProgress ? "IN_PROGRESS" : "ANSWERED")
+            : (inProgress ? "IN_PROGRESS" : "OPEN")
+        const changes: UpdateTicketRepositoryDTO = nextStatus === "IN_PROGRESS" ? {} : { status: nextStatus, assignedToId: null }
 
         const attachments = await this.storeImages(ticket.userId, images)
 
@@ -86,7 +94,7 @@ export class TicketService implements ITicketService {
             await this.transaction.execute(async (repositories) => {
                 await repositories.ticketRepository.addMessage(ticket.id, authUser.id, data.message.trim(), attachments)
 
-                if (ticket.status !== nextStatus) await repositories.ticketRepository.updateStatus(ticket.id, nextStatus)
+                if (ticket.status !== nextStatus) await repositories.ticketRepository.update(ticket.id, changes)
             })
         } catch (err) {
             await this.removeImages(attachments)
@@ -100,13 +108,56 @@ export class TicketService implements ITicketService {
         const ticket = await this.ticketRepository.findById(ticketId)
         if (!ticket) throw new NotFoundError("Chamado não encontrado")
 
-        this.checkAccess(authUser, ticket.userId)
+        this.checkAccess(authUser, ticket)
 
-        if (authUser.role !== "ADMIN" && status !== "CLOSED") {
-            throw new ForbiddenError("Você pode apenas encerrar o chamado")
+        if (!this.isSupport(authUser, ticket)) {
+            if (status !== "CLOSED") throw new ForbiddenError("Você pode apenas encerrar o chamado")
+            if (ticket.status === "CLOSED") throw new ValidationError("Este chamado já está encerrado")
         }
 
-        if (ticket.status !== status) await this.ticketRepository.updateStatus(ticket.id, status)
+        if (ticket.status === status) return this.getDetail(ticket.id)
+
+        // IN_PROGRESS = o administrador recebe o chamado; qualquer outro status libera o chamado para todos
+        const closing = status === "CLOSED"
+        const changes: UpdateTicketRepositoryDTO = {
+            status,
+            assignedToId: status === "IN_PROGRESS" ? authUser.id : null,
+            closedAt: closing ? new Date() : null,
+            closedById: closing ? authUser.id : null
+        }
+
+        await this.transaction.execute(async (repositories) => {
+            await repositories.ticketRepository.update(ticket.id, changes)
+            await repositories.ticketRepository.addEvent({
+                ticketId: ticket.id,
+                actorId: authUser.id,
+                type: status === "IN_PROGRESS" ? "ASSIGNED" : "STATUS_CHANGED",
+                status
+            })
+        })
+
+        return this.getDetail(ticket.id)
+    }
+
+    async transfer(authUser: AuthUserDTO, ticketId: string, data: TransferTicketDTO): Promise<ResponseTicketDetailDTO> {
+        const ticket = await this.ticketRepository.findById(ticketId)
+        if (!ticket) throw new NotFoundError("Chamado não encontrado")
+
+        this.checkAccess(authUser, ticket)
+
+        if (!this.isSupport(authUser, ticket) || ticket.status !== "IN_PROGRESS" || ticket.assignedToId !== authUser.id) {
+            throw new ForbiddenError("Só o administrador que está atendendo o chamado pode transferi-lo")
+        }
+        if (data.adminId === authUser.id) throw new ValidationError("Escolha outro administrador para transferir")
+
+        const target = await this.userRepository.findById(data.adminId)
+        if (!target || target.role !== "ADMIN" || target.deletedAt) throw new ValidationError("Administrador não encontrado")
+        if (target.id === ticket.userId) throw new ValidationError("O chamado não pode ser transferido para quem o abriu")
+
+        await this.transaction.execute(async (repositories) => {
+            await repositories.ticketRepository.update(ticket.id, { assignedToId: target.id })
+            await repositories.ticketRepository.addEvent({ ticketId: ticket.id, actorId: authUser.id, type: "TRANSFERRED", targetId: target.id })
+        })
 
         return this.getDetail(ticket.id)
     }
@@ -121,8 +172,21 @@ export class TicketService implements ITicketService {
         return attachment
     }
 
-    private checkAccess(authUser: AuthUserDTO, ownerId: string) {
-        if (authUser.role !== "ADMIN" && authUser.id !== ownerId) throw new ForbiddenError("Ação não autorizada")
+    private isSupport(authUser: AuthUserDTO, ticket: Ticket) {
+        return authUser.role === "ADMIN" && authUser.id !== ticket.userId
+    }
+
+    // o dono sempre vê o chamado; um chamado em atendimento fica visível só para o administrador responsável
+    private checkAccess(authUser: AuthUserDTO, ticket: Ticket) {
+        if (authUser.id === ticket.userId) return
+        if (authUser.role !== "ADMIN") throw new ForbiddenError("Ação não autorizada")
+        if (ticket.status === "IN_PROGRESS" && ticket.assignedToId !== authUser.id) {
+            throw new ForbiddenError("Este chamado está em atendimento por outro administrador")
+        }
+    }
+
+    private mapCloser(ticket: { userId: string, closedBy: { id: string, name: string } | null }) {
+        return ticket.closedBy ? { ...ticket.closedBy, bySupport: ticket.closedBy.id !== ticket.userId } : null
     }
 
     private async storeImages(ownerId: string, images: UploadedFileDTO[]): Promise<AttachmentInputDTO[]> {
@@ -171,6 +235,8 @@ export class TicketService implements ITicketService {
             category: ticket.category,
             status: ticket.status,
             user: ticket.user,
+            assignedTo: ticket.assignedTo,
+            closedBy: this.mapCloser(ticket),
             messageCount: ticket._count.messages,
             lastMessageAt: last ? last.createdAt.toISOString() : null,
             lastMessageByAdmin: last ? last.author.role === "ADMIN" : false,
@@ -187,9 +253,19 @@ export class TicketService implements ITicketService {
             category: ticket.category,
             status: ticket.status,
             user: { id: ticket.user.id, name: ticket.user.name, username: ticket.user.username },
+            assignedTo: ticket.assignedTo,
+            closedBy: this.mapCloser(ticket),
             createdAt: ticket.createdAt.toISOString(),
             updatedAt: ticket.updatedAt.toISOString(),
             closedAt: ticket.closedAt ? ticket.closedAt.toISOString() : null,
+            events: ticket.events.map(event => ({
+                id: event.id,
+                type: event.type,
+                status: event.status,
+                actor: event.actor,
+                target: event.target,
+                createdAt: event.createdAt.toISOString()
+            })),
             messages: ticket.messages.map(message => ({
                 id: message.id,
                 content: message.content,

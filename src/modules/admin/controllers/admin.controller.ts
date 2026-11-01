@@ -40,4 +40,19 @@ export class AdminController implements IAdminController {
             next(err)
         }
     }
+
+    admins = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const authUser = req.user
+
+            if (!authUser) throw new AuthorizationError("Usuário não autenticado")
+
+            const admins = await this.service.listAdmins()
+
+            res.status(200).json(httpSuccessResponse(200, admins))
+
+        } catch (err) {
+            next(err)
+        }
+    }
 }

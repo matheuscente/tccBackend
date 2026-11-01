@@ -270,8 +270,11 @@ sequenceDiagram
 ### Suporte (SAC)
 1. O aluno abre um chamado (`POST /tickets`, multipart) com assunto, categoria, mensagem e até 5 imagens (PNG/JPG/GIF/WEBP, 5 MB cada).
 2. O ADMIN lista todos os chamados (`GET /tickets`) e responde (`POST /tickets/:id/messages`).
-3. Status: resposta do suporte → `ANSWERED`; nova mensagem do aluno → `OPEN`; o aluno pode encerrar (`CLOSED`) e o admin pode definir qualquer status. Chamado encerrado não recebe mensagens.
-4. As imagens dos chamados ficam visíveis ao admin (foram enviadas ao suporte), também por links temporários.
+3. **Atender e transferir**: o admin que muda o chamado para `IN_PROGRESS` vira o responsável (`assignedToId`). Enquanto estiver em atendimento, só ele (e o dono do chamado) vê, responde, muda o status ou transfere (`PATCH /tickets/:id/transfer` com `adminId`, para outro admin ativo); na listagem dos outros admins o chamado some. Qualquer outro status libera o chamado para todos os admins. `GET /admin/admins` lista os destinos possíveis.
+4. **Status**: o admin pode ir de qualquer status para qualquer outro (inclusive reabrir um encerrado). Resposta do suporte → `ANSWERED` (ou continua `IN_PROGRESS` se o responsável enviar `keepInProgress`); mensagem do aluno → `OPEN`, a não ser que o chamado esteja em atendimento (aí continua com o mesmo admin). O aluno só pode encerrar. Chamado encerrado não recebe mensagens.
+5. **Quem encerrou**: `closedById` guarda quem encerrou; a resposta traz `closedBy: { id, name, bySupport }`, onde `bySupport` diz se foi o suporte ou o próprio usuário.
+6. **Histórico**: `ticket_events` registra recebimento (`ASSIGNED`), transferência (`TRANSFERRED`) e mudanças manuais de status (`STATUS_CHANGED`); o detalhe do chamado devolve `events` para montar a linha do tempo.
+7. As imagens dos chamados ficam visíveis ao admin (foram enviadas ao suporte), também por links temporários.
 
 ### Painel administrativo
 - `GET /admin/dashboard`: usuários (total, novos, ativos), minutos estudados por dia, conteúdos cadastrados, tentativas e chamados por status.
@@ -295,10 +298,10 @@ A lista completa, com exemplos de corpo, está no Swagger (`/api/v1/docs`). Resu
 | questions / notes | `GET /<recurso>/user/:userId?courseId&moduleId&disciplineId&search`, `GET /id/:id`, `POST`, `PATCH /:id`, `DELETE /:id` |
 | activities | CRUD + `PUT /:id/questions`, `GET /:id/answer`, `GET|POST /:id/attempts`, `GET /attempts/:id` |
 | files | `POST /files`, `GET /files/user/:userId`, `GET /files/id/:id`, `GET /files/:id/access`, `GET /files/:id/content`, `PATCH /:id`, `DELETE /:id` |
-| tickets | `GET /tickets`, `POST /tickets`, `GET /tickets/id/:id`, `POST /tickets/:id/messages`, `PATCH /tickets/:id/status`, `GET /tickets/attachments/:id/content` |
-| admin | `GET /admin/dashboard`, `GET /admin/users/:id/overview` |
+| tickets | `GET /tickets`, `POST /tickets`, `GET /tickets/id/:id`, `POST /tickets/:id/messages`, `PATCH /tickets/:id/status`, `PATCH /tickets/:id/transfer`, `GET /tickets/attachments/:id/content` |
+| admin | `GET /admin/dashboard`, `GET /admin/admins`, `GET /admin/users/:id/overview` |
 
-Notas e arquivos aceitam `position` (número, opcional) no `POST` e no `PATCH`. É a ordem manual usada no modo estudo do frontend; sem ela, vale a data de criação. Migração: `20261031120000_study_position`.
+Notas e arquivos aceitam `position` (número, opcional) no `POST` e no `PATCH`. É a ordem manual usada no modo estudo do frontend; sem ela, vale a data de criação. Migração: `20261031120000_study_position`. O atendimento de chamados (responsável, quem encerrou e histórico) vem da migração `20261101120000_ticket_assignment`.
 
 ---
 

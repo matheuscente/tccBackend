@@ -2,6 +2,7 @@ import type { IDateConvert } from "../../../shared/convert/interfaces/date-conve
 import { NotFoundError } from "../../../shared/errors/not-found-error";
 import type { AdminDashboardDTO } from "../DTOs/admin-dashboard.DTO";
 import type { AdminUserOverviewDTO } from "../DTOs/admin-user-overview.DTO";
+import type { AdminSummaryDTO } from "../DTOs/admin-summary.DTO";
 import type { IAdminRepository } from "../interfaces/repositories/admin-repository.interface";
 import type { IAdminService } from "../interfaces/services/admin-service.interface";
 
@@ -13,6 +14,10 @@ export class AdminService implements IAdminService {
 
     getDashboard(): Promise<AdminDashboardDTO> {
         return this.adminRepository.getDashboard(this.dateUtils.getCurrentDate())
+    }
+
+    listAdmins(): Promise<AdminSummaryDTO[]> {
+        return this.adminRepository.findAdmins()
     }
 
     async getUserOverview(userId: string): Promise<AdminUserOverviewDTO> {

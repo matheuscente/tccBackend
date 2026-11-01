@@ -1,12 +1,21 @@
 import type { Prisma, PrismaClient, TicketStatus } from "@prisma/client";
 import type { AdminDashboardDTO } from "../DTOs/admin-dashboard.DTO";
 import type { AdminUserOverviewDTO } from "../DTOs/admin-user-overview.DTO";
+import type { AdminSummaryDTO } from "../DTOs/admin-summary.DTO";
 import type { IAdminRepository } from "../interfaces/repositories/admin-repository.interface";
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
 export class AdminRepository implements IAdminRepository {
     constructor(private readonly orm: PrismaClient | Prisma.TransactionClient) { }
+
+    findAdmins(): Promise<AdminSummaryDTO[]> {
+        return this.orm.user.findMany({
+            where: { role: "ADMIN", deletedAt: null },
+            select: { id: true, name: true, username: true },
+            orderBy: { name: "asc" }
+        })
+    }
 
     async getDashboard(today: Date): Promise<AdminDashboardDTO> {
         const last30 = new Date(today.getTime() - 29 * DAY_MS)
