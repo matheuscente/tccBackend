@@ -53,6 +53,8 @@ export const baseUserFields = {
    birthDate: Joi.string()
   .pattern(/^\d{2}\/\d{2}\/\d{4}$/)
   .messages({
-    "string.pattern.base": ErrorMessages.regex("data de nascimento", "dd/mm/aaaa")
+    "string.pattern.base": ErrorMessages.regex("data de nascimento", "dd/mm/aaaa"),
+    "string.empty": ErrorMessages.empty("data de nascimento"),
+    "string.base": ErrorMessages.type("data de nascimento", "um texto")
   })
 };

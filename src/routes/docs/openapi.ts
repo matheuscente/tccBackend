@@ -172,6 +172,7 @@ export const openApiDocument = {
             }
         },
         "/users/me": { get: { tags: ["users"], summary: "Usuário autenticado", ...secured, responses: { 200: ok(ref("User")), ...errors } } },
+        "/users/username/{username}": { get: { tags: ["users"], summary: "Busca usuário pelo nome de usuário (o próprio ou, para ADMIN, qualquer um)", ...secured, parameters: [{ name: "username", in: "path", required: true, schema: { type: "string" } }], responses: { 200: ok(ref("User")), ...errors } } },
         "/users/id/{id}": { get: { tags: ["users"], summary: "Busca usuário", ...secured, parameters: [idParam], responses: { 200: ok(ref("User")), ...errors } } },
         "/users/{id}": {
             patch: { tags: ["users"], summary: "Atualiza dados", ...secured, parameters: [idParam], requestBody: body({ type: "object", properties: { name: { type: "string" }, username: { type: "string" }, email: { type: "string" }, birthDate: date } }), responses: { 200: ok(ref("User")), ...errors } },
@@ -193,6 +194,7 @@ export const openApiDocument = {
 
         "/study-sessions": { post: { tags: ["study-sessions"], summary: "Inicia o cronômetro de estudo", ...secured, requestBody: body({ type: "object", properties: scopeProps }), responses: { 201: ok(ref("StudySession")), ...errors } } },
         "/study-sessions/manual": { post: { tags: ["study-sessions"], summary: "Registra uma sessão concluída", ...secured, requestBody: body({ type: "object", properties: { minutes: { type: "integer" }, studiedAt: date, ...scopeProps } }), responses: { 201: ok(ref("StudySession")), ...errors } } },
+        "/study-sessions/id/{id}": { get: { tags: ["study-sessions"], summary: "Busca uma sessão de estudo", ...secured, parameters: [idParam], responses: { 200: ok(ref("StudySession")), ...errors } } },
         "/study-sessions/active": { get: { tags: ["study-sessions"], summary: "Sessão em andamento", ...secured, responses: { 200: ok(ref("StudySession")) } } },
         "/study-sessions/{id}/finish": { patch: { tags: ["study-sessions"], summary: "Finaliza o cronômetro", ...secured, parameters: [idParam], responses: { 200: ok(ref("StudySession")), ...errors } } },
         "/study-sessions/user/{userId}": { get: { tags: ["study-sessions"], summary: "Histórico de sessões", ...secured, parameters: [userIdParam], responses: { 200: ok(ref("StudySession")), ...errors } } },
@@ -236,6 +238,13 @@ export const openApiDocument = {
                 tags: ["tickets"], summary: "Abre um chamado (multipart, até 5 imagens no campo 'images')", ...secured,
                 requestBody: body({ type: "object", properties: { subject: { type: "string" }, category: { type: "string" }, message: { type: "string" }, images: { type: "array", items: { type: "string", format: "binary" } } } }, "multipart/form-data"),
                 responses: { 201: ok(ref("Ticket")), ...errors }
+            }
+        },
+        "/tickets/attachments/{id}/content": {
+            get: {
+                tags: ["tickets"], summary: "Conteúdo de uma imagem anexada (rota pública, validada pelo token temporário que vem na URL do anexo)",
+                parameters: [idParam, { name: "token", in: "query", required: true, schema: { type: "string" } }, { name: "download", in: "query", schema: { type: "string", enum: ["1"] } }],
+                responses: { 200: { description: "Imagem" }, ...errors }
             }
         },
         "/tickets/id/{id}": { get: { tags: ["tickets"], summary: "Chamado com mensagens", ...secured, parameters: [idParam], responses: { 200: ok(ref("Ticket")), ...errors } } },

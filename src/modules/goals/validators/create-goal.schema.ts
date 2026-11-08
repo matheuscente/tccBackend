@@ -36,4 +36,9 @@ export const createGoalSchema = Joi.object().keys({
 
     disciplineId: baseGoalFields.disciplineId
 
-}).xor('courseId', 'moduleId', 'disciplineId') .prefs({ abortEarly: false }).unknown(false).required()
+}).xor('courseId', 'moduleId', 'disciplineId')
+    .messages({
+        "object.missing": "Informe exatamente um escopo: curso, módulo ou disciplina.",
+        "object.xor": "Informe exatamente um escopo: curso, módulo ou disciplina."
+    })
+    .prefs({ abortEarly: false }).unknown(false).required()

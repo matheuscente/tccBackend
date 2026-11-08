@@ -1,6 +1,6 @@
 export abstract class ErrorMessages {
-    static min = (field: string) =>  `O campo ${field} deve conter no mínimo {#limit} digitos.`
-    static max = (field: string) =>  `O campo ${field} deve conter no máximo {#limit} digitos.`
+    static min = (field: string) =>  `O campo ${field} deve conter no mínimo {#limit} caracteres.`
+    static max = (field: string) =>  `O campo ${field} deve conter no máximo {#limit} caracteres.`
 
     static required = (field: string) => `O campo ${field} é obrigatório.`
     static empty = (field: string) => `O campo ${field} é obrigatório.`

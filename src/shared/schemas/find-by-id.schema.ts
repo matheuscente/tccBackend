@@ -6,7 +6,10 @@ export const FindByIdSchema = Joi.object({
     .uuid({ version: "uuidv4" })
     .required()
     .messages({
-      "any.required": ErrorMessages.required("id")
+      "any.required": ErrorMessages.required("id"),
+      "string.empty": ErrorMessages.empty("id"),
+      "string.base": ErrorMessages.type("id", "um texto"),
+      "string.guid": "O campo id deve ser um id válido."
     })
 })
   .prefs({ abortEarly: false })

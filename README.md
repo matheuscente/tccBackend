@@ -174,6 +174,8 @@ sequenceDiagram
 | Upload acima do limite (Multer) | 400 |
 | Outros | 500 (registrado no console) |
 
+As mensagens de validação são sempre em português: cada schema define as suas com `ErrorMessages`, e o `RequestValidator` passa ao Celebrate as mensagens padrão de `shared/errorMessages/joiDefaultMessages.ts` para qualquer regra sem mensagem própria (campo desconhecido, id inválido etc.).
+
 ---
 
 ## 5. Autenticação e sessão

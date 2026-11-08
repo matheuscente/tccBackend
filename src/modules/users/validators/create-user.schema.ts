@@ -27,5 +27,9 @@ export const CreateUserSchema = Joi.object().keys({
         "any.required": ErrorMessages.required("senha")
     }),
 
-    birthDate: baseUserFields.birthDate.required()
+    birthDate: baseUserFields.birthDate
+    .required()
+    .messages({
+        "any.required": ErrorMessages.required("data de nascimento")
+    })
 }).prefs({abortEarly: false}).unknown(false).required()
