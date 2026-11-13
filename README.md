@@ -50,6 +50,7 @@ Se o seu banco tiver outro nome/usuário, ajuste o `DATABASE_URL` no `.env`.
 | Endereço | Uso |
 |---|---|
 | `http://localhost:3000/api/v1/health` | Saúde da API e do banco |
+| `http://localhost:3000/api/v1/ping` | Resposta leve, sem acessar o banco (usada para manter a API acordada) |
 | `http://localhost:3000/api/v1/docs` | Documentação Swagger |
 | `http://localhost:9000` | Painel do simulador do B2: lista os arquivos guardados |
 | `http://localhost:5173` | Frontend (ver o README do frontend) |
@@ -291,6 +292,7 @@ A lista completa, com exemplos de corpo, está no Swagger (`/api/v1/docs`). Resu
 
 | Módulo | Rotas (`/api/v1`) |
 |---|---|
+| health | `GET /health` (API e banco), `GET /ping` (só a API) |
 | auth | `POST /auth/login`, `POST /auth/refresh`, `DELETE /auth/logout`, `POST /auth/forgot-password`, `POST /auth/reset-password` |
 | users | `POST /users`, `GET /users`, `GET /users/me`, `GET /users/id/:id`, `PATCH /users/:id`, `PATCH /users/:id/password`, `PATCH /users/:id/role`, `DELETE /users/:id` |
 | courses / modules / disciplines | `GET /<recurso>/user/:userId`, `GET /<recurso>/id/:id`, `POST`, `PATCH /:id`, `DELETE /:id`, `GET /modules/course/:courseId`, `GET /disciplines/module/:moduleId` |
@@ -320,3 +322,76 @@ npm test
 ## 9. Observações sobre o Prisma
 
 O Prisma usa `engineType = "client"` com o driver `@prisma/adapter-pg` (sem binário de query engine), por isso o `PrismaClient` é criado com `new PrismaPg(...)` em `src/lib/prisma.ts`. Depois de alterar o `schema.prisma`, rode `npx prisma migrate dev` e `npx prisma generate`.
+
+## 10. Deploy gratuito (Render + Neon + Backblaze B2)
+
+O frontend e a API são publicados separadamente. O frontend fica no Cloudflare Pages e repassa tudo que chega em `/api/*` para esta API (ver o README do frontend). Para o navegador, frontend e API ficam no mesmo endereço, por isso o cookie de sessão (`rToken`, `SameSite=Lax`) funciona em todos os navegadores, inclusive no Safari.
+
+| Parte | Serviço | Plano gratuito |
+|---|---|---|
+| API | Render (Web Service) | 512 MB de RAM e 750 h/mês; dorme após 15 min sem acesso |
+| Banco | Neon (PostgreSQL) | 1 GB por projeto e 100 CU-horas/mês; pausa após 5 min ocioso |
+| Arquivos | Backblaze B2 | 10 GB |
+
+### 10.1 Banco (Neon)
+
+1. Crie um projeto na região **AWS US East (N. Virginia)**, a mesma região escolhida no Render.
+2. Copie a connection string **direta** (sem `-pooler` no host). Ela será o `DATABASE_URL` e já vem com `sslmode=require`.
+
+### 10.2 Arquivos (Backblaze B2)
+
+1. Crie um bucket **privado**.
+2. Em *Application Keys*, crie uma chave com acesso a esse bucket.
+3. Anote o endpoint S3 do bucket (ex.: `https://s3.us-east-005.backblazeb2.com`) e a região (`us-east-005`).
+
+### 10.3 API (Render)
+
+Crie um **Web Service** ligado a este repositório, região **Virginia (US East)**, plano **Free**:
+
+| Campo | Valor |
+|---|---|
+| Build Command | `npm install && npx prisma generate && npx prisma migrate deploy` |
+| Start Command | `npm start` |
+
+Variáveis de ambiente (não defina `NODE_ENV=production`: o `npm start` usa o `tsx`, que é dependência de desenvolvimento):
+
+| Variável | Valor |
+|---|---|
+| `NODE_VERSION` | `22` |
+| `DATABASE_URL` | connection string direta do Neon |
+| `JWT_SECRET` / `FILE_TOKEN_SECRET` | dois segredos longos e diferentes |
+| `COOKIE_SECURE` | `true` |
+| `FRONTEND_URL` | endereço do Cloudflare Pages (ex.: `https://organizador.pages.dev`) |
+| `PUBLIC_API_URL` | `https://organizador.pages.dev/api/v1` (os links de arquivos também passam pelo proxy) |
+| `CORS_ORIGINS` | `https://organizador.pages.dev` |
+| `APP_TIMEZONE` | `America/Sao_Paulo` |
+| `MAX_FILE_SIZE_MB` | `95` (o Cloudflare recusa requisições acima de 100 MB no plano gratuito) |
+| `B2_ENDPOINT`, `B2_REGION`, `B2_BUCKET`, `B2_KEY_ID`, `B2_APPLICATION_KEY` | dados do passo 10.2 |
+| `B2_FORCE_PATH_STYLE` | `false` |
+| `SMTP_*` (opcional) | servidor de e-mail para "esqueci a senha"; sem ele o link só aparece no log do Render |
+
+A cada push na branch configurada, o Render refaz o build e aplica as migrações pendentes.
+
+### 10.4 Primeiro administrador
+
+O shell do Render é pago, então rode o seed da sua máquina apontando para o Neon:
+
+```bash
+DATABASE_URL="<connection string do Neon>" ADMIN_PASSWORD="<senha forte>" npm run seed
+```
+
+### 10.5 Manter a API acordada
+
+No plano gratuito, o Render desliga o serviço após 15 minutos sem acesso, e o primeiro acesso seguinte leva cerca de 1 minuto. Para evitar isso, cadastre em um agendador gratuito (ex.: [cron-job.org](https://cron-job.org)) uma chamada `GET` a cada 10 minutos para:
+
+```
+https://<seu-servico>.onrender.com/api/v1/ping
+```
+
+Use sempre `/ping`, que responde sem acessar o banco. O `/health` consulta o banco e, chamado a cada 10 minutos, manteria o Neon sempre ligado, esgotando as horas gratuitas. Um único serviço ligado o mês inteiro usa cerca de 744 das 750 horas gratuitas do Render.
+
+### 10.6 Limites a observar
+
+- O Render gratuito tem 5 GB de banda por mês, e os arquivos (PDFs, vídeos) passam pela API.
+- O Neon gratuito tem 1 GB de armazenamento; o B2, 10 GB.
+
