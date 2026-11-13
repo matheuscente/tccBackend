@@ -142,6 +142,7 @@ export const openApiDocument = {
     },
     paths: {
         "/health": { get: { tags: ["health"], summary: "Verifica se a API está no ar", responses: { 200: { description: "OK" } } } },
+        "/ping": { get: { tags: ["health"], summary: "Responde sem acessar o banco (usado para manter a API acordada)", responses: { 200: { description: "OK" } } } },
 
         "/auth/login": {
             post: {
