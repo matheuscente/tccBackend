@@ -1,0 +1,51 @@
+import type { PrismaClient } from "@prisma/client"
+import type { ITransaction } from "../interfaces/transaction.interface"
+import type { IRepositories } from "../interfaces/repositories.interface"
+import { ModuleRepository } from "../../modules/repositories/module.repository"
+import { CourseRepository } from "../../courses/repositories/course.repository"
+import { UserRepository } from "../../users/repositories/user.repository"
+import { SessionRepository } from "../../sessions/repositories/session.repository"
+import { DisciplineRepository } from "../../disciplines/repositories/discipline.repository"
+import { GoalRepository } from "../../goals/repositories/goal.repository"
+import { ScopedContentRepository } from "../../scoped-content/repositories/scoped-content.repository"
+import { StudySessionRepository } from "../../study-sessions/repositories/study-session.repository"
+import { QuestionRepository } from "../../questions/repositories/question.repository"
+import { ActivityRepository } from "../../activities/repositories/activity.repository"
+import { TicketRepository } from "../../tickets/repositories/ticket.repository"
+
+export class TransactionService implements ITransaction {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  async execute<T>(work: (repositories: IRepositories) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(async (tx) => {
+
+      const moduleRepository = new ModuleRepository(tx)
+      const courseRepository = new CourseRepository(tx, moduleRepository)
+      const userRepository = new UserRepository(tx)
+      const sessionRepository = new SessionRepository(tx)
+      const disciplineRepository = new DisciplineRepository(tx)
+      const goalRepository = new GoalRepository(tx)
+      const studySessionRepository = new StudySessionRepository(tx)
+      const scopedContentRepository = new ScopedContentRepository(tx)
+      const questionRepository = new QuestionRepository(tx)
+      const activityRepository = new ActivityRepository(tx)
+      const ticketRepository = new TicketRepository(tx)
+
+      const repositories: IRepositories = {
+        moduleRepository,
+        courseRepository,
+        userRepository,
+        sessionRepository,
+        disciplineRepository,
+        goalRepository,
+        studySessionRepository,
+        scopedContentRepository,
+        questionRepository,
+        activityRepository,
+        ticketRepository
+      }
+
+      return work(repositories)
+    })
+  }
+}

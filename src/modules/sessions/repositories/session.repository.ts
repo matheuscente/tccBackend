@@ -1,0 +1,82 @@
+import type { Prisma, PrismaClient } from "@prisma/client";
+import type { CreateSessionDTO } from "../DTOs/create-session.DTO";
+import type { UpdateSessionDTO } from "../DTOs/update-session.DTO";
+import type { ISessionRepository } from "../interfaces/repositories/session-repository.interface";
+import type { SessionWithUserDTO } from "../DTOs/session-with-user.DTO";
+
+
+export class SessionRepository implements ISessionRepository {
+    constructor(private readonly orm: PrismaClient | Prisma.TransactionClient) {}
+    findByIdWithUser(id: string): Promise<SessionWithUserDTO | null> {
+        return this.orm.session.findUnique({
+            where: { id },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        role: true,
+                        deletedAt: true
+                    }
+                }
+            }
+        })
+    }
+
+    async update(sessionId: string, data: UpdateSessionDTO): Promise<void> {
+        await this.orm.session.update({
+        where: { id: sessionId,
+                isValid: true
+         },
+        data: {
+            refreshToken: data.refreshToken,
+            expiresAt: data.expiresAt,
+            isValid: true,
+            ...(data.previousRefreshToken !== undefined ? { previousRefreshToken: data.previousRefreshToken } : {}),
+            ...(data.rotatedAt !== undefined ? { rotatedAt: data.rotatedAt } : {})
+        }
+    })
+    }
+    
+    async findById(id: string) {
+         return this.orm.session.findUnique({
+            where: {
+                id
+            },
+            
+        })
+    }
+
+    async create(data: CreateSessionDTO) {
+        return this.orm.session.create({
+            data
+        })
+    }
+
+    async findByUserId(id: string) {
+         return this.orm.session.findMany({
+            where: {
+                userId: id,
+            },
+            
+        })
+    }
+
+    async invalidate(sessionId: string) {
+        await this.orm.session.updateMany({
+            where: {
+                id: sessionId
+            },
+            data: {
+                isValid: false
+            }
+        })
+    }
+
+    async invalidateAllByUserId(userId: string) {
+        await this.orm.session.updateMany({
+            where: { userId },
+            data: { isValid: false }
+  })
+}
+    
+}

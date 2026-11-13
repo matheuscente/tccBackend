@@ -1,0 +1,35 @@
+# Ambiente local completo: PostgreSQL + simulador do Backblaze B2.
+# Uso: docker compose up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: organizador-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: tcc
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  b2-local:
+    image: node:22-alpine
+    container_name: organizador-b2-local
+    working_dir: /app
+    command: node server.mjs
+    environment:
+      B2_LOCAL_PORT: 9000
+      B2_LOCAL_DATA: /data
+      B2_LOCAL_BUCKETS: organizador-estudos
+      B2_KEY_ID: local-key-id
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./b2-local/server.mjs:/app/server.mjs:ro
+      - b2-data:/data
+
+volumes:
+  postgres-data:
+  b2-data:

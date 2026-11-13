@@ -1,0 +1,25 @@
+import type { ISanitize } from "../interfaces/sanitize.interface";
+
+export class SanitizeUtils implements ISanitize {
+ removeAccents(value: string): string {
+    return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+ sanitizeName(name: string): string {
+    return this.removeAccents(
+        name
+            .trim()
+            .replace(/\s+/g, ' ')
+            .toUpperCase()
+    )
+  }
+
+ sanitizeUsername(username: string) {
+    return this.removeAccents(
+        username   
+            .trim()
+            .toLowerCase()
+    )
+  }
+}
+

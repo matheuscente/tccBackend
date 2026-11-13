@@ -1,0 +1,7 @@
+node_modules
+.env
+.env.test
+
+/generated/prisma
+uploads
+b2-local/data

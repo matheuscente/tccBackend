@@ -1,0 +1,547 @@
+import type { IHashProvider } from "../../../shared/hash/interfaces/hash-provider.interface";
+import type { ISessionRepository } from "../interfaces/repositories/session-repository.interface";
+import { SessionService } from "./session.service";
+import { NotFoundError } from "../../../shared/errors/not-found-error";
+import { AuthorizationError } from "../../../shared/errors/authorization.error";
+import { makeSession } from "../../../tests/factories/make-session";
+import type { SessionWithUserDTO } from "../DTOs/session-with-user.DTO";
+import type { Session } from "@prisma/client";
+
+describe("Session service test", () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  const repositoryMock: jest.Mocked<ISessionRepository> = {
+    create: jest.fn(),
+    findByUserId: jest.fn(),
+    findById: jest.fn(),
+    invalidate: jest.fn(),
+    update: jest.fn(),
+    invalidateAllByUserId: jest.fn(),
+    findByIdWithUser: jest.fn(),
+  };
+
+  const hashMock: jest.Mocked<IHashProvider> = {
+    hash: jest.fn(),
+    compare: jest.fn(),
+  };
+
+  const service = new SessionService(repositoryMock, hashMock);
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    jest.clearAllMocks();
+  });
+
+  describe("createSession tests", () => {
+    const userId = "user-id";
+
+    it("should create a new session and return new refresh token", async () => {
+      hashMock.hash.mockResolvedValue("hashed-secret");
+      repositoryMock.create.mockResolvedValue(makeSession({ userId }));
+
+      const session = await service.createSession(userId);
+
+      expect(hashMock.hash).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.create).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId,
+          refreshToken: "hashed-secret",
+          expiresAt: expect.any(Date),
+        }),
+      );
+      expect(session.expiresAt).toBeInstanceOf(Date);
+      expect(session.expiresAt.getTime()).toBeGreaterThan(Date.now());
+
+      const [sessionId, secret] = session.refreshToken.split(".");
+
+      expect(sessionId).toBe("session-id");
+      expect(secret).toBeDefined();
+      expect(secret).not.toBe("hashed-secret");
+
+      expect(session).toHaveProperty("id");
+      expect(session).toHaveProperty("userId");
+
+      const hashValue = hashMock.hash.mock.calls[0]![0];
+
+      expect(secret).toBe(hashValue);
+    });
+
+    it("should throw an error due to hash failure", async () => {
+      hashMock.hash.mockRejectedValue(new Error("hash error"));
+
+      await expect(service.createSession(userId)).rejects.toThrow("hash error");
+
+      expect(repositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should throw an error due to repository failure", async () => {
+      repositoryMock.create.mockRejectedValue(new Error("db error"));
+
+      await expect(service.createSession(userId)).rejects.toThrow("db error");
+
+      expect(hashMock.hash).toHaveBeenCalled();
+    });
+  });
+
+  describe("invalidationSession tests", () => {
+    const session = makeSession();
+
+    it("should invalidate a session", async () => {
+      repositoryMock.findById.mockResolvedValue(session);
+      const invalidSession = await service.invalidateSession(session.id);
+
+      expect(invalidSession).toBe(undefined);
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findById).toHaveBeenCalledWith(session.id);
+      expect(repositoryMock.invalidate).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.invalidate).toHaveBeenCalledWith(session.id);
+    });
+
+    it("hould return undefined, but not throw an error because the session exists but is not valid", async () => {
+      const session = makeSession({ isValid: false });
+      repositoryMock.findById.mockResolvedValue(session);
+      const invalidSession = await service.invalidateSession(session.id);
+
+      expect(invalidSession).toBe(undefined);
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findById).toHaveBeenCalledWith(session.id);
+      expect(repositoryMock.invalidate).not.toHaveBeenCalled();
+    });
+
+    it("This should throw an error because the session does not exist", async () => {
+      repositoryMock.findById.mockResolvedValue(null);
+      const invalidSession = service.invalidateSession(session.id);
+
+      await expect(invalidSession).rejects.toBeInstanceOf(NotFoundError);
+      await expect(invalidSession).rejects.toThrow("sessão não encontrada");
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findById).toHaveBeenCalledWith(session.id);
+      expect(repositoryMock.invalidate).not.toHaveBeenCalled();
+    });
+
+    it("should throw an error due to repository findById failure", async () => {
+      repositoryMock.findById.mockRejectedValue(new Error("db error"));
+
+      await expect(service.invalidateSession(session.id)).rejects.toThrow(
+        "db error",
+      );
+
+      expect(repositoryMock.invalidate).not.toHaveBeenCalled();
+    });
+
+    it("should throw an error due to repository invalidate failure", async () => {
+      repositoryMock.findById.mockResolvedValue(session);
+      repositoryMock.invalidate.mockRejectedValue(new Error("db error"));
+
+      await expect(service.invalidateSession(session.id)).rejects.toThrow(
+        "db error",
+      );
+
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.invalidate).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("refreshSession tests", () => {
+    const sessionId = "123";
+    const secret = "456";
+    const refreshToken = `${sessionId}.${secret}`;
+
+    const session = makeSession({
+      refreshToken: "hashed-secret",
+      id: sessionId,
+    });
+
+    const sessionWithActiveUser = (session: Session): SessionWithUserDTO => {
+      return {
+        ...session,
+        user: {
+          id: "default",
+          role: "ADMIN",
+          deletedAt: null
+        }
+      }
+    }
+
+    it("should refresh session successfully", async () => {
+      repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithActiveUser(session));
+      repositoryMock.update.mockResolvedValue();
+      hashMock.hash.mockResolvedValue("123");
+      hashMock.compare.mockResolvedValue(true);
+
+      const newSession = await service.refreshSession(refreshToken);
+
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+
+      expect(hashMock.compare).toHaveBeenCalledTimes(1);
+      expect(hashMock.compare).toHaveBeenCalledWith(
+        secret,
+        session.refreshToken,
+      );
+
+      expect(repositoryMock.update).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.update).toHaveBeenCalledWith(session.id, expect.objectContaining({
+        refreshToken: "123",
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+        previousRefreshToken: session.refreshToken,
+      }));
+
+      expect(newSession).toMatchObject({
+        id: expect.any(String),
+        expiresAt: expect.any(Date),
+        refreshToken: expect.any(String),
+        userId: expect.any(String),
+      });
+    });
+
+    it("should throw if token format is invalid", async () => {
+      const refreshedSession = service.refreshSession("invalid token");
+
+      await expect(refreshedSession).rejects.toThrow("Refresh token inválido");
+
+      await expect(refreshedSession).rejects.toBeInstanceOf(AuthorizationError);
+
+      expect(repositoryMock.findByIdWithUser).not.toHaveBeenCalled();
+
+      expect(hashMock.compare).not.toHaveBeenCalled();
+
+      expect(repositoryMock.invalidate).not.toHaveBeenCalled();
+
+      expect(repositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should throw if session does not exist", async () => {
+      repositoryMock.findByIdWithUser.mockResolvedValue(null);
+
+      const refreshedSession = service.refreshSession(refreshToken);
+
+      await expect(refreshedSession).rejects.toThrow("Sessão inválida");
+
+      await expect(refreshedSession).rejects.toBeInstanceOf(AuthorizationError);
+
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+
+      expect(hashMock.compare).not.toHaveBeenCalled();
+
+      expect(repositoryMock.invalidate).not.toHaveBeenCalled();
+
+      expect(repositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should throw if session is invalid", async () => {
+      const session = makeSession({
+        refreshToken: "hashed-secret",
+        id: sessionId,
+        isValid: false,
+      });
+
+      repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithActiveUser(session));
+
+      const refreshedSession = service.refreshSession(refreshToken);
+
+      await expect(refreshedSession).rejects.toThrow("Sessão inválida");
+
+      await expect(refreshedSession).rejects.toBeInstanceOf(AuthorizationError);
+
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+
+      expect(hashMock.compare).not.toHaveBeenCalled();
+
+      expect(repositoryMock.invalidate).not.toHaveBeenCalled();
+
+      expect(repositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should throw if session is expired", async () => {
+      const session = makeSession({
+        refreshToken: "hashed-secret",
+        id: sessionId,
+        expiresAt: new Date(Date.now() - 1000),
+      });
+
+      repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithActiveUser(session));
+      repositoryMock.invalidate.mockResolvedValue(undefined);
+
+      const refreshedSession = service.refreshSession(refreshToken);
+
+      await expect(refreshedSession).rejects.toThrow("Sessão expirada");
+
+      await expect(refreshedSession).rejects.toBeInstanceOf(AuthorizationError);
+
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+
+      expect(repositoryMock.invalidate).toHaveBeenCalledTimes(1);
+
+      expect(hashMock.compare).not.toHaveBeenCalled();
+
+      expect(repositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should throw if secret does not match", async () => {
+      repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithActiveUser(session));
+      hashMock.compare.mockResolvedValue(false);
+
+      const refreshedSession = service.refreshSession(refreshToken);
+
+      await expect(refreshedSession).rejects.toThrow("Refresh token inválido");
+
+      await expect(refreshedSession).rejects.toBeInstanceOf(AuthorizationError);
+
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+
+      expect(hashMock.compare).toHaveBeenCalledTimes(1);
+      expect(hashMock.compare).toHaveBeenCalledWith(
+        secret,
+        session.refreshToken,
+      );
+
+      expect(repositoryMock.invalidate).not.toHaveBeenCalled();
+
+      expect(repositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should accept the previous refresh token within the grace window", async () => {
+      const rotated = makeSession({
+        id: sessionId,
+        refreshToken: "new-hash",
+        previousRefreshToken: "old-hash",
+        rotatedAt: new Date(Date.now() - 5000),
+      });
+      repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithActiveUser(rotated));
+      hashMock.compare.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      hashMock.hash.mockResolvedValue("rotated-again");
+      repositoryMock.update.mockResolvedValue();
+
+      const result = await service.refreshSession(refreshToken);
+
+      expect(hashMock.compare).toHaveBeenNthCalledWith(2, secret, "old-hash");
+      expect(repositoryMock.update).toHaveBeenCalledWith(sessionId, expect.objectContaining({
+        refreshToken: "rotated-again",
+        previousRefreshToken: "new-hash",
+      }));
+      expect(result.refreshToken.startsWith(`${sessionId}.`)).toBe(true);
+    });
+
+    it("should reject the previous refresh token after the grace window", async () => {
+      const rotated = makeSession({
+        id: sessionId,
+        refreshToken: "new-hash",
+        previousRefreshToken: "old-hash",
+        rotatedAt: new Date(Date.now() - 120000),
+      });
+      repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithActiveUser(rotated));
+      hashMock.compare.mockResolvedValue(false);
+
+      await expect(service.refreshSession(refreshToken)).rejects.toBeInstanceOf(AuthorizationError);
+      expect(hashMock.compare).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.update).not.toHaveBeenCalled();
+    });
+
+    it("should propagate repository findByIdWithUser error", async () => {
+      repositoryMock.invalidate.mockResolvedValue(undefined);
+      repositoryMock.findByIdWithUser.mockRejectedValue(new Error("findByIdWithUser error"));
+
+      await expect(service.refreshSession(refreshToken)).rejects.toThrow(
+        "findByIdWithUser error",
+      );
+
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+
+      expect(hashMock.compare).not.toHaveBeenCalled();
+
+      expect(repositoryMock.invalidate).not.toHaveBeenCalled();
+
+      expect(repositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should propagate compare error", async () => {
+      repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithActiveUser(session));
+      repositoryMock.invalidate.mockResolvedValue(undefined);
+      hashMock.compare.mockRejectedValue(new Error("compare error"));
+
+      await expect(service.refreshSession(refreshToken)).rejects.toThrow(
+        "compare error",
+      );
+
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+
+      expect(hashMock.compare).toHaveBeenCalledTimes(1);
+      expect(hashMock.compare).toHaveBeenCalledWith(
+        secret,
+        session.refreshToken,
+      );
+
+      expect(repositoryMock.invalidate).not.toHaveBeenCalled();
+
+      expect(repositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it("should propagate update error", async () => {
+      repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithActiveUser(session));
+      repositoryMock.update.mockRejectedValue(new Error("db error"));
+
+      hashMock.compare.mockResolvedValue(true);
+
+      await expect(service.refreshSession(refreshToken)).rejects.toThrow(
+        "db error",
+      );
+
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+
+      expect(hashMock.compare).toHaveBeenCalledTimes(1);
+      expect(hashMock.compare).toHaveBeenCalledWith(
+        secret,
+        session.refreshToken,
+      );
+    });
+
+    it("should throw if user is deleted", async () => {
+  const sessionWithDeletedUser: SessionWithUserDTO = {
+    ...session,
+    user: { id: "user-id", role: "USER", deletedAt: new Date() }
+  }
+  repositoryMock.findByIdWithUser.mockResolvedValue(sessionWithDeletedUser)
+
+  const promise = service.refreshSession(refreshToken)
+
+  await expect(promise).rejects.toThrow("Usuário desativado")
+  await expect(promise).rejects.toBeInstanceOf(AuthorizationError)
+
+  expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1)
+  expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId)
+
+  expect(repositoryMock.invalidate).not.toHaveBeenCalled()
+
+  expect(hashMock.compare).not.toHaveBeenCalled()
+
+  expect(hashMock.hash).not.toHaveBeenCalled()
+
+  expect(repositoryMock.update).not.toHaveBeenCalled()
+
+})
+  });
+
+  describe("invalidateAllByUserId tests", () => {
+    it("should call repository invalidateAllByUserId with correct userId", async () => {
+      const userId = "user-id-test";
+      repositoryMock.invalidateAllByUserId.mockResolvedValue(undefined);
+
+      await service.invalidateAllByUserId(userId);
+
+      expect(repositoryMock.invalidateAllByUserId).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.invalidateAllByUserId).toHaveBeenCalledWith(userId);
+    });
+  });
+
+  describe("validateSession tests", () => {
+    const sessionId = "123";
+
+    const session = makeSession({
+      refreshToken: "hashed-secret",
+      id: sessionId,
+    });
+
+
+    it("should validate the session and return the data of its respective user", async () => {
+
+            const repoReturns: SessionWithUserDTO = {
+        ...session,
+        user: {
+          id: "123",
+          role: "USER",
+          deletedAt: null,
+        },
+      };
+
+      repositoryMock.findByIdWithUser.mockResolvedValue(repoReturns);
+
+      const userSessionData = await service.validateSession(sessionId);
+
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+      expect(userSessionData).toMatchObject({
+        userId: expect.any(String),
+        userRole: expect.any(String),
+      });
+    });
+
+    it("should throw a validationError because the session does not exist.", async () => {
+      repositoryMock.findByIdWithUser.mockResolvedValue(null);
+
+      const userSessionData = service.validateSession(sessionId);
+
+      await expect(userSessionData).rejects.toThrow(
+        "Sessão inválida ou não encontrada",
+      );
+      await expect(userSessionData).rejects.toBeInstanceOf(AuthorizationError);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+    });
+
+    it("should throw a validationError because the session does not valid.", async () => {
+      const session = makeSession({isValid: false})
+            const repoReturns: SessionWithUserDTO = {
+        ...session,
+        user: {
+          id: "123",
+          role: "USER",
+          deletedAt: null,
+        },
+      };
+
+      repositoryMock.findByIdWithUser.mockResolvedValue(repoReturns);
+
+      const userSessionData = service.validateSession(sessionId);
+
+      await expect(userSessionData).rejects.toThrow(
+        "Sessão inválida ou não encontrada",
+      );
+      await expect(userSessionData).rejects.toBeInstanceOf(AuthorizationError);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+    });
+
+    it("should throw a validationError because the session does not expired.", async () => {
+      jest.useFakeTimers().setSystemTime(new Date("2026-02-21T10:00:00"))
+
+      const session = makeSession({expiresAt: new Date("2026-02-20T10:00:00") })
+            const repoReturns: SessionWithUserDTO = {
+        ...session,
+        user: {
+          id: "123",
+          role: "USER",
+          deletedAt: null,
+        },
+      };
+
+      repositoryMock.findByIdWithUser.mockResolvedValue(repoReturns);
+
+      const userSessionData = service.validateSession(sessionId);
+
+      await expect(userSessionData).rejects.toThrow(
+        "Sessão inválida ou não encontrada",
+      );
+      await expect(userSessionData).rejects.toBeInstanceOf(AuthorizationError);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.findByIdWithUser).toHaveBeenCalledWith(sessionId);
+
+      jest.useRealTimers()
+    });
+  });
+});
