@@ -22,6 +22,7 @@ import type { IUserRepository } from "../../users/interfaces/user-repository.int
 import type { TransferTicketDTO } from "../DTOs/transfer-ticket.DTO";
 import type { UpdateTicketRepositoryDTO } from "../DTOs/update-ticket-repository.DTO";
 import type { ITicketService } from "../interfaces/services/ticket-service.interface";
+import { safeDeleteStoredObject } from "../../../shared/storage/utils/safe-delete.util";
 
 const MAX_IMAGES = 5
 
@@ -217,7 +218,7 @@ export class TicketService implements ITicketService {
     }
 
     private async removeImages(attachments: AttachmentInputDTO[]) {
-        await Promise.all(attachments.map(item => this.storage.delete(item.storageKey).catch(() => undefined)))
+        await Promise.all(attachments.map(item => safeDeleteStoredObject(this.storage, item.storageKey, "desfazer envio de anexo do chamado")))
     }
 
     private async getDetail(ticketId: string): Promise<ResponseTicketDetailDTO> {

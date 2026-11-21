@@ -16,6 +16,7 @@ import type { UpdateFileDTO } from "../DTOs/update-file.DTO";
 import type { UploadedFileDTO } from "../DTOs/uploaded-file.DTO";
 import type { IFileRepository } from "../interfaces/repositories/file-repository.interface";
 import type { IFileService } from "../interfaces/services/file-service.interface";
+import { safeDeleteStoredObject } from "../../../shared/storage/utils/safe-delete.util";
 
 export const USER_STORAGE_QUOTA_BYTES = 2 * 1024 * 1024 * 1024
 
@@ -60,7 +61,7 @@ export class FileService implements IFileService {
 
             return this.mapResponse(stored)
         } catch (err) {
-            await this.storage.delete(storageKey).catch(() => undefined)
+            await safeDeleteStoredObject(this.storage, storageKey, "desfazer envio de arquivo")
             throw err
         }
     }
@@ -100,7 +101,7 @@ export class FileService implements IFileService {
         this.ownership.validateStrictOwnership(authUser, file.userId)
 
         await this.fileRepository.delete(file.id)
-        await this.storage.delete(file.storageKey).catch(() => undefined)
+        await safeDeleteStoredObject(this.storage, file.storageKey, "exclusão de arquivo")
     }
 
     async createAccess(authUser: AuthUserDTO, fileId: string): Promise<FileAccessDTO> {
