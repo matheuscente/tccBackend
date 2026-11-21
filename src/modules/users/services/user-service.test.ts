@@ -15,6 +15,7 @@ import type { AuthUserDTO } from "../../../shared/DTOs/auth-user.DTO";
 import type { IOwnershipService } from "../../../shared/ownership/ownership-service.interface";
 import type { IGoalRepository } from "../../goals/interfaces/repositories/goal-repository.interface";
 import type { IStudySessionRepository } from "../../study-sessions/interfaces/repositories/study-session-repository.interface";
+import { ForbiddenError } from "../../../shared/errors/forbidden.error";
 import { DateConvert } from "../../../shared/convert/utils/date-convert.utils";
 
 describe("user service tests", () => {
@@ -125,6 +126,10 @@ describe("user service tests", () => {
   };
 
 
+  const ticketRepositoryMock = {
+    releaseAssignedTo: jest.fn(),
+  };
+
   const transactionMock: jest.Mocked<ITransaction> = {
     execute: jest.fn().mockImplementation(async (callback) => {
       return callback({
@@ -134,7 +139,8 @@ describe("user service tests", () => {
         sessionRepository: sessionRepositoryMock,
         goalRepository: goalRepositoryMock,
         studySessionRepository: studySessionRepositoryMock,
-        scopedContentRepository: scopedContentRepositoryMock
+        scopedContentRepository: scopedContentRepositoryMock,
+        ticketRepository: ticketRepositoryMock
       });
     }),
   };
@@ -676,6 +682,71 @@ describe("user service tests", () => {
       expect(studySessionRepositoryMock.deleteAllByUserId).toHaveBeenCalledWith(
         user.id,
       );
+      expect(ticketRepositoryMock.releaseAssignedTo).not.toHaveBeenCalled();
+    });
+
+    it("should return the tickets in progress to the queue when deleting an ADMIN", async () => {
+      const user = makeUser({ role: "ADMIN" });
+      const adminUser: AuthUserDTO = { id: "admin-id", role: "ADMIN", sessionId: "default" };
+
+      repositoryMock.findById.mockResolvedValue(user);
+      ownerMock.validateOwnership.mockReturnValue(undefined);
+
+      await service.softDelete(adminUser, user.id);
+
+      expect(ticketRepositoryMock.releaseAssignedTo).toHaveBeenCalledWith(user.id, adminUser.id);
+      expect(repositoryMock.softDelete).toHaveBeenCalledWith(user.id);
+    });
+  });
+
+  describe("updateRole tests", () => {
+    const admin: AuthUserDTO = { id: "admin-id", role: "ADMIN", sessionId: "default" };
+
+    it("should return the tickets in progress to the queue when demoting an ADMIN", async () => {
+      const user = makeUser({ role: "ADMIN" });
+      repositoryMock.findById.mockResolvedValue(user);
+      repositoryMock.updateRole.mockResolvedValue({ ...user, role: "USER" });
+
+      const result = await service.updateRole(admin, user.id, "USER");
+
+      expect(transactionMock.execute).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.updateRole).toHaveBeenCalledWith(user.id, "USER");
+      expect(ticketRepositoryMock.releaseAssignedTo).toHaveBeenCalledWith(user.id, admin.id);
+      expect(result.role).toBe("USER");
+    });
+
+    it("should not touch tickets when promoting a USER", async () => {
+      const user = makeUser();
+      repositoryMock.findById.mockResolvedValue(user);
+      repositoryMock.updateRole.mockResolvedValue({ ...user, role: "ADMIN" });
+
+      await service.updateRole(admin, user.id, "ADMIN");
+
+      expect(repositoryMock.updateRole).toHaveBeenCalledWith(user.id, "ADMIN");
+      expect(ticketRepositoryMock.releaseAssignedTo).not.toHaveBeenCalled();
+    });
+
+    it("should throw ForbiddenError when authUser is not ADMIN", async () => {
+      const promise = service.updateRole({ ...admin, role: "USER" }, "user-id", "ADMIN");
+
+      await expect(promise).rejects.toBeInstanceOf(ForbiddenError);
+      expect(repositoryMock.updateRole).not.toHaveBeenCalled();
+    });
+
+    it("should throw ValidationError when the admin changes the own role", async () => {
+      const promise = service.updateRole(admin, admin.id, "USER");
+
+      await expect(promise).rejects.toBeInstanceOf(ValidationError);
+      expect(ticketRepositoryMock.releaseAssignedTo).not.toHaveBeenCalled();
+    });
+
+    it("should throw NotFoundError when user does not exist", async () => {
+      repositoryMock.findById.mockResolvedValue(null);
+
+      const promise = service.updateRole(admin, "missing-id", "USER");
+
+      await expect(promise).rejects.toBeInstanceOf(NotFoundError);
+      expect(repositoryMock.updateRole).not.toHaveBeenCalled();
     });
   });
 });

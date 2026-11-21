@@ -133,4 +133,24 @@ export class TicketRepository implements ITicketRepository {
         groups.forEach(group => { result[group.status] = group._count._all })
         return result
     }
+
+    // devolve para a fila (Aberto, sem responsável) os chamados em atendimento com o administrador
+    async releaseAssignedTo(adminId: string, actorId: string): Promise<number> {
+        const tickets = await this.orm.ticket.findMany({
+            where: { assignedToId: adminId, status: "IN_PROGRESS" },
+            select: { id: true }
+        })
+        if (tickets.length === 0) return 0
+
+        const ticketIds = tickets.map(ticket => ticket.id)
+        await this.orm.ticket.updateMany({
+            where: { id: { in: ticketIds } },
+            data: { status: "OPEN", assignedToId: null }
+        })
+        await this.orm.ticketEvent.createMany({
+            data: ticketIds.map(ticketId => ({ ticketId, actorId, type: "STATUS_CHANGED" as const, status: "OPEN" as const, targetId: adminId }))
+        })
+
+        return ticketIds.length
+    }
 }
