@@ -7,6 +7,7 @@ import { AuthorizationError } from "../shared/errors/authorization.error"
 import CelebrateValidationError from "../shared/errors/celebrate-validation.error"
 import { MulterError } from "multer"
 import { Prisma } from "@prisma/client"
+import { env } from "../config/env"
 
 export abstract class ErrorHandler {
     static handler(app: express.Express) {
@@ -20,7 +21,7 @@ export abstract class ErrorHandler {
 
             if (err instanceof MulterError) {
                 const message = err.code === "LIMIT_FILE_SIZE"
-                    ? "O arquivo excede o tamanho máximo permitido"
+                    ? `O arquivo excede o tamanho máximo de ${env.storage.maxFileSizeMb} MB`
                     : err.code === "LIMIT_FILE_COUNT" || err.code === "LIMIT_UNEXPECTED_FILE"
                         ? "Quantidade de arquivos acima do permitido"
                         : "Erro no envio do arquivo"

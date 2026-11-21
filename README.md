@@ -267,7 +267,7 @@ sequenceDiagram
     API-->>F: 206 Partial Content (stream)
 ```
 
-- Limite por arquivo: `MAX_FILE_SIZE_MB` (padrão 100 MB). Cota por usuário: 2 GB.
+- Limite por arquivo: `MAX_FILE_SIZE_MB` (padrão 95 MB, abaixo do limite de 100 MB por requisição do Cloudflare). Cota por usuário: 2 GB.
 - `<video>`, `<img>` e `<iframe>` não enviam o header `Authorization`, por isso a visualização usa links temporários assinados (`FILE_TOKEN_SECRET`).
 - O suporte a `Range` permite avançar e voltar vídeos sem baixar o arquivo inteiro.
 - `position` (opcional, também no `PATCH`) é a ordem manual no modo estudo; o multipart envia texto e o Joi converte para número.
