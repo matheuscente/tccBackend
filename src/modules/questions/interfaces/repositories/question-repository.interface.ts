@@ -2,6 +2,7 @@ import type { CreateQuestionRepositoryDTO } from "../../DTOs/create-question-rep
 import type { UpdateQuestionRepositoryDTO } from "../../DTOs/update-question-repository.DTO"
 import type { QuestionScopeFilterDTO } from "../../DTOs/question-scope-filter.DTO"
 import type { QuestionWithOptionsDTO } from "../../DTOs/question-with-options.DTO"
+import type { QuestionActivityUsageDTO } from "../../DTOs/question-activity-usage.DTO"
 
 export interface IQuestionRepository {
     create(data: CreateQuestionRepositoryDTO): Promise<QuestionWithOptionsDTO>
@@ -10,4 +11,5 @@ export interface IQuestionRepository {
     findManyByIds(questionIds: string[], userId: string): Promise<QuestionWithOptionsDTO[]>
     update(questionId: string, data: UpdateQuestionRepositoryDTO): Promise<QuestionWithOptionsDTO>
     softDelete(questionId: string): Promise<void>
+    findActivitiesUsing(questionId: string): Promise<QuestionActivityUsageDTO[]>
 }

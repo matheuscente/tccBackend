@@ -12,6 +12,7 @@ import type { QuestionOptionRepositoryDTO } from "../DTOs/question-option-reposi
 import type { QuestionScopeFilterDTO } from "../DTOs/question-scope-filter.DTO";
 import type { QuestionWithOptionsDTO } from "../DTOs/question-with-options.DTO";
 import type { ResponseQuestionDTO } from "../DTOs/response-question.DTO";
+import type { QuestionActivityUsageDTO } from "../DTOs/question-activity-usage.DTO";
 import type { IQuestionRepository } from "../interfaces/repositories/question-repository.interface";
 import type { IQuestionService } from "../interfaces/services/question-service.interface";
 
@@ -88,6 +89,17 @@ export class QuestionService implements IQuestionService {
         this.ownership.validateOwnership(authUser, question.userId)
 
         await this.questionRepository.softDelete(questionId)
+    }
+
+    // atividades que usam a questão, para o aviso antes de excluir
+    async findActivityUsage(authUser: AuthUserDTO, questionId: string): Promise<QuestionActivityUsageDTO[]> {
+        const question = await this.questionRepository.findById(questionId)
+
+        if (!question) throw new NotFoundError("Questão não encontrada")
+
+        this.ownership.validateOwnership(authUser, question.userId)
+
+        return this.questionRepository.findActivitiesUsing(questionId)
     }
 
     private prepareOptions(type: QuestionType, options: QuestionOptionInputDTO[]): QuestionOptionRepositoryDTO[] {

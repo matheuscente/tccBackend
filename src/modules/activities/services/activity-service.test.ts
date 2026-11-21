@@ -37,6 +37,7 @@ describe("ActivityService", () => {
     findManyByIds: jest.fn(),
     update: jest.fn(),
     softDelete: jest.fn(),
+    findActivitiesUsing: jest.fn(),
   };
 
   const ownershipMock: jest.Mocked<IOwnershipService> = {

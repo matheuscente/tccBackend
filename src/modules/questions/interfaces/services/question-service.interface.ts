@@ -3,6 +3,7 @@ import type { CreateQuestionDTO } from "../../DTOs/create-question.DTO"
 import type { UpdateQuestionDTO } from "../../DTOs/update-question.DTO"
 import type { QuestionScopeFilterDTO } from "../../DTOs/question-scope-filter.DTO"
 import type { ResponseQuestionDTO } from "../../DTOs/response-question.DTO"
+import type { QuestionActivityUsageDTO } from "../../DTOs/question-activity-usage.DTO"
 
 export interface IQuestionService {
     create(authUser: AuthUserDTO, data: CreateQuestionDTO): Promise<ResponseQuestionDTO>
@@ -10,4 +11,5 @@ export interface IQuestionService {
     findAllByUserId(authUser: AuthUserDTO, targetUserId: string, filter: QuestionScopeFilterDTO): Promise<ResponseQuestionDTO[]>
     update(authUser: AuthUserDTO, questionId: string, data: UpdateQuestionDTO): Promise<ResponseQuestionDTO>
     softDelete(authUser: AuthUserDTO, questionId: string): Promise<void>
+    findActivityUsage(authUser: AuthUserDTO, questionId: string): Promise<QuestionActivityUsageDTO[]>
 }

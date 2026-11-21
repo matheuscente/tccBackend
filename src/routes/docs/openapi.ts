@@ -207,6 +207,7 @@ export const openApiDocument = {
         ...crud("questions", "Question", ref("Question"), { type: "object", properties: { statement: { type: "string" }, explanation: { type: "string" }, options: { type: "array", items: { type: "object" } } } }, true),
 
         ...crud("activities", "Activity", { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, questionIds: { type: "array", items: uuid }, ...scopeProps } }, titled()),
+        "/questions/{id}/activities": { get: { tags: ["questions"], summary: "Lista as atividades que usam a questão (aviso antes de excluir)", ...secured, parameters: [idParam], responses: { 200: ok({ type: "array", items: { type: "object", properties: { id: uuid, title: { type: "string" } } } }), ...errors } } },
         "/activities/{id}/questions": { put: { tags: ["activities"], summary: "Define as questões da atividade (na ordem)", ...secured, parameters: [idParam], requestBody: body({ type: "object", properties: { questionIds: { type: "array", items: uuid } } }), responses: { 200: ok(ref("Activity")), ...errors } } },
         "/activities/{id}/answer": { get: { tags: ["activities"], summary: "Questões para responder (sem gabarito)", ...secured, parameters: [idParam], responses: { 200: { description: "Atividade" }, ...errors } } },
         "/activities/{id}/attempts": {
