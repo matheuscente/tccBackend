@@ -33,7 +33,7 @@ export const env = {
   // sem as variáveis do B2, os arquivos ficam em disco local
   storage: {
     localDir: process.env.STORAGE_LOCAL_DIR ?? "uploads",
-    maxFileSizeMb: toNumber(process.env.MAX_FILE_SIZE_MB, 100),
+    maxFileSizeMb: toNumber(process.env.MAX_FILE_SIZE_MB, 95),
     b2: {
       endpoint: process.env.B2_ENDPOINT,
       region: process.env.B2_REGION,

@@ -18,4 +18,5 @@ export interface ITicketRepository {
     addEvent(data: CreateTicketEventRepositoryDTO): Promise<TicketEvent>
     findAttachmentById(attachmentId: string): Promise<AttachmentWithOwnerDTO | null>
     countByStatus(): Promise<Record<TicketStatus, number>>
+    releaseAssignedTo(adminId: string, actorId: string): Promise<number>
 }

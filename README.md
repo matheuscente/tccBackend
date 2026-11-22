@@ -92,6 +92,8 @@ O B2 é acessado pela API compatível com S3 (`@aws-sdk/client-s3`). O simulador
 | `B2_KEY_ID` / `B2_APPLICATION_KEY` | `local-key-id` / qualquer valor | chaves de aplicação do B2 |
 | `B2_FORCE_PATH_STYLE` | `true` | `false` |
 
+A API valida essas variáveis ao subir: se apenas parte delas estiver definida, ou se `B2_ENDPOINT` não começar com `https://` (ou `http://` no simulador), ela encerra com uma mensagem dizendo o que corrigir. Sem nenhuma variável `B2_*`, os arquivos ficam em disco local.
+
 O simulador confere apenas o `B2_KEY_ID` (não valida a assinatura) e grava os arquivos no volume `b2-data` (ou em `b2-local/data` quando roda com `npm run b2:local`).
 Sem nenhuma variável `B2_*`, a API grava direto em disco, na pasta `STORAGE_LOCAL_DIR`.
 
@@ -265,7 +267,7 @@ sequenceDiagram
     API-->>F: 206 Partial Content (stream)
 ```
 
-- Limite por arquivo: `MAX_FILE_SIZE_MB` (padrão 100 MB). Cota por usuário: 2 GB.
+- Limite por arquivo: `MAX_FILE_SIZE_MB` (padrão 95 MB, abaixo do limite de 100 MB por requisição do Cloudflare). Cota por usuário: 2 GB.
 - `<video>`, `<img>` e `<iframe>` não enviam o header `Authorization`, por isso a visualização usa links temporários assinados (`FILE_TOKEN_SECRET`).
 - O suporte a `Range` permite avançar e voltar vídeos sem baixar o arquivo inteiro.
 - `position` (opcional, também no `PATCH`) é a ordem manual no modo estudo; o multipart envia texto e o Joi converte para número.

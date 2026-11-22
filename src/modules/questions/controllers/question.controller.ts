@@ -97,4 +97,20 @@ export class QuestionController implements IQuestionController {
             next(err)
         }
     }
+
+    findActivityUsage = async (req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const authUser = req.user
+            const { id } = req.params
+
+            if (!authUser) throw new AuthorizationError("Usuário não autenticado")
+
+            const activities = await this.service.findActivityUsage(authUser, id)
+
+            res.status(200).json(httpSuccessResponse(200, activities))
+
+        } catch (err) {
+            next(err)
+        }
+    }
 }

@@ -169,6 +169,7 @@ export class UserService implements IUserService {
       await repositories.goalRepository.deleteAllByUserId(user.id)
       await repositories.scopedContentRepository.cleanupByUserId(user.id)
       await repositories.courseRepository.softDeleteAllByUserId(user.id)
+      if (user.role === "ADMIN") await repositories.ticketRepository.releaseAssignedTo(user.id, authUser.id)
       await repositories.userRepository.softDelete(id);
       await repositories.sessionRepository.invalidateAllByUserId(user.id)
       return;
@@ -198,7 +199,16 @@ export class UserService implements IUserService {
     const user = await this.repository.findById(id)
     if (!user) throw new NotFoundError("Usuário não encontrado")
 
-    const updated = await this.repository.updateRole(id, role)
+    const updated = await this.transaction.execute(async (repositories) => {
+      const changed = await repositories.userRepository.updateRole(id, role)
+
+      // quem deixa de ser administrador não pode mais atender: os chamados com ele voltam para a fila
+      if (user.role === "ADMIN" && role !== "ADMIN") {
+        await repositories.ticketRepository.releaseAssignedTo(user.id, authUser.id)
+      }
+
+      return changed
+    })
     return this.mapResponse(updated)
   }
 

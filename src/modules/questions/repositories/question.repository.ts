@@ -4,6 +4,7 @@ import type { CreateQuestionRepositoryDTO } from "../DTOs/create-question-reposi
 import type { UpdateQuestionRepositoryDTO } from "../DTOs/update-question-repository.DTO";
 import type { QuestionScopeFilterDTO } from "../DTOs/question-scope-filter.DTO";
 import type { QuestionWithOptionsDTO } from "../DTOs/question-with-options.DTO";
+import type { QuestionActivityUsageDTO } from "../DTOs/question-activity-usage.DTO";
 
 const includeOptions = { options: { orderBy: { order: "asc" } } } as const
 
@@ -71,6 +72,15 @@ export class QuestionRepository implements IQuestionRepository {
         await this.orm.question.updateMany({
             where: { id: questionId, deletedAt: null },
             data: { deletedAt: new Date() }
+        })
+    }
+
+    // atividades (não excluídas) que usam a questão
+    async findActivitiesUsing(questionId: string): Promise<QuestionActivityUsageDTO[]> {
+        return this.orm.activity.findMany({
+            where: { deletedAt: null, questions: { some: { questionId } } },
+            select: { id: true, title: true },
+            orderBy: { title: "asc" }
         })
     }
 

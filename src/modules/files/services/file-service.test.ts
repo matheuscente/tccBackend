@@ -198,8 +198,12 @@ describe("FileService", () => {
       fileRepositoryMock.create.mockRejectedValue(new Error("db error"));
       storageMock.delete.mockRejectedValue(new Error("storage error"));
 
+      const consoleError = jest.spyOn(console, "error").mockImplementation(() => undefined);
+
       await expect(service.upload(userAuthUser, makeUploadedFile(), {})).rejects.toThrow("db error");
       expect(storageMock.delete).toHaveBeenCalledTimes(1);
+      expect(consoleError).toHaveBeenCalledWith(expect.stringContaining(storageMock.put.mock.calls[0]![0]), expect.any(Error));
+      consoleError.mockRestore();
     });
 
     it("should not save metadata when storage put fails", async () => {
@@ -309,11 +313,15 @@ describe("FileService", () => {
       expect(storageMock.delete).not.toHaveBeenCalled();
     });
 
-    it("should ignore storage errors after deleting metadata", async () => {
-      fileRepositoryMock.findById.mockResolvedValue(makeFile({ userId: userAuthUser.id }));
+    it("should log storage errors after deleting metadata without failing", async () => {
+      const file = makeFile({ userId: userAuthUser.id });
+      fileRepositoryMock.findById.mockResolvedValue(file);
       storageMock.delete.mockRejectedValue(new Error("storage error"));
+      const consoleError = jest.spyOn(console, "error").mockImplementation(() => undefined);
 
       await expect(service.delete(userAuthUser, "id")).resolves.toBeUndefined();
+      expect(consoleError).toHaveBeenCalledWith(expect.stringContaining(file.storageKey), expect.any(Error));
+      consoleError.mockRestore();
     });
 
     it("should throw ForbiddenError when ADMIN deletes another user's file", async () => {

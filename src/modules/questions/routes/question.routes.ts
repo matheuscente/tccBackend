@@ -16,6 +16,8 @@ questionRoutes.get('/id/:id', RequestValidator.paramsValidator(FindByIdSchema), 
 
 questionRoutes.get('/user/:userId', RequestValidator.paramsValidator(findAllByUserIdQuestionSchema), RequestValidator.queryValidator(filterQuestionSchema), authentication, questionController.findAllByUserId)
 
+questionRoutes.get('/:id/activities', RequestValidator.paramsValidator(FindByIdSchema), authentication, questionController.findActivityUsage)
+
 questionRoutes.post('/', RequestValidator.bodyValidator(createQuestionSchema), authentication, questionController.create)
 
 questionRoutes.patch('/:id', RequestValidator.paramsValidator(FindByIdSchema), RequestValidator.bodyValidator(updateQuestionSchema), authentication, questionController.update)

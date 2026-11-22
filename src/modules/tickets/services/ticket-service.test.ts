@@ -27,6 +27,7 @@ describe("TicketService", () => {
     addEvent: jest.fn(),
     findAttachmentById: jest.fn(),
     countByStatus: jest.fn(),
+    releaseAssignedTo: jest.fn(),
   };
 
   const storageMock: jest.Mocked<IStorageProvider> = {

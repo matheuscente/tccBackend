@@ -19,6 +19,7 @@ describe("QuestionService", () => {
     findManyByIds: jest.fn(),
     update: jest.fn(),
     softDelete: jest.fn(),
+    findActivitiesUsing: jest.fn(),
   };
 
   const ownershipMock: jest.Mocked<IOwnershipService> = {
@@ -332,6 +333,36 @@ describe("QuestionService", () => {
 
       await expect(service.softDelete(userAuthUser, "question-id")).rejects.toThrow(ForbiddenError);
       expect(questionRepositoryMock.softDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("findActivityUsage", () => {
+    it("should list the activities that use an owned question", async () => {
+      const question = makeQuestion({ userId: userAuthUser.id });
+      const activities = [{ id: "activity-id", title: "Activity" }];
+      questionRepositoryMock.findById.mockResolvedValue(question);
+      questionRepositoryMock.findActivitiesUsing.mockResolvedValue(activities);
+
+      const result = await service.findActivityUsage(userAuthUser, question.id);
+
+      expect(ownershipMock.validateOwnership).toHaveBeenCalledWith(userAuthUser, userAuthUser.id);
+      expect(questionRepositoryMock.findActivitiesUsing).toHaveBeenCalledWith(question.id);
+      expect(result).toEqual(activities);
+    });
+
+    it("should throw NotFoundError when question does not exist", async () => {
+      questionRepositoryMock.findById.mockResolvedValue(null);
+
+      await expect(service.findActivityUsage(userAuthUser, "missing")).rejects.toThrow(NotFoundError);
+      expect(questionRepositoryMock.findActivitiesUsing).not.toHaveBeenCalled();
+    });
+
+    it("should not list when ownership fails", async () => {
+      questionRepositoryMock.findById.mockResolvedValue(makeQuestion({ userId: "other-user" }));
+      ownershipMock.validateOwnership.mockImplementationOnce(() => { throw new ForbiddenError() });
+
+      await expect(service.findActivityUsage(userAuthUser, "question-id")).rejects.toThrow(ForbiddenError);
+      expect(questionRepositoryMock.findActivitiesUsing).not.toHaveBeenCalled();
     });
   });
 

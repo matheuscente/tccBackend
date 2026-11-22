@@ -13,4 +13,6 @@ export interface IQuestionController {
     update(req: Request<{ id: string }, any, UpdateQuestionDTO>, res: Response, next: NextFunction): Promise<void>
 
     softDelete(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void>
+
+    findActivityUsage(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void>
 }
